@@ -3,10 +3,108 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Party Website</title>
+
+  <meta
+    name="description"
+    content="Information about our party, including camping, food, activities and travel."
+  >
+
+  <title>Our Big Party</title>
+
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/navigation.js" defer></script>
 </head>
+
 <body>
-  <h1>Party website</h1>
-  <p>More information coming soon.</p>
+  <header class="site-header">
+    <div class="nav-container">
+      <a class="site-name" href="index.html">Our Big Party</a>
+
+      <button
+        class="menu-button"
+        type="button"
+        aria-expanded="false"
+        aria-controls="main-navigation"
+      >
+        Menu
+      </button>
+
+      <nav id="main-navigation" class="main-navigation">
+        <a href="index.html" aria-current="page">Home</a>
+        <a href="camping.html">Camping</a>
+        <a href="food.html">Food</a>
+        <a href="activities.html">Activities</a>
+        <a href="travel.html">Travel</a>
+        <a href="faq.html">FAQs</a>
+        <a class="nav-rsvp" href="rsvp.html">RSVP</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-content">
+        <p class="eyebrow">Save the date</p>
+
+        <h1>Our Big Party</h1>
+
+        <p class="event-details">
+          Saturday 10 July 2027 · Somewhere in Scotland
+        </p>
+
+        <p class="hero-description">
+          A weekend of camping, food, music, games and questionable dancing.
+        </p>
+
+        <a class="button" href="rsvp.html">RSVP</a>
+      </div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-heading">
+        <p class="eyebrow">Plan your weekend</p>
+        <h2>Everything you need to know</h2>
+      </div>
+
+      <div class="card-grid">
+        <a class="card" href="camping.html">
+          <h3>Camping</h3>
+          <p>Arrival times, facilities and what to bring.</p>
+        </a>
+
+        <a class="card" href="food.html">
+          <h3>Food and drink</h3>
+          <p>Meals, dietary requirements and drinks.</p>
+        </a>
+
+        <a class="card" href="activities.html">
+          <h3>Activities</h3>
+          <p>Games, music and plans for the weekend.</p>
+        </a>
+
+        <a class="card" href="travel.html">
+          <h3>Travel</h3>
+          <p>Directions, parking and public transport.</p>
+        </a>
+      </div>
+    </section>
+
+    <section class="highlight-section">
+      <div>
+        <p class="eyebrow">Important</p>
+        <h2>Please reply by 1 May 2027</h2>
+        <p>
+          Let us know whether you are attending, camping and whether you have
+          any dietary requirements.
+        </p>
+      </div>
+
+      <a class="button button-light" href="rsvp.html">Complete the RSVP</a>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Questions? Contact Andrew or the other hosts.</p>
+  </footer>
 </body>
 </html>
