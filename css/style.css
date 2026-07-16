@@ -307,3 +307,114 @@ h2 {
     padding: 2rem;
   }
 }
+
+.page-hero {
+  padding: 6rem 1rem 4rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.page-hero-content {
+  width: min(100%, 850px);
+  margin-inline: auto;
+  text-align: center;
+}
+
+.page-hero h1 {
+  margin-bottom: 1.5rem;
+  font-size: clamp(3.5rem, 9vw, 6rem);
+}
+
+.page-introduction {
+  max-width: 700px;
+  margin: 0 auto;
+  color: var(--muted);
+  font-size: 1.2rem;
+}
+
+.page-content {
+  width: min(100% - 2rem, 800px);
+  margin-inline: auto;
+  padding: 4rem 0 6rem;
+}
+
+.content-block {
+  margin-bottom: 3.5rem;
+}
+
+.content-block h2,
+.notice h2 {
+  margin-bottom: 1rem;
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+}
+
+.content-block p {
+  color: var(--muted);
+}
+
+.content-block a {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.information-list {
+  margin: 0;
+  padding-left: 1.4rem;
+  color: var(--muted);
+}
+
+.information-list li {
+  margin-bottom: 0.7rem;
+  padding-left: 0.3rem;
+}
+
+.notice {
+  margin: 4rem 0;
+  padding: 2.5rem;
+  border-left: 6px solid var(--accent);
+  border-radius: 0 1rem 1rem 0;
+  background: var(--surface);
+}
+
+.notice p:last-child {
+  margin-bottom: 0;
+  color: var(--muted);
+}
+
+.page-actions {
+  margin-top: 5rem;
+  padding-top: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  border-top: 1px solid var(--border);
+}
+
+.text-link {
+  color: var(--accent);
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.text-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 600px) {
+  .page-hero {
+    padding: 4rem 1rem 3rem;
+  }
+
+  .page-content {
+    padding-top: 3rem;
+  }
+
+  .notice {
+    padding: 1.5rem;
+  }
+
+  .page-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
