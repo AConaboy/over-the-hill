@@ -18,9 +18,15 @@
 <body>
   <header class="site-header">
     <div class="nav-container">
-      <a class="site-name" href="index.html">Over the Hill
-        
-      </a>
+      <div class="brand-group">
+        <a class="site-logo" href="index.html" aria-label="Go to the homepage">
+          <img
+            src="images/over-the-hill-artwork-1.jpeg"
+            alt="Over the Hill artwork icon"
+          >
+        </a>
+        <a class="site-name" href="index.html">Over the Hill</a>
+      </div>
 
       <button
         class="menu-button"
@@ -32,77 +38,44 @@
       </button>
 
       <nav id="main-navigation" class="main-navigation">
-        <a href="index.html" aria-current="page">Home</a>
         <a href="camping.html">Camping</a>
         <a href="food.html">Food</a>
         <a href="activities.html">Activities</a>
         <a href="travel.html">Travel</a>
         <a href="faq.html">FAQs</a>
+        <a href="ticket.html">Tickets</a>
         <a class="nav-rsvp" href="rsvp.html">RSVP</a>
       </nav>
     </div>
   </header>
 
-  <main>
-    <section class="hero">
-      <div class="hero-content">
-        <p class="eyebrow">Save the date</p>
+  <main class="homepage-main">
+    <section class="homepage-split">
+      <div class="art-panel">
+        <img
+          src="images/over-the-hill-artwork-1.jpeg"
+          alt="Over the Hill artwork"
+        >
+      </div>
+
+      <div class="home-links-panel">
 
         <h1>Over the Hill</h1>
-
-        <p class="event-details">
-          August 14–16, 2027<br>
-          Woodend Farm, Cradley, WR13 5JW
-        </p>
 
         <p class="hero-description">
           A weekend of dancing, partying and fannying about
         </p>
 
-        <a class="button" href="rsvp.html">RSVP</a>
+        <div class="home-links">
+          <a class="home-link" href="rsvp.html">RSVP <span>→</span></a>
+          <a class="home-link" href="food.html">Food <span>→</span></a>
+          <a class="home-link" href="travel.html">Travel <span>→</span></a>
+          <a class="home-link" href="activities.html">Activities <span>→</span></a>
+          <a class="home-link" href="camping.html">Camping <span>→</span></a>
+          <a class="home-link" href="faq.html">FAQs <span>→</span></a>
+          <a class="home-link" href="ticket.html">Tickets <span>→</span></a>
+        </div>
       </div>
-    </section>
-
-    <section class="content-section">
-      <div class="section-heading">
-        <p class="eyebrow">Plan your weekend</p>
-        <h2>Everything you need to know</h2>
-      </div>
-
-      <div class="card-grid">
-        <a class="card" href="camping.html">
-          <h3>Camping</h3>
-          <p>Facilities and what to bring.</p>
-        </a>
-
-        <a class="card" href="food.html">
-          <h3>Food and drink</h3>
-          <p>Meals, dietary requirements and drinks.</p>
-        </a>
-
-        <a class="card" href="activities.html">
-          <h3>Activities</h3>
-          <p>Games, music and plans for the weekend.</p>
-        </a>
-
-        <a class="card" href="travel.html">
-          <h3>Travel</h3>
-          <p>When to arrive, when to leave, how to get there.</p>
-        </a>
-      </div>
-    </section>
-
-    <section class="highlight-section">
-      <div>
-        <p class="eyebrow">Important</p>
-        <h2>Please reply by 1 May 2027</h2>
-        <p>
-          Let us know whether you are attending, camping and whether you have
-          any dietary requirements.
-        </p>
-      </div>
-
-      <a class="button button-light" href="rsvp.html">Complete the RSVP</a>
     </section>
   </main>
 
