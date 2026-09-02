@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta
+    name="description"
+    content="How well do you know our hosts birthdays?"
+  >
+
+  <title>Match the birthdays | Over the Hill</title>
+
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/navigation.js" defer></script>
+</head>
+
+<body>
+  <div data-site-header data-page="birthday-game"></div>
+
+  <main>
+
+  <div class="birthday-game">
+
+    <div class="game-column hosts-column" id="host-list">
+
+      <div class="host-card" draggable="true" data-host="andrew">
+        <img src="images/hosts/andrew.jpg" alt="Andrew">
+        <span>Andrew</span>
+      </div>
+
+      <div class="host-card" draggable="true" data-host="alice">
+        <img src="images/hosts/alice.jpg" alt="Alice">
+        <span>Alice</span>
+      </div>
+
+      <div class="host-card" draggable="true" data-host="chris">
+        <img src="images/hosts/chris.jpg" alt="Chris">
+        <span>Chris</span>
+      </div>
+
+    </div>
+
+
+    <div class="game-column birthdays-column">
+
+      <div class="birthday-card">14 February</div>
+      <div class="birthday-card">3 June</div>
+      <div class="birthday-card">22 September</div>
+
+    </div>
+
+  </div>
+
+  <button id="submit-game">
+    Submit
+  </button>
+
+  <p id="result"></p>
+    
+  </main>
+
+  <footer class="site-footer">
+    <p>Questions? Contact us.</p>
+  </footer>
+</body>
+</html>

@@ -21,12 +21,7 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--text);
-  font-family:
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+  font-family: "Quicksand", "Segoe UI", sans-serif;
   line-height: 1.6;
 }
 
@@ -132,69 +127,38 @@ select {
 }
 
 .homepage-main {
-  width: min(100% - 2rem, 1400px);
+  width: min(100% - 2rem, 1200px);
   margin-inline: auto;
-  padding: 1.5rem 0 3rem;
+  padding: 2rem 0 3rem;
 }
 
-.homepage-split {
+.simple-homepage {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
-  min-height: calc(100vh - 120px);
-  border: 1px solid var(--border);
-  border-radius: 1.5rem;
-  overflow: hidden;
-  background: var(--surface);
-  box-shadow: 0 16px 40px rgb(34 48 38 / 8%);
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.home-text {
+  text-align: center;
+  padding-top: 1rem;
 }
 
 .art-panel {
   display: flex;
-  align-items: stretch;
   justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  border: 1px solid var(--border);
   background: #efe9df;
+  box-shadow: 0 14px 30px rgb(34 48 38 / 8%);
 }
 
 .art-panel img {
   display: block;
   width: 100%;
-  height: 100%;
+  height: auto;
   object-fit: cover;
-}
-
-.home-links-panel {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: clamp(2rem, 4vw, 4rem);
-  background: linear-gradient(180deg, #fffdf9 0%, #f8f4eb 100%);
-}
-
-.home-links {
-  display: grid;
-  gap: 0.9rem;
-  margin-top: 1rem;
-}
-
-.home-link {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.15rem;
-  border-radius: 0.85rem;
-  background: var(--accent);
-  color: white;
-  font-size: 1.05rem;
-  font-weight: 700;
-  text-decoration: none;
-  transition:
-    transform 150ms ease,
-    background 150ms ease;
-}
-
-.home-link:hover {
-  background: var(--accent-dark);
-  transform: translateY(-2px);
 }
 
 .eyebrow {
@@ -522,6 +486,28 @@ h2 {
   text-decoration: underline;
 }
 
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.photo-card {
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.photo-card img {
+  display: block;
+  width: 100%;
+  height: 260px;
+  object-fit: cover;
+}
+
 @media (max-width: 600px) {
   .page-hero {
     padding: 4rem 1rem 3rem;
@@ -539,4 +525,50 @@ h2 {
     align-items: flex-start;
     flex-direction: column;
   }
+
+  .photo-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Adding the css for the birthday matching game */
+
+.birthday-game {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  max-width: 700px;
+  margin: 2rem auto;
+}
+
+.host-card,
+.birthday-card {
+  height: 100px;
+  margin-bottom: 1rem;
+
+  display: flex;
+  align-items: center;
+
+  border: 2px solid #ccc;
+  border-radius: 12px;
+
+  padding: 0.75rem;
+}
+
+.host-card {
+  cursor: grab;
+}
+
+.host-card:active {
+  cursor: grabbing;
+}
+
+.host-card img {
+  width: 75px;
+  height: 75px;
+
+  object-fit: cover;
+  border-radius: 50%;
+
+  margin-right: 1rem;
 }
