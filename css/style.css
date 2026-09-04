@@ -508,6 +508,150 @@ h2 {
   object-fit: cover;
 }
 
+.save-the-date {
+  width: min(100% - 2rem, 1180px);
+  margin-inline: auto;
+  padding: 2rem 0 5rem;
+}
+
+.save-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+  gap: clamp(2rem, 7vw, 7rem);
+  align-items: center;
+  min-height: min(80vh, 760px);
+}
+
+.save-art-panel {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: #efe9df;
+  box-shadow: 0 18px 45px rgb(34 48 38 / 12%);
+}
+
+.save-art-panel img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+}
+
+.save-introduction {
+  max-width: 440px;
+}
+
+.save-introduction h1 {
+  margin-bottom: 1.25rem;
+}
+
+.save-tagline {
+  max-width: 340px;
+  margin-bottom: 2.5rem;
+  color: var(--muted);
+  font-size: 1.2rem;
+}
+
+.save-facts {
+  display: grid;
+  gap: 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.save-facts p {
+  margin: 0;
+}
+
+.save-facts strong {
+  color: var(--accent);
+}
+
+.save-details,
+.save-response {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
+  gap: 2rem;
+  padding: 4rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.save-details h2,
+.save-response h2 {
+  margin-bottom: 0;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+}
+
+.save-details > p {
+  max-width: 600px;
+  margin: 0;
+  color: var(--muted);
+}
+
+.save-response {
+  padding-bottom: 0;
+}
+
+.save-form fieldset {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  border: 0;
+}
+
+.save-field {
+  display: grid;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+  font-weight: 700;
+}
+
+.save-form .save-field {
+  display: grid;
+  width: 100%;
+}
+
+.save-text-input {
+  width: 100%;
+  padding: 0.75rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.save-text-input:focus {
+  outline: 2px solid rgb(52 92 66 / 20%);
+  border-color: var(--accent);
+}
+
+.save-form label {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: fit-content;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.save-form input {
+  width: 1.15rem;
+  height: 1.15rem;
+  accent-color: var(--accent);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 @media (max-width: 600px) {
   .page-hero {
     padding: 4rem 1rem 3rem;
@@ -528,6 +672,31 @@ h2 {
 
   .photo-grid {
     grid-template-columns: 1fr;
+  }
+
+  .save-the-date {
+    padding-top: 1rem;
+  }
+
+  .save-hero,
+  .save-details,
+  .save-response {
+    grid-template-columns: 1fr;
+  }
+
+  .save-hero {
+    min-height: auto;
+    gap: 2.5rem;
+    padding-bottom: 3rem;
+  }
+
+  .save-introduction {
+    max-width: none;
+  }
+
+  .save-details,
+  .save-response {
+    padding: 3rem 0;
   }
 }
 

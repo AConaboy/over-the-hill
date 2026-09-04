@@ -6,7 +6,7 @@
 
   <meta
     name="description"
-    content="Information about our party, including camping, food, activities and travel."
+    content="Save the date for Over the Hill, 13–15 August 2027 at Woodend Farm, Cradley."
   >
 
   <title>Over the Hill</title>
@@ -15,37 +15,60 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
-  <script src="js/navigation.js" defer></script>
 </head>
 
 <body>
-  <div data-site-header data-page="index"></div>
-
-  <main class="homepage-main">
-    <section class="simple-homepage">
-      <div class="home-text">
-        <h1>Over the Hill</h1>
-        <p class="event-details">
-          August 13–15, 2027<br>
-          Woodend Farm, Cradley<br>
-          WR13 5JW
-        </p>
-        <p class="hero-description">
-          A weekend of dancing, partying and fannying about
-        </p>
+  <main class="save-the-date">
+    <section class="save-hero" aria-labelledby="event-title">
+      <div class="save-art-panel">
+        <img src="images/over-the-hill-artwork-1.jpeg" alt="Over the Hill artwork">
       </div>
 
-      <div class="art-panel">
-        <img
-          src="images/over-the-hill-artwork-1.jpeg"
-          alt="Over the Hill artwork"
-        >
+      <div class="save-introduction">
+        <p class="eyebrow">Save the date</p>
+        <h1 id="event-title">Over the Hill</h1>
+        <p class="save-tagline">A weekend of dancing, partying and fannying about</p>
+
+        <div class="save-facts" aria-label="Festival details">
+          <p><strong>13–15 August 2027</strong><br>Woodend Farm, Cradley<br>WR13 5JW</p>
+          <p><strong>Tickets: £60–£80</strong><br>Camping included</p>
+        </div>
       </div>
     </section>
-  </main>
 
-  <footer class="site-footer">
-    <p>Questions? Contact us.</p>
-  </footer>
+    <section class="save-details" aria-labelledby="camping-heading">
+      <div>
+        <p class="eyebrow">The basics</p>
+        <h2 id="camping-heading">Bring a tent and stay the weekend.</h2>
+      </div>
+      <p>Camping opens at 3pm on Friday and closes at midday on Sunday. There will be space for tents, toilets, drinking water and basic washing facilities. Campervan spaces are limited.</p>
+    </section>
+
+    <section class="save-response" aria-labelledby="response-heading">
+      <div>
+        <p class="eyebrow">Help us plan</p>
+        <h2 id="response-heading">Do you want to come?</h2>
+      </div>
+
+      <form class="save-form" action="https://formspree.io/f/meaqzllr" method="POST">
+        <input type="hidden" name="_next" value="https://aconaboy.github.io/over-the-hill/thank-you.html">
+        <label class="save-field">
+          Name
+          <input class="save-text-input" name="name" type="text" autocomplete="name" required>
+        </label>
+        <label class="save-field">
+          Email address
+          <input class="save-text-input" name="email" type="email" autocomplete="email" required>
+        </label>
+        <fieldset>
+          <legend class="sr-only">Do you want to come?</legend>
+          <label><input type="radio" name="attendance" value="Yes" required> Yes</label>
+          <label><input type="radio" name="attendance" value="No"> No</label>
+          <label><input type="radio" name="attendance" value="Not sure yet"> Not sure yet</label>
+        </fieldset>
+        <button class="button" type="submit">Send response</button>
+      </form>
+    </section>
+  </main>
 </body>
 </html>
