@@ -1,0 +1,28 @@
+---
+export interface Props {
+  kind: "not_found" | "expired";
+}
+
+const { kind } = Astro.props;
+
+const copy =
+  kind === "expired"
+    ? {
+        eyebrow: "Link expired",
+        heading: "This link has expired",
+        body: "Ask your host for a new one — they can generate you a fresh link from the admin page.",
+      }
+    : {
+        eyebrow: "Link not recognised",
+        heading: "This link isn't valid",
+        body: "Double check you copied the whole link, or contact one of the hosts for a new one.",
+      };
+---
+
+<section class="page-hero">
+  <div class="page-hero-content">
+    <p class="eyebrow">{copy.eyebrow}</p>
+    <h1>{copy.heading}</h1>
+    <p class="page-introduction">{copy.body}</p>
+  </div>
+</section>

@@ -1,0 +1,22 @@
+---
+import QRCode from "qrcode";
+import { SITE_URL } from "astro:env/server";
+
+export interface Props {
+  ticketRef: string;
+}
+
+const { ticketRef } = Astro.props;
+const checkinUrl = new URL(`/checkin/${ticketRef}`, SITE_URL).toString();
+
+const svg = await QRCode.toString(checkinUrl, {
+  type: "svg",
+  margin: 1,
+  color: { dark: "#223026", light: "#00000000" },
+});
+---
+
+<div class="ticket-qr" aria-label={`QR code for ticket ${ticketRef}`}>
+  <Fragment set:html={svg} />
+  <p class="ticket-qr-ref">{ticketRef}</p>
+</div>
