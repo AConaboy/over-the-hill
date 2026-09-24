@@ -384,6 +384,16 @@ h2 {
   font-weight: 600;
 }
 
+.credit-line {
+  max-width: 520px;
+  margin: 0.5rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.5;
+  opacity: 0.75;
+}
+
 .hill-section {
   position: relative;
   margin-top: clamp(40px, 10vw, 150px);

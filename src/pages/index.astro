@@ -1,5 +1,18 @@
 ---
 import Layout from "../layouts/Layout.astro";
+
+const hosts = [
+  "Beth Adams",
+  "Andrew Conaboy",
+  "Bryony Lumb Morollon",
+  "Kirsty Buchan",
+  "Zubin Roy",
+  "Alex Ball",
+  "Alex Prior Crespo",
+  "Cameron Johnston",
+  "Emma Goss",
+  "James Jackson",
+];
 ---
 
 <Layout
@@ -43,6 +56,8 @@ import Layout from "../layouts/Layout.astro";
         <div class="button-row">
           <a class="button" href="/rsvp">RSVP now</a>
         </div>
+
+        <p class="credit-line">Brought to you by {hosts.join(", ")}</p>
       </div>
     </section>
   </main>
