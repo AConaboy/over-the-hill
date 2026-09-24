@@ -11,7 +11,10 @@ function getResendClient(): Resend {
   return client;
 }
 
-const FROM_ADDRESS = "Over the Hill <rsvp@overthehill.xyz>";
+// Resend's shared test/sandbox sender — works for testing but can usually
+// only deliver to the Resend account's own email, not arbitrary guests.
+// Swap this for an address on a verified domain before real RSVPs go out.
+const FROM_ADDRESS = "Over the Hill <onboarding@resend.dev>";
 
 function summariseGuest(guest: Guest): string[] {
   const lines: string[] = [];
