@@ -50,7 +50,7 @@ Once someone confirms they're attending, they get a QR code on screen. For now i
 
 ## What happens with payments (later, not yet)
 
-No payment is part of this first stage — sign-up stays free-to-submit, same as it is now. When we're ready to add a deposit or full ticket price:
+No payment is part of this first stage — sign-up stays free-to-submit, same as it is now. When we're ready to add a deposit or full ticket price (all in GBP, £):
 
 - We'd set up a simple payment link (via Stripe) for the amount we want to collect.
 - A guest's payment would automatically be matched back to their record, so we always know who's paid and how much.

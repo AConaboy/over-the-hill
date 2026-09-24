@@ -41,9 +41,10 @@ create table guests (
                       'deposit_paid','paid_full','cancelled'   -- v2 values, unused in v1
                     )),
 
-  -- v2 fields, present now so v2 needs zero migration:
-  amount_due_cents  integer,
-  amount_paid_cents integer default 0,
+  -- v2 fields, present now so v2 needs zero migration. All amounts are
+  -- GBP, stored as pence (integer) to avoid floating-point rounding:
+  amount_due_pence  integer,
+  amount_paid_pence integer default 0,
   payment_ref       text,                        -- Stripe client_reference_id / payment intent id
 
   checked_in_at     timestamptz,                 -- future door check-in
@@ -96,10 +97,11 @@ create table guest_inviters (
 
 ## v2: deposit / payment flow
 
+- **Currency: GBP throughout.** Stripe Payment Links are created in GBP, and the `amount_due_pence`/`amount_paid_pence` columns store whole pence (e.g. £15.00 deposit = `1500`) to avoid floating-point rounding issues.
 - **Mechanism: Stripe Payment Links**, one per price point (deposit vs. full balance) created in Stripe's dashboard — no custom checkout code. Each guest's payment link includes `?client_reference_id=<ticket_ref>` so a payment can always be traced back to a specific guest.
-- **Getting status back into the database: automated via webhook.** One Astro API route (`/api/webhooks/stripe`, runs as a Cloudflare Pages Function) verifies the Stripe signature and updates the guest's `status`/`amount_paid_cents`/`payment_ref` using the service role key server-side, matched via `ticket_ref`/`client_reference_id`. This is the only place v2 needs a true secret (`STRIPE_WEBHOOK_SECRET`), and it slots into infrastructure we already have (Cloudflare Pages Functions) — no new hosting platform. The admin page's guest table still shows payment status as a read-only reflection of this, with manual edit available as a fallback for one-off corrections.
-- **Guest-facing change**: none of their link/token/ticket_ref changes. They revisit the same `/ticket/[token]` link and see their status progress (RSVP confirmed → Deposit paid → Paid in full), with the same QR now shown with a "paid" badge.
-- This is why the v2 columns (`amount_due_cents`, `amount_paid_cents`, `payment_ref`, and the extra `status` values) are already in the v1 schema — v2 is additive status/UI work, not a migration.
+- **Getting status back into the database: automated via webhook.** One Astro API route (`/api/webhooks/stripe`, runs as a Cloudflare Pages Function) verifies the Stripe signature and updates the guest's `status`/`amount_paid_pence`/`payment_ref` using the service role key server-side, matched via `ticket_ref`/`client_reference_id`. This is the only place v2 needs a true secret (`STRIPE_WEBHOOK_SECRET`), and it slots into infrastructure we already have (Cloudflare Pages Functions) — no new hosting platform. The admin page's guest table still shows payment status as a read-only reflection of this, with manual edit available as a fallback for one-off corrections.
+- **Guest-facing change**: none of their link/token/ticket_ref changes. They revisit the same `/ticket/[token]` link and see their status progress (RSVP confirmed → Deposit paid → Paid in full), with the same QR now shown with a "paid" badge, and amounts shown as £.
+- This is why the v2 columns (`amount_due_pence`, `amount_paid_pence`, `payment_ref`, and the extra `status` values) are already in the v1 schema — v2 is additive status/UI work, not a migration.
 
 ## File/page changes
 
