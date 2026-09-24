@@ -57,10 +57,17 @@ export async function sendRsvpConfirmationEmail(guest: Guest): Promise<void> {
   ].join("\n");
 
   const resend = getResendClient();
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: FROM_ADDRESS,
     to: guest.email,
     subject: "Your Over the Hill RSVP",
     text: textBody,
   });
+
+  // The Resend SDK resolves with { error } on an API-level failure (e.g. the
+  // sandbox sender rejecting a recipient) rather than throwing — without this
+  // check a rejected send would silently look identical to a delivered one.
+  if (error) {
+    throw new Error(`Resend rejected the email: ${error.name} — ${error.message}`);
+  }
 }
