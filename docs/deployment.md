@@ -3,25 +3,33 @@
 This app needs a few external services wired up by hand — none of this can be
 scripted from inside the repo. Do these once, in order.
 
-## 1. Supabase (database)
+## 1. Cloudflare D1 (database)
 
-1. Create a free project at [supabase.com](https://supabase.com).
-2. In the SQL Editor, run `supabase/migrations/0001_init.sql` (paste its
-   contents and execute). This creates the `guests` and `guest_inviters`
-   tables with RLS enabled and no policies — the app talks to them only via
-   the service role key, server-side.
-3. From **Project Settings → API**, note down:
-   - **Project URL** → `SUPABASE_URL`
-   - **service_role key** (not the anon key) → `SUPABASE_SERVICE_ROLE_KEY`
+`wrangler.jsonc` already declares a `DB` binding pointing at a database named
+`over-the-hill` — you just need to create the real thing and fill in its id.
 
-   The service role key bypasses RLS and must stay a secret — never expose it
-   to the browser.
-4. Import the existing guest spreadsheet: either use the Table Editor's CSV
-   import into `guests` (name/email/phone columns; `token` and
-   `token_expires_at` fill in automatically from their defaults), then add
-   rows to `guest_inviters` for who invited whom — or just add guests one at
-   a time via the admin page (`/admin/guests/new`) once deployed, which
-   handles both in one step.
+1. Log in once: `npx wrangler login`.
+2. Create the database: `npx wrangler d1 create over-the-hill`. This prints a
+   `database_id` — copy it into `wrangler.jsonc`, replacing
+   `REPLACE_WITH_YOUR_D1_DATABASE_ID`.
+3. Apply the schema to the real (remote) database:
+   `npx wrangler d1 migrations apply over-the-hill --remote`. This creates
+   the `guests` and `guest_inviters` tables. D1 has no public network
+   endpoint at all — it's reachable only via this binding, from our own
+   server-side code — so there's no separate key or secret to manage for it,
+   unlike a hosted-database-over-HTTP setup.
+4. Import the existing guest spreadsheet: either add guests one at a time via
+   the admin page (`/admin/guests/new`) once deployed, which generates each
+   guest's `token` and handles multiple inviters in one step, or write a
+   one-off `INSERT` script and run it with
+   `npx wrangler d1 execute over-the-hill --remote --file=your-script.sql`.
+
+For local development, there's also a **local** D1 instance (a SQLite file
+under `.wrangler/`, gitignored) that `astro dev` uses automatically — apply
+the same migration to it once with
+`npx wrangler d1 migrations apply over-the-hill --local` (omit `--remote`).
+If you ever change the binding in `wrangler.jsonc`, rerun
+`npx wrangler types` to regenerate `worker-configuration.d.ts`.
 
 ## 2. Resend (confirmation emails)
 
@@ -32,24 +40,29 @@ scripted from inside the repo. Do these once, in order.
    your verified domain (it currently defaults to a placeholder
    `rsvp@overthehill.xyz`).
 
-## 3. Cloudflare Pages (hosting)
+## 3. Cloudflare (hosting)
 
-1. Push this repo to GitHub (it already is) and connect it in the Cloudflare
-   dashboard: **Workers & Pages → Create → Pages → Connect to Git**.
-2. Framework preset: **Astro**. Build command `npm run build`, build output
-   directory `dist`.
-3. Under the project's **Settings → Environment variables**, add as
-   **secrets** (not plain vars, since they're sensitive):
-   - `SUPABASE_URL`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-   - `RESEND_API_KEY`
-   - `SITE_URL` — the production URL once you have it (e.g.
-     `https://overthehill.xyz`); used to build the links in confirmation
-     emails and the QR codes. Set the same variables for the Preview
-     environment too (with a preview `SITE_URL`) if you want to test on a
-     preview deploy before going live.
-4. Trigger a deploy. Cloudflare will build and give you a `*.pages.dev` URL
-   to test against before pointing your real domain at it.
+**Note:** this app builds as a Cloudflare Worker with static assets (the
+`@astrojs/cloudflare` adapter's current model — Cloudflare has been merging
+"Pages" into "Workers"), not the older Pages-only git-connected build flow.
+The most direct path is deploying with `wrangler` from your machine or CI,
+which also picks up the D1 binding and everything else already declared in
+`wrangler.jsonc` automatically:
+
+1. Add the two remaining secrets (D1 needs none, per step 1 above):
+   `npx wrangler secret put RESEND_API_KEY` and
+   `npx wrangler secret put SITE_URL` (use your production URL once you have
+   one, e.g. `https://overthehill.xyz`).
+2. Deploy: `npm run build && npx wrangler deploy`. Cloudflare will give you a
+   `*.workers.dev` URL to test against before pointing your real domain at
+   it.
+
+If you'd rather use Cloudflare's git-connected dashboard flow instead of
+deploying from the command line, that's also possible (**Workers & Pages →
+Create → Connect to Git**, framework preset **Astro**) — just make sure the
+D1 binding and secrets are configured there too, since a dashboard-managed
+deploy won't automatically read `wrangler.jsonc` the same way `wrangler
+deploy` does.
 
 ## 4. Cloudflare Access (admin page protection)
 
@@ -69,15 +82,16 @@ Cloudflare at the edge, so unauthenticated requests never reach the app.
 
 ## 5. DNS
 
-Point your domain's DNS at Cloudflare Pages per Cloudflare's own instructions
-for **Custom domains** on the Pages project (Cloudflare handles this
-automatically if the domain's nameservers are already on Cloudflare).
+Point your domain's DNS at your deployed Worker per Cloudflare's own
+instructions for **Custom domains** (Cloudflare handles this automatically
+if the domain's nameservers are already on Cloudflare).
 
 ## Local development
 
 ```sh
-cp .env.example .env   # fill in real Supabase/Resend values
+cp .env.example .env                                    # fill in a real Resend value
 npm install
+npx wrangler d1 migrations apply over-the-hill --local   # once, to set up the local DB
 npm run dev
 ```
 
