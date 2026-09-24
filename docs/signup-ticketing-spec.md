@@ -85,6 +85,7 @@ create table guest_inviters (
 
 - **Route**: `/admin`, gated by a single shared password (Cloudflare Pages env secret, checked server-side, session via an HttpOnly cookie) — proportionate for a small group of hosts; can be upgraded to per-host accounts later if needed.
 - **View**: table of all guests — name, inviter(s), attendance/status, contact info, camping/dietary/accessibility details, payment status — sortable/filterable, with each guest's `/rsvp/<token>` link shown for copying.
+- **Filter by inviter**: a filter (e.g. a dropdown of inviter names, driven by `guest_inviters`) narrows the table to just the guests a given host invited, so each host can quickly find and copy links for their own invitees without scrolling the full list. Since a guest can have multiple inviters, filtering by one inviter surfaces that guest under each of their inviters.
 - **Edit**: a host can correct any guest's details directly (e.g. fixing a typo'd email, adjusting attendance if told verbally) — writes through the same server-side Supabase access as the guest-facing routes.
 - **Add**: a form to add a new guest (name + one or more inviters + optional email/phone), which generates their `token` and surfaces their new personal link immediately — becomes the ongoing way to extend the invite list beyond the initial import.
 

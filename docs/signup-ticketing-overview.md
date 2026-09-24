@@ -44,6 +44,7 @@ Once someone confirms they're attending, they get a QR code on screen. For now i
 
 - We'll have a private, password-protected admin page where we can:
   - See everyone's status at a glance (invited / responded / attending / not attending).
+  - Filter the list down to just the guests each of us personally invited, so it's quick to find and copy our own people's links without scrolling past everyone else's.
   - Fix a typo in someone's contact details.
   - Add a new guest to the list ourselves (e.g. someone we decide to invite later), which gives them their own personal link straight away.
 - This replaces having to dig through spreadsheet rows or email threads to see where things stand.
