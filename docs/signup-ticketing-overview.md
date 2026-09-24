@@ -17,7 +17,8 @@ Right now, RSVP is a public form on the website that anyone with the link can fi
 2. They open it and see a form pre-filled with their name, already addressed to them.
 3. They fill in the details below and submit.
 4. If they're attending, they see a confirmation on screen with a small QR code — a lightweight "you're on the list" ticket. No payment involved at this stage.
-5. They can come back to the same link any time to see their answers or change their mind (e.g. plans change, dietary needs update). Resubmitting just updates their existing record — it doesn't create a duplicate.
+5. They also automatically get a confirmation email straight away, summarising what they submitted with a link back to their personal ticket page — this part is sent by the system itself, not something we do manually.
+6. They can come back to the same link any time to see their answers or change their mind (e.g. plans change, dietary needs update). Resubmitting just updates their existing record and sends them a fresh confirmation email — it doesn't create a duplicate.
 
 Because the link is personal to them, nobody else can see or edit their answers, and they can't see anyone else's.
 
@@ -43,7 +44,7 @@ Once someone confirms they're attending, they get a QR code on screen. For now i
 ## How we (the hosts) manage the list
 
 - We'll have a private, password-protected admin page where we can:
-  - See everyone's status at a glance (invited / responded / attending / not attending).
+  - See everyone's status at a glance (invited / responded / attending / not attending), including whether their confirmation email actually went through.
   - Filter the list down to just the guests each of us personally invited, so it's quick to find and copy our own people's links without scrolling past everyone else's.
   - Fix a typo in someone's contact details.
   - Add a new guest to the list ourselves (e.g. someone we decide to invite later), which gives them their own personal link straight away.
@@ -60,7 +61,7 @@ No payment is part of this first stage — sign-up stays free-to-submit, same as
 
 ## What this doesn't change
 
-- We're still sending links to guests ourselves — no automatic mass emailing.
+- We're still sending the *initial invite links* to guests ourselves — there's no automatic mass emailing of invites. The only automated email is the confirmation a guest gets after they submit their own RSVP.
 - The site's other pages (about, camping, food, activities, travel, FAQs, line-up, the game) stay the same in content — they're just being rebuilt on a more capable foundation so features like this are possible.
 
 ## Questions for the other hosts

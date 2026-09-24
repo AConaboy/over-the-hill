@@ -12,6 +12,7 @@ This spec migrates the whole site to a small framework rather than bolting a dat
 - **Hosting: Cloudflare Pages**, using the official `@astrojs/cloudflare` SSR adapter. Astro pages render on Cloudflare's edge; API routes become Pages Functions. This meets all our needs (server-side secrets, dynamic routes, a webhook target for v2).
 - **Database: Supabase** (hosted Postgres). Accessed **only from server-side Astro code** (page server code / API routes running as Pages Functions) using the Supabase **service role key**, stored as a Cloudflare Pages secret — it never reaches the browser. The server is the trust boundary: it only ever looks up a guest by the token supplied in the URL, never lists all guests to unauthenticated callers. Row Level Security is still enabled on the tables as defense-in-depth, but the app's own logic is the primary access control.
 - **Guest links use a path segment**, e.g. `https://overthehill.xyz/rsvp/<token>`, not a query string — idiomatic for Astro dynamic routes (`src/pages/rsvp/[token].astro`) and easy to hand out as a single copy-pasteable link.
+- **Transactional email: Resend.** Used only for the automated RSVP confirmation email (see below) — a lightweight fit for a Cloudflare Pages/serverless setup, with a free tier well within our volume. Called server-side from the RSVP API route using an API key stored as a Cloudflare Pages secret.
 
 ## Data model (Supabase, two tables)
 
@@ -49,6 +50,8 @@ create table guests (
 
   checked_in_at     timestamptz,                 -- future door check-in
 
+  confirmation_email_sent_at timestamptz,        -- last time we successfully emailed them
+
   created_at        timestamptz not null default now(),
   updated_at        timestamptz not null default now()
 );
@@ -78,13 +81,14 @@ create table guest_inviters (
 4. **Guest opens their link** → `/rsvp/[token]` fetches their row server-side, pre-fills any previously-submitted answers.
 5. **Guest submits** the form (attendance yes/no, dietary & allergies, contact email/phone, arrival/departure day, camping/accommodation) → an Astro API route validates the token again and writes the update.
 6. **On success with attendance = yes**: page shows a confirmation plus a QR code (see below). On attendance = no: simple acknowledgement, no QR.
-7. **Guest can revisit `/ticket/[token]`** any time to see their current status and QR again.
-8. **Hosts view, edit, and add guests** via the admin page (below) — in scope for v1.
+7. **Guest also receives a confirmation email** (see below) at the address they gave, summarising what they submitted and linking back to their personal ticket page.
+8. **Guest can revisit `/ticket/[token]`** any time to see their current status and QR again.
+9. **Hosts view, edit, and add guests** via the admin page (below) — in scope for v1.
 
 ## Admin page (v1 scope)
 
 - **Route**: `/admin`, gated by a single shared password (Cloudflare Pages env secret, checked server-side, session via an HttpOnly cookie) — proportionate for a small group of hosts; can be upgraded to per-host accounts later if needed.
-- **View**: table of all guests — name, inviter(s), attendance/status, contact info, camping/dietary/accessibility details, payment status — sortable/filterable, with each guest's `/rsvp/<token>` link shown for copying.
+- **View**: table of all guests — name, inviter(s), attendance/status, contact info, camping/dietary/accessibility details, payment status, whether their confirmation email sent successfully — sortable/filterable, with each guest's `/rsvp/<token>` link shown for copying.
 - **Filter by inviter**: a filter (e.g. a dropdown of inviter names, driven by `guest_inviters`) narrows the table to just the guests a given host invited, so each host can quickly find and copy links for their own invitees without scrolling the full list. Since a guest can have multiple inviters, filtering by one inviter surfaces that guest under each of their inviters.
 - **Edit**: a host can correct any guest's details directly (e.g. fixing a typo'd email, adjusting attendance if told verbally) — writes through the same server-side Supabase access as the guest-facing routes.
 - **Add**: a form to add a new guest (name + one or more inviters + optional email/phone), which generates their `token` and surfaces their new personal link immediately — becomes the ongoing way to extend the invite list beyond the initial import.
@@ -93,8 +97,16 @@ create table guest_inviters (
 
 - QR encodes a URL built from `ticket_ref` (a short code, distinct from the long-lived `token`), e.g. `https://overthehill.xyz/checkin/<ticket_ref>` — not the token itself, since the token is an edit credential and the QR may be shown to someone else at the gate.
 - Generated with the `qrcode` npm package inside a small Astro island component (client or server-rendered SVG — either works now that we have a build step).
-- v1 purpose: a lightweight "you're on the list" confirmation shown on screen (guest can screenshot it — no email delivery needed for v1).
+- v1 purpose: a lightweight "you're on the list" confirmation shown on screen (guest can also screenshot it) and included as a reference in their confirmation email.
 - v2 purpose (no new QR issued): becomes the door check-in scan target (`checked_in_at` column already exists) and the same code a guest's ticket shows as "paid" once a deposit/payment lands — the guest's link and QR never change, only their status does.
+
+## Email confirmation
+
+- **When it's sent**: immediately after a successful RSVP submission (attending or not), and again on any resubmission — so a guest's inbox always reflects their latest answers rather than only their first submission.
+- **Sent to**: the email address the guest entered in the form (not the inviter's).
+- **Contents**: a short thank-you, a plain-text summary of what they submitted (attendance, camping, dates, dietary/accessibility notes), and a link back to their personal `/ticket/[token]` page where the QR and full details live — the email itself doesn't need to embed the QR image.
+- **Non-blocking**: if the email fails to send (bad address, provider outage), the RSVP submission still succeeds and is saved — email delivery is a courtesy on top, not a requirement for the sign-up to count. `confirmation_email_sent_at` (added to the schema above) records the last successful send so the admin page can flag guests whose confirmation may not have arrived.
+- **v2 note**: the same mechanism is reused later to email a "payment received" confirmation once a deposit/payment lands, using the same Resend integration.
 
 ## v2: deposit / payment flow
 
@@ -109,12 +121,13 @@ create table guest_inviters (
 - **Migrate all existing pages** (`index`, `about`, `camping`, `food`, `activities`, `travel`, `faq`, `line-up`, `birthday-game`) into Astro pages under `src/pages/`, reusing their current copy/markup almost as-is. Replace the current `js/navigation.js` innerHTML-injection nav hack with a real Astro `<Layout>` + `<Nav>` component — while doing this, fix the existing bug where the nav links to `game.html` but the actual file is `birthday-game.html`.
 - **`rsvp.html` → `src/pages/rsvp/[token].astro`**: server-loads the guest by token, renders the existing form fields (name read-only/prefilled, attendance, camping, vehicle, dietary, accessibility, arrival/departure day, contact email/phone, notes), posts to an Astro API route instead of Formspree, and swaps in a confirmation + QR on success. Update the existing "Data protection notice" copy to describe Supabase instead of Formspree as the processor.
 - **`ticket.html` → `src/pages/ticket/[token].astro`**: becomes the durable "your ticket" view — current status, QR, and (in v2) the relevant Payment Link button, replacing the "TBC"/"Paying — TBD" placeholders.
-- **New**: `src/pages/api/rsvp.ts` (submit/update handler), `src/pages/admin/*` (login + guest list/edit/add), `src/pages/api/admin/*` (guest CRUD, auth-checked), `src/pages/api/webhooks/stripe.ts` (v2), `src/lib/supabase.ts` (server-side client using the service role key from env), a small QR component.
-- **Env/secrets**: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_PASSWORD` (and later `STRIPE_WEBHOOK_SECRET`) stored as Cloudflare Pages secrets, never committed.
+- **New**: `src/pages/api/rsvp.ts` (submit/update handler, triggers the confirmation email), `src/pages/admin/*` (login + guest list/edit/add), `src/pages/api/admin/*` (guest CRUD, auth-checked), `src/pages/api/webhooks/stripe.ts` (v2), `src/lib/supabase.ts` (server-side client using the service role key from env), `src/lib/email.ts` (Resend client + confirmation template), a small QR component.
+- **Env/secrets**: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_PASSWORD`, `RESEND_API_KEY` (and later `STRIPE_WEBHOOK_SECRET`) stored as Cloudflare Pages secrets, never committed.
 
 ## Verification
 
-- Local dev: `astro dev` with a `.env` pointing at a Supabase project; manually walk through: seed a couple of test guests → visit `/rsvp/<token>` → submit → confirm row updates in Supabase and QR renders on `/ticket/<token>` → resubmit and confirm `ticket_ref` stays stable.
+- Local dev: `astro dev` with a `.env` pointing at a Supabase project; manually walk through: seed a couple of test guests → visit `/rsvp/<token>` → submit → confirm row updates in Supabase and QR renders on `/ticket/<token>` → confirm a confirmation email arrives (use a real inbox or Resend's test mode) with the correct summary and ticket link → resubmit and confirm `ticket_ref` stays stable and a fresh confirmation email is sent.
+- Confirm a submission still succeeds and saves correctly even if the email send is forced to fail (non-blocking check).
 - Confirm an unknown/garbage token shows the "invalid link" state on both `/rsvp/[token]` and `/ticket/[token]`.
 - Confirm the admin page's view/edit/add flows work against real guest rows, including a guest with multiple inviters.
 - Confirm the migrated static pages (nav, links, styling) still look and link correctly, including the `birthday-game.html` nav fix.
