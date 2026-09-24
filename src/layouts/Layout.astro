@@ -19,10 +19,13 @@ const currentPath = Astro.url.pathname.replace(/\/$/, "") || "/";
 
   <title>{title}</title>
 
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta name="theme-color" content="#ffe8cc" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand+SC&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/style.css" />
 </head>
 
@@ -32,7 +35,13 @@ const currentPath = Astro.url.pathname.replace(/\/$/, "") || "/";
   <slot />
 
   <footer class="site-footer">
-    <p>Questions? Contact us.</p>
+    <div class="footer-inner">
+      <div>
+        <p class="footer-title">Over the Hill Festival</p>
+        <p>August 13th – 15th 2027 @ Out to Grass</p>
+      </div>
+      <p class="footer-contact">Questions? Contact us.</p>
+    </div>
   </footer>
 </body>
 </html>

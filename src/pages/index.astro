@@ -1,5 +1,41 @@
 ---
 import Layout from "../layouts/Layout.astro";
+
+const planCards = [
+  {
+    href: "/camping",
+    title: "Camping",
+    image: "/images/spot-mushrooms.webp",
+    text: "Campsite opens 3pm Friday. Tents, toilets, water and what to bring.",
+  },
+  {
+    href: "/food",
+    title: "Food",
+    image: "/images/spot-flowers.webp",
+    text: "Meals, snacks and drinks. Vegetarian and vegan options catered for.",
+  },
+  {
+    href: "/activities",
+    title: "Activities",
+    image: "/images/spot-butterfly.webp",
+    text: "Spikeball (no try-hards), art stuff, maybe yoga and more to come.",
+  },
+  {
+    href: "/travel",
+    title: "Travel",
+    image: "/images/spot-tulips.webp",
+    text: "Directions, parking and a shuttle bus from Stourbridge Junction.",
+  },
+];
+
+const goodToKnow = [
+  "Campsite opens 3pm on Friday",
+  "Campers leave by midday Sunday",
+  "Vegetarian and vegan food catered for",
+  "Shuttle bus from Stourbridge Junction",
+  "Campervan spaces are limited",
+  "Bring warm and waterproof layers",
+];
 ---
 
 <Layout
@@ -7,24 +43,80 @@ import Layout from "../layouts/Layout.astro";
   description="Information about our party, including camping, food, activities and travel."
 >
   <main class="homepage-main">
-    <section class="simple-homepage">
-      <div class="home-text">
-        <h1>Over the Hill</h1>
-        <p class="event-details">
-          August 13–15, 2027<br />
-          Woodend Farm, Cradley<br />
-          WR13 5JW
-        </p>
-        <p class="hero-description">
-          A weekend of dancing, partying and fannying about
-        </p>
+    <section class="poster-hero">
+      <h1 class="visually-hidden">
+        Over the Hill Festival – August 13th to 15th 2027 at Out to Grass
+      </h1>
+
+      <div class="poster-hero-art">
+        <img
+          src="/images/poster-illustration.webp"
+          alt="A twisting tree over rolling green hills, a disco-ball sun with orange rays, wild flowers and mushrooms"
+          width="720"
+          height="983"
+        />
+        <svg aria-hidden="true" viewBox="0 0 900 980">
+          <defs>
+            <path id="poster-arc-top" d="M 30 490 A 420 450 0 0 1 870 490" />
+            <path id="poster-arc-bottom" d="M 20 490 A 430 460 0 0 0 880 490" />
+          </defs>
+          <text class="poster-arc-title">
+            <textPath href="#poster-arc-top" startOffset="50%" text-anchor="middle">
+              OVER THE HILL FESTIVAL
+            </textPath>
+          </text>
+          <text class="poster-arc-date">
+            <textPath href="#poster-arc-bottom" startOffset="50%" text-anchor="middle">
+              AUGUST 13TH – 15TH 2027 @ OUT TO GRASS
+            </textPath>
+          </text>
+        </svg>
       </div>
 
-      <div class="art-panel">
-        <img
-          src="/images/over-the-hill-artwork-1.jpeg"
-          alt="Over the Hill artwork"
-        />
+      <div class="home-text">
+        <p class="hero-description">A weekend of dancing, partying and fannying about</p>
+        <p class="event-details">Woodend Farm, Cradley, WR13 5JW</p>
+        <div class="button-row">
+          <a class="button" href="/rsvp">RSVP now</a>
+          <a class="button button-light" href="/faq">Read the FAQs</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="hill-section">
+      <div class="section-inner">
+        <div class="section-heading-row">
+          <h2>Plan your weekend</h2>
+          <p>Everything you need to know about camping, food, fun and getting there.</p>
+        </div>
+
+        <div class="plan-grid">
+          {planCards.map(({ href, title, image, text }) => (
+            <a class="plan-card" href={href}>
+              <img class="spot-art" src={image} alt="" width="360" height="360" loading="lazy" />
+              <span class="plan-card-title">{title}</span>
+              <span class="plan-card-text">{text}</span>
+              <span class="plan-card-link">Read more →</span>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="good-to-know">
+      <div class="sunburst" aria-hidden="true">
+        <img class="spot-art" src="/images/spot-discoball.webp" alt="" width="360" height="360" loading="lazy" />
+      </div>
+
+      <div class="good-to-know-text">
+        <h2>Good to know</h2>
+        <ul class="dot-list">
+          {goodToKnow.map((item) => <li>{item}</li>)}
+        </ul>
+        <div class="button-row">
+          <a class="button" href="/rsvp">Let us know you're coming</a>
+          <a class="text-link" href="/travel">How to get there →</a>
+        </div>
       </div>
     </section>
   </main>
