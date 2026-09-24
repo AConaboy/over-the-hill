@@ -22,6 +22,8 @@ Right now, RSVP is a public form on the website that anyone with the link can fi
 
 Because the link is personal to them, nobody else can see or edit their answers, and they can't see anyone else's.
 
+**Links expire if unused.** If a guest doesn't fill the form in, their link stops working after 30 days (a number we can tune) — this is just to stop old, unanswered invite links sitting around indefinitely. If they've already responded, their link keeps working forever so they can still view or update it. If someone's link has lapsed (or they've lost it), a host can generate them a fresh one from the admin page in a couple of clicks.
+
 ## What data we collect from each guest
 
 - Name (pre-filled, since we're inviting them)
@@ -48,6 +50,7 @@ Once someone confirms they're attending, they get a QR code on screen. For now i
   - Filter the list down to just the guests each of us personally invited, so it's quick to find and copy our own people's links without scrolling past everyone else's.
   - Fix a typo in someone's contact details.
   - Add a new guest to the list ourselves (e.g. someone we decide to invite later), which gives them their own personal link straight away.
+  - Regenerate a guest's link if it's expired, lost, or we just want to invalidate the old one.
 - This replaces having to dig through spreadsheet rows or email threads to see where things stand.
 
 ## What happens with payments (later, not yet)
@@ -69,3 +72,4 @@ No payment is part of this first stage — sign-up stays free-to-submit, same as
 - Is the list of data we're collecting above complete, or is there anything else we should be asking guests for?
 - Are we happy with a single shared admin password for now, or do we want individual logins per host?
 - Any concerns about guests being able to revisit and change their answers at any time?
+- Is 30 days a sensible default before an unanswered link expires, or would we rather it be shorter/longer?

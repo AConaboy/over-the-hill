@@ -22,6 +22,7 @@ One `guests` row per invite (no plus-ones, so no attendee join table needed for 
 create table guests (
   id                uuid primary key default gen_random_uuid(),
   token             text unique not null default gen_random_uuid()::text,  -- guest's link credential
+  token_expires_at  timestamptz not null default (now() + interval '30 days'), -- see "Link expiry" below
   ticket_ref        text unique,                -- short code, set once attendance = 'yes'
 
   name              text not null,
@@ -73,6 +74,14 @@ create table guest_inviters (
 - Invalid/unknown token → friendly "this link isn't valid, contact the hosts" page, not an error page.
 - Resubmitting the RSVP form is allowed (matches the existing site copy: "if your plans change, complete it again") — it updates the row in place and does not regenerate `ticket_ref`, so a guest's QR code stays stable across edits.
 
+## Link expiry
+
+- Every generated link carries a `token_expires_at` (default **30 days** from when it was created/regenerated — an easy constant to tune if we want longer or shorter). This is checked only against `/rsvp/[token]`.
+- **Expiry only applies before a guest has responded.** If `attendance` is still `'pending'` and `now() > token_expires_at`, `/rsvp/[token]` shows "This link has expired — ask your host for a new one" instead of the form.
+- **Once a guest has submitted an RSVP (`attendance` is `'yes'` or `'no'`), their link never expires** — they still need it to view/update their answers, see their ticket, and (in v2) pay, so expiry stops applying the moment they've responded.
+- **Regenerating a link**: from the admin page, a host can hit "Regenerate link" for any guest. This sets a brand new `token` and pushes `token_expires_at` out another 30 days from that moment — the old link stops working immediately (it no longer matches any row) and the guest needs the new one. Useful both for a lapsed invite and simply as a way to invalidate a link that may have been shared somewhere it shouldn't have been.
+- The admin page's guest table shows each guest's expiry date (or "expired") alongside their link, so hosts can see who's about to lapse and nudge them, or regenerate proactively.
+
 ## v1 process flow (no payment)
 
 1. **Import**: the existing spreadsheet (name + who invited them, plus email/phone if available) is imported into `guests` + `guest_inviters` — either via the admin page's "add guest" flow (below) or a one-off script for the initial bulk load, since a guest can have more than one inviter.
@@ -88,10 +97,11 @@ create table guest_inviters (
 ## Admin page (v1 scope)
 
 - **Route**: `/admin`, gated by a single shared password (Cloudflare Pages env secret, checked server-side, session via an HttpOnly cookie) — proportionate for a small group of hosts; can be upgraded to per-host accounts later if needed.
-- **View**: table of all guests — name, inviter(s), attendance/status, contact info, camping/dietary/accessibility details, payment status, whether their confirmation email sent successfully — sortable/filterable, with each guest's `/rsvp/<token>` link shown for copying.
+- **View**: table of all guests — name, inviter(s), attendance/status, contact info, camping/dietary/accessibility details, payment status, whether their confirmation email sent successfully, link expiry date — sortable/filterable, with each guest's `/rsvp/<token>` link shown for copying.
 - **Filter by inviter**: a filter (e.g. a dropdown of inviter names, driven by `guest_inviters`) narrows the table to just the guests a given host invited, so each host can quickly find and copy links for their own invitees without scrolling the full list. Since a guest can have multiple inviters, filtering by one inviter surfaces that guest under each of their inviters.
 - **Edit**: a host can correct any guest's details directly (e.g. fixing a typo'd email, adjusting attendance if told verbally) — writes through the same server-side Supabase access as the guest-facing routes.
 - **Add**: a form to add a new guest (name + one or more inviters + optional email/phone), which generates their `token` and surfaces their new personal link immediately — becomes the ongoing way to extend the invite list beyond the initial import.
+- **Regenerate link**: a button per guest that issues them a fresh token and expiry (see "Link expiry" above) — for a lapsed link or one that needs invalidating.
 
 ## QR / ticket display
 
@@ -129,6 +139,8 @@ create table guest_inviters (
 - Local dev: `astro dev` with a `.env` pointing at a Supabase project; manually walk through: seed a couple of test guests → visit `/rsvp/<token>` → submit → confirm row updates in Supabase and QR renders on `/ticket/<token>` → confirm a confirmation email arrives (use a real inbox or Resend's test mode) with the correct summary and ticket link → resubmit and confirm `ticket_ref` stays stable and a fresh confirmation email is sent.
 - Confirm a submission still succeeds and saves correctly even if the email send is forced to fail (non-blocking check).
 - Confirm an unknown/garbage token shows the "invalid link" state on both `/rsvp/[token]` and `/ticket/[token]`.
+- Confirm a guest whose `token_expires_at` is in the past and who hasn't responded sees the "link expired" state on `/rsvp/[token]`; confirm a guest in the same state who *has* responded can still access `/rsvp/[token]` and `/ticket/[token]` normally.
+- Confirm "Regenerate link" on the admin page issues a new token/expiry and that the old token immediately stops working.
 - Confirm the admin page's view/edit/add flows work against real guest rows, including a guest with multiple inviters.
 - Confirm the migrated static pages (nav, links, styling) still look and link correctly, including the `birthday-game.html` nav fix.
 - Deploy to a Cloudflare Pages preview environment and repeat the same walkthrough against the deployed site before pointing the real domain at it.
