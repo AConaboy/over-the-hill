@@ -119,19 +119,28 @@ export type SubmitRsvpResult =
   | { ok: true; guest: Guest }
   | { ok: false; reason: "not_found" | "expired" };
 
-/** Re-validates the token and writes the RSVP. Token/expiry checks happen
- * again here (not just on page load) since this is a separate request. */
-export async function submitRsvp(token: string, input: RsvpInput): Promise<SubmitRsvpResult> {
-  const guest = await getGuestByToken(token);
-  if (!guest) return { ok: false, reason: "not_found" };
-  if (isLinkExpired(guest)) return { ok: false, reason: "expired" };
-
+/** Shared by the guest-facing RSVP submit and the admin edit form, so both
+ * paths generate a ticket_ref and update status the same way the moment
+ * attendance becomes "yes" — an admin marking someone attending because
+ * they were told verbally must produce a real ticket, same as a guest
+ * submitting the form themselves. */
+async function writeRsvpFields(
+  guestId: string,
+  currentTicketRef: string | null,
+  input: RsvpInput,
+): Promise<Guest> {
   const supabase = getSupabaseClient();
 
-  let ticketRef = guest.ticket_ref;
+  let ticketRef = currentTicketRef;
   if (input.attendance === "yes" && !ticketRef) {
     ticketRef = await generateUniqueTicketRef();
   }
+
+  const statusForAttendance: Record<Attendance, GuestStatus | null> = {
+    yes: "rsvp_yes",
+    no: "rsvp_no",
+    pending: null,
+  };
 
   const { data, error } = await supabase
     .from("guests")
@@ -146,16 +155,29 @@ export async function submitRsvp(token: string, input: RsvpInput): Promise<Submi
       dietary: input.dietary,
       accessibility: input.accessibility,
       notes: input.notes,
-      status: input.attendance === "yes" ? "rsvp_yes" : "rsvp_no",
+      ...(statusForAttendance[input.attendance]
+        ? { status: statusForAttendance[input.attendance] }
+        : {}),
       ticket_ref: ticketRef,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", guest.id)
+    .eq("id", guestId)
     .select("*")
     .single();
 
   if (error) throw error;
-  return { ok: true, guest: data as Guest };
+  return data as Guest;
+}
+
+/** Re-validates the token and writes the RSVP. Token/expiry checks happen
+ * again here (not just on page load) since this is a separate request. */
+export async function submitRsvp(token: string, input: RsvpInput): Promise<SubmitRsvpResult> {
+  const guest = await getGuestByToken(token);
+  if (!guest) return { ok: false, reason: "not_found" };
+  if (isLinkExpired(guest)) return { ok: false, reason: "expired" };
+
+  const updated = await writeRsvpFields(guest.id, guest.ticket_ref, input);
+  return { ok: true, guest: updated };
 }
 
 export async function markConfirmationEmailSent(guestId: string): Promise<void> {
@@ -275,24 +297,16 @@ export interface EditGuestInput {
 export async function updateGuestAsAdmin(id: string, input: EditGuestInput): Promise<void> {
   const supabase = getSupabaseClient();
 
-  const { error } = await supabase
+  const existing = await getGuestById(id);
+  if (!existing) throw new Error(`Guest ${id} not found`);
+
+  await writeRsvpFields(id, existing.ticket_ref, input);
+
+  const { error: nameError } = await supabase
     .from("guests")
-    .update({
-      name: input.name,
-      email: input.email,
-      phone: input.phone,
-      attendance: input.attendance,
-      arrival_day: input.arrivalDay,
-      departure_day: input.departureDay,
-      camping: input.camping,
-      vehicle: input.vehicle,
-      dietary: input.dietary,
-      accessibility: input.accessibility,
-      notes: input.notes,
-      updated_at: new Date().toISOString(),
-    })
+    .update({ name: input.name })
     .eq("id", id);
-  if (error) throw error;
+  if (nameError) throw nameError;
 
   const { error: deleteError } = await supabase.from("guest_inviters").delete().eq("guest_id", id);
   if (deleteError) throw deleteError;
