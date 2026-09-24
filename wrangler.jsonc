@@ -8,8 +8,7 @@
     {
       "binding": "DB",
       "database_name": "over-the-hill",
-      // Replace after running `wrangler d1 create over-the-hill` — see docs/deployment.md.
-      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+      "database_id": "066a9125-39d8-4293-ae62-cb02c9d508a2"
     }
   ]
 }
