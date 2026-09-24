@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<!--
+  Over the Hill – RSVP confirmation email
+  Subject: Your Over the Hill RSVP
+
+  MERGE VARIABLES (double-brace placeholders in the body below)
+  ---------------------------------------------------------------
+  This comment deliberately contains no placeholders, so a global
+  string-replace only touches the real ones.
+
+  guestName     The guest's name. HTML-escape it first (& < > ").
+  ticketUrl     Absolute URL to the guest's ticket page. Appears 4 times:
+                the button link, the Outlook (VML) button link, and the
+                copy-paste fallback link (href and visible text).
+  summaryLines  Array of plain strings, one list item each. In the body,
+                the <li> between the "SUMMARY LINES: BEGIN" and "END"
+                comments is the row template, wrapped in Mustache section
+                tags (hash-summaryLines ... slash-summaryLines):
+                  - With a Mustache renderer (e.g. the `mustache` npm
+                    package) the block works as-is and escapes each line.
+                  - With plain string-replace: HTML-escape each line, put
+                    it in place of the dot placeholder in the <li>, join
+                    the rows, and replace the whole section (both tags
+                    included) with the result.
+
+  Everything else is static. All layout styles are inline. The one
+  <style> block only adds web fonts, a phone tweak and Outlook fixes,
+  and the email still works if a client strips it.
+-->
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="x-apple-disable-message-reformatting">
+  <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+  <!-- Keep the poster palette: ask clients not to auto-darken it. -->
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+  <title>Your Over the Hill RSVP</title>
+
+  <!-- Progressive enhancement: Apple Mail, iOS Mail and some others load these. Gmail and Outlook use the fallbacks. -->
+  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand+SC&amp;family=Quicksand:wght@500;700&amp;display=swap" rel="stylesheet">
+
+  <style>
+    :root { color-scheme: light; supported-color-schemes: light; }
+    body { margin: 0 !important; padding: 0 !important; }
+    a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; }
+    @media only screen and (max-width: 620px) {
+      .oth-pad { padding-left: 22px !important; padding-right: 22px !important; }
+      .oth-h1 { font-size: 34px !important; }
+      .oth-art { width: 200px !important; }
+    }
+  </style>
+
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:AllowPNG/>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <style>
+    /* Outlook for Windows would otherwise fall back to Times New Roman. */
+    body, table, td, p, li, a, span { font-family: "Segoe UI", Arial, sans-serif !important; }
+    .oth-display { font-family: "Comic Sans MS", "Segoe UI", Arial, sans-serif !important; }
+  </style>
+  <![endif]-->
+</head>
+
+<body style="margin: 0; padding: 0; background-color: #ffe8cc; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+
+  <!-- Preheader: shown as the inbox preview line, hidden in the email itself. -->
+  <div style="display: none; max-height: 0; overflow: hidden; mso-hide: all; font-size: 1px; line-height: 1px; color: #ffe8cc; opacity: 0;">
+    Thanks for your RSVP. Here's what we've got down for you, and a link to update it any time.
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffe8cc; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 32px 12px 0 12px;">
+
+        <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 600px; border-collapse: separate;">
+
+          <!-- ========== HEADER: wordmark ========== -->
+          <tr>
+            <td align="center" style="padding: 0 0 8px 0;">
+              <p class="oth-display" style="margin: 0; font-family: 'Patrick Hand SC', 'Comic Sans MS', 'Chalkboard SE', 'Trebuchet MS', sans-serif; font-size: 30px; line-height: 34px; letter-spacing: 2px; color: #1a1a17;">
+                OVER THE HILL FESTIVAL
+              </p>
+              <p style="margin: 4px 0 0 0; font-family: 'Quicksand', 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 22px; font-weight: 700; color: #3b3a33;">
+                August 13th &ndash; 15th 2027 @ Out to Grass
+              </p>
+            </td>
+          </tr>
+
+          <!-- ========== POSTER ILLUSTRATION ========== -->
+          <tr>
+            <td align="center" style="padding: 20px 0 28px 0;">
+              <a href="https://overthehill.live/" target="_blank" style="text-decoration: none;">
+                <img class="oth-art" src="https://overthehill.live/images/poster-illustration.webp" width="240" alt="A twisting tree over rolling green hills, with a disco-ball sun and orange rays" style="display: block; width: 240px; max-width: 100%; height: auto; border: 0; outline: none; text-decoration: none; font-family: 'Quicksand', 'Segoe UI', Arial, sans-serif; font-size: 14px; color: #3b3a33;">
+              </a>
+            </td>
+          </tr>
+
+          <!-- ========== MAIN CARD ========== -->
+          <tr>
+            <td style="padding: 0 6px 6px 0;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: separate; background-color: #fff4e6; border: 3px solid #1a1a17; border-radius: 24px; box-shadow: 6px 6px 0 #1a1a17;">
+                <tr>
+                  <td class="oth-pad" style="padding: 36px 40px 40px 40px;">
+
+                    <!-- Spot illustration -->
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto;">
+                      <tr>
+                        <td align="center" style="padding: 0 0 18px 0;">
+                          <img src="https://overthehill.live/images/spot-discoball.webp" width="96" height="96" alt="" style="display: block; width: 96px; height: 96px; border: 3px solid #1a1a17; border-radius: 48px;">
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Greeting -->
+                    <h1 class="oth-display oth-h1" style="margin: 0 0 12px 0; font-family: 'Patrick Hand SC', 'Comic Sans MS', 'Chalkboard SE', 'Trebuchet MS', sans-serif; font-size: 42px; line-height: 46px; font-weight: normal; color: #1a1a17; text-align: center;">
+                      Hi {{guestName}},
+                    </h1>
+
+                    <p style="margin: 0 0 28px 0; font-family: 'Quicksand', 'Segoe UI', Arial, sans-serif; font-size: 17px; line-height: 26px; font-weight: 500; color: #1a1a17; text-align: center;">
+                      Thanks for letting us know your plans for Over the Hill! We can't wait to see you in the field.
+                    </p>
+
+                    <!-- Summary -->
+                    <h2 class="oth-display" style="margin: 0 0 12px 0; font-family: 'Patrick Hand SC', 'Comic Sans MS', 'Chalkboard SE', 'Trebuchet MS', sans-serif; font-size: 28px; line-height: 32px; font-weight: normal; color: #1a1a17;">
+                      Here's what we've got down for you
+                    </h2>
+
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: separate; background-color: #f7cf97; border: 2px solid #1a1a17; border-radius: 16px;">
+                      <tr>
+                        <td style="padding: 18px 22px 14px 22px;">
+                          <ul style="margin: 0; padding: 0 0 0 20px; font-family: 'Quicksand', 'Segoe UI', Arial, sans-serif; font-size: 16px; line-height: 24px; font-weight: 700; color: #1a1a17;">
+                            <!-- ===== SUMMARY LINES: BEGIN (row template: one <li> per summary line) ===== -->
+                            {{#summaryLines}}
+                            <li style="margin: 0 0 6px 0; padding: 0; color: #1a1a17;">{{.}}</li>
+                            {{/summaryLines}}
+                            <!-- ===== SUMMARY LINES: END ===== -->
+                          </ul>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Button -->
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td align="center" style="padding: 32px 0 12px 0;">
+                          <!--[if mso]>
+                          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ticketUrl}}" style="height:54px;v-text-anchor:middle;width:320px;" arcsize="50%" strokecolor="#1a1a17" strokeweight="2.25pt" fillcolor="#ee8a0a">
+                            <w:anchorlock/>
+                            <center style="color:#1a1a17;font-family:'Comic Sans MS',Arial,sans-serif;font-size:20px;">View or update your RSVP</center>
+                          </v:roundrect>
+                          <![endif]-->
+                          <!--[if !mso]><!-->
+                          <a href="{{ticketUrl}}" target="_blank" class="oth-display" style="display: inline-block; padding: 12px 34px; background-color: #ee8a0a; border: 3px solid #1a1a17; border-radius: 999px; box-shadow: 4px 4px 0 #1a1a17; font-family: 'Patrick Hand SC', 'Comic Sans MS', 'Chalkboard SE', 'Trebuchet MS', sans-serif; font-size: 24px; line-height: 28px; color: #1a1a17; text-decoration: none; mso-hide: all;">View or update your RSVP</a>
+                          <!--<![endif]-->
+                        </td>
+                      </tr>
+                      <tr>
+                        <td align="center" style="padding: 0 0 28px 0; font-family: 'Quicksand', 'Segoe UI', Arial, sans-serif; font-size: 13px; line-height: 20px; color: #3b3a33;">
+                          Button not working? Copy this link into your browser:<br>
+                          <a href="{{ticketUrl}}" target="_blank" style="color: #8a4b00; font-weight: 700; text-decoration: underline; word-break: break-all;">{{ticketUrl}}</a>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Plans change -->
+                    <p style="margin: 0 0 28px 0; font-family: 'Quicksand', 'Segoe UI', Arial, sans-serif; font-size: 16px; line-height: 25px; font-weight: 500; color: #1a1a17;">
+                      Plans change? No problem. Just use the same link any time to update your answers, as often as you like.
+                    </p>
+
+                    <!-- Sign-off -->
+                    <p class="oth-display" style="margin: 0; font-family: 'Patrick Hand SC', 'Comic Sans MS', 'Chalkboard SE', 'Trebuchet MS', sans-serif; font-size: 30px; line-height: 34px; color: #1a1a17;">
+                      See you there!
+                    </p>
+                    <p style="margin: 4px 0 0 0; font-family: 'Quicksand', 'Segoe UI', Arial, sans-serif; font-size: 16px; line-height: 24px; font-weight: 700; color: #3b3a33;">
+                      The Over the Hill hosts
+                    </p>
+
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+        </table>
+        <!--[if mso]></td></tr></table><![endif]-->
+
+      </td>
+    </tr>
+
+    <!-- ========== HILL + FOOTER ========== -->
+    <tr>
+      <td align="center" style="padding: 40px 0 0 0;">
+        <!-- A rounded green "hill". Outlook shows a plain green band. -->
+        <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 600px; border-collapse: separate;">
+          <tr>
+            <td height="44" style="height: 44px; line-height: 44px; font-size: 0; background-color: #8bd580; border: 3px solid #1a1a17; border-bottom: 0; border-radius: 50% 50% 0 0 / 100% 100% 0 0;">&nbsp;</td>
+          </tr>
+        </table>
+        <!--[if mso]></td></tr></table><![endif]-->
+      </td>
+    </tr>
+    <tr>
+      <td align="center" style="background-color: #2e5529; border-top: 3px solid #1a1a17; padding: 28px 16px 36px 16px;">
+        <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 600px;">
+          <tr>
+            <td align="center" style="font-family: 'Quicksand', 'Segoe UI', Arial, sans-serif; font-size: 14px; line-height: 22px; font-weight: 500; color: #ffe8cc;">
+              <p class="oth-display" style="margin: 0 0 6px 0; font-family: 'Patrick Hand SC', 'Comic Sans MS', 'Chalkboard SE', 'Trebuchet MS', sans-serif; font-size: 26px; line-height: 30px; color: #ffe8cc;">
+                Over the Hill Festival
+              </p>
+              <p style="margin: 0 0 12px 0; color: #ffe8cc;">
+                August 13th &ndash; 15th 2027 &middot; Out to Grass, Woodend Farm, Cradley, WR13&nbsp;5JW
+              </p>
+              <p style="margin: 0; color: #ffe8cc;">
+                You're getting this email because you RSVP'd to Over the Hill.<br>
+                <a href="https://overthehill.live/" target="_blank" style="color: #ffe8cc; font-weight: 700; text-decoration: underline;">overthehill.live</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+        <!--[if mso]></td></tr></table><![endif]-->
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

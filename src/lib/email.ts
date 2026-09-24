@@ -1,6 +1,8 @@
 import { Resend } from "resend";
+import Mustache from "mustache";
 import { RESEND_API_KEY, SITE_URL } from "astro:env/server";
 import type { Guest } from "./guests";
+import rsvpConfirmationTemplate from "./emails/rsvp-confirmation.html?raw";
 
 let client: Resend | null = null;
 
@@ -53,12 +55,19 @@ export async function sendRsvpConfirmationEmail(guest: Guest): Promise<void> {
     "See you there!",
   ].join("\n");
 
+  const htmlBody = Mustache.render(rsvpConfirmationTemplate, {
+    guestName: guest.name,
+    ticketUrl,
+    summaryLines,
+  });
+
   const resend = getResendClient();
   const { error } = await resend.emails.send({
     from: FROM_ADDRESS,
     to: guest.email,
     subject: "Your Over the Hill RSVP",
     text: textBody,
+    html: htmlBody,
   });
 
   // The Resend SDK resolves with { error } on an API-level failure (e.g. the
