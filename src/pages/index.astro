@@ -1,41 +1,5 @@
 ---
 import Layout from "../layouts/Layout.astro";
-
-const planCards = [
-  {
-    href: "/camping",
-    title: "Camping",
-    image: "/images/spot-mushrooms.webp",
-    text: "Campsite opens 3pm Friday. Tents, toilets, water and what to bring.",
-  },
-  {
-    href: "/food",
-    title: "Food",
-    image: "/images/spot-flowers.webp",
-    text: "Meals, snacks and drinks. Vegetarian and vegan options catered for.",
-  },
-  {
-    href: "/activities",
-    title: "Activities",
-    image: "/images/spot-butterfly.webp",
-    text: "Spikeball (no try-hards), art stuff, maybe yoga and more to come.",
-  },
-  {
-    href: "/travel",
-    title: "Travel",
-    image: "/images/spot-tulips.webp",
-    text: "Directions, parking and a shuttle bus from Stourbridge Junction.",
-  },
-];
-
-const goodToKnow = [
-  "Campsite opens 3pm on Friday",
-  "Campers leave by midday Sunday",
-  "Vegetarian and vegan food catered for",
-  "Shuttle bus from Stourbridge Junction",
-  "Campervan spaces are limited",
-  "Bring warm and waterproof layers",
-];
 ---
 
 <Layout
@@ -78,44 +42,6 @@ const goodToKnow = [
         <p class="event-details">Out to Grass, Woodend Farm, Cradley, WR13 5JW</p>
         <div class="button-row">
           <a class="button" href="/rsvp">RSVP now</a>
-          <a class="button button-light" href="/faq">Read the FAQs</a>
-        </div>
-      </div>
-    </section>
-
-    <section class="hill-section">
-      <div class="section-inner">
-        <div class="section-heading-row">
-          <h2>Plan your weekend</h2>
-          <p>Everything you need to know about camping, food, fun and getting there.</p>
-        </div>
-
-        <div class="plan-grid">
-          {planCards.map(({ href, title, image, text }) => (
-            <a class="plan-card" href={href}>
-              <img class="spot-art" src={image} alt="" width="360" height="360" loading="lazy" />
-              <span class="plan-card-title">{title}</span>
-              <span class="plan-card-text">{text}</span>
-              <span class="plan-card-link">Read more →</span>
-            </a>
-          ))}
-        </div>
-      </div>
-    </section>
-
-    <section class="good-to-know">
-      <div class="sunburst" aria-hidden="true">
-        <img class="spot-art" src="/images/spot-discoball.webp" alt="" width="360" height="360" loading="lazy" />
-      </div>
-
-      <div class="good-to-know-text">
-        <h2>Good to know</h2>
-        <ul class="dot-list">
-          {goodToKnow.map((item) => <li>{item}</li>)}
-        </ul>
-        <div class="button-row">
-          <a class="button" href="/rsvp">Let us know you're coming</a>
-          <a class="text-link" href="/travel">How to get there →</a>
         </div>
       </div>
     </section>
