@@ -45,7 +45,7 @@ Once someone confirms they're attending, they get a QR code on screen. For now i
 
 ## How we (the hosts) manage the list
 
-- We'll have a private, password-protected admin page where we can:
+- We'll have a private admin page, protected by Cloudflare (the service already hosting the site) rather than a shared password — each host signs in with their own email address and a one-time code, so there's nothing to remember or accidentally share, and we can add or remove a host's access ourselves at any time. There we can:
   - See everyone's status at a glance (invited / responded / attending / not attending), including whether their confirmation email actually went through.
   - Filter the list down to just the guests each of us personally invited, so it's quick to find and copy our own people's links without scrolling past everyone else's.
   - Fix a typo in someone's contact details.
@@ -70,6 +70,6 @@ No payment is part of this first stage — sign-up stays free-to-submit, same as
 ## Questions for the other hosts
 
 - Is the list of data we're collecting above complete, or is there anything else we should be asking guests for?
-- Are we happy with a single shared admin password for now, or do we want individual logins per host?
+- Whose email addresses should be on the admin access list?
 - Any concerns about guests being able to revisit and change their answers at any time?
 - Is 30 days a sensible default before an unanswered link expires, or would we rather it be shorter/longer?

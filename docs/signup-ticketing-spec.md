@@ -13,6 +13,7 @@ This spec migrates the whole site to a small framework rather than bolting a dat
 - **Database: Supabase** (hosted Postgres). Accessed **only from server-side Astro code** (page server code / API routes running as Pages Functions) using the Supabase **service role key**, stored as a Cloudflare Pages secret — it never reaches the browser. The server is the trust boundary: it only ever looks up a guest by the token supplied in the URL, never lists all guests to unauthenticated callers. Row Level Security is still enabled on the tables as defense-in-depth, but the app's own logic is the primary access control.
 - **Guest links use a path segment**, e.g. `https://overthehill.xyz/rsvp/<token>`, not a query string — idiomatic for Astro dynamic routes (`src/pages/rsvp/[token].astro`) and easy to hand out as a single copy-pasteable link.
 - **Transactional email: Resend.** Used only for the automated RSVP confirmation email (see below) — a lightweight fit for a Cloudflare Pages/serverless setup, with a free tier well within our volume. Called server-side from the RSVP API route using an API key stored as a Cloudflare Pages secret.
+- **Admin auth: Cloudflare Access.** Rather than building our own login page and session handling, `/admin/*` is protected by a Cloudflare Access application (Zero Trust) sitting in front of Cloudflare Pages — unauthenticated requests never reach Astro at all. This also gives us per-host identity for free (see "Admin page" below) instead of a single shared password.
 
 ## Data model (Supabase, two tables)
 
@@ -96,7 +97,7 @@ create table guest_inviters (
 
 ## Admin page (v1 scope)
 
-- **Route**: `/admin`, gated by a single shared password (Cloudflare Pages env secret, checked server-side, session via an HttpOnly cookie) — proportionate for a small group of hosts; can be upgraded to per-host accounts later if needed.
+- **Route**: `/admin`, gated by **Cloudflare Access** — a Zero Trust policy allowing only a defined list of host email addresses. A host visiting `/admin` is redirected by Cloudflare to confirm their email with a one-time PIN (or Google sign-in, if we enable it) before ever reaching the page; no password to create, remember, or share. Adding or removing a host is just editing the allow-list in the Cloudflare dashboard — no code change. Astro itself trusts that anything reaching `/admin/*` has already been authenticated by Access; the signed `Cf-Access-Jwt-Assertion` header Access attaches can optionally be verified server-side too, as defense-in-depth, but isn't required to ship v1.
 - **View**: table of all guests — name, inviter(s), attendance/status, contact info, camping/dietary/accessibility details, payment status, whether their confirmation email sent successfully, link expiry date — sortable/filterable, with each guest's `/rsvp/<token>` link shown for copying.
 - **Filter by inviter**: a filter (e.g. a dropdown of inviter names, driven by `guest_inviters`) narrows the table to just the guests a given host invited, so each host can quickly find and copy links for their own invitees without scrolling the full list. Since a guest can have multiple inviters, filtering by one inviter surfaces that guest under each of their inviters.
 - **Edit**: a host can correct any guest's details directly (e.g. fixing a typo'd email, adjusting attendance if told verbally) — writes through the same server-side Supabase access as the guest-facing routes.
@@ -131,8 +132,9 @@ create table guest_inviters (
 - **Migrate all existing pages** (`index`, `about`, `camping`, `food`, `activities`, `travel`, `faq`, `line-up`, `birthday-game`) into Astro pages under `src/pages/`, reusing their current copy/markup almost as-is. Replace the current `js/navigation.js` innerHTML-injection nav hack with a real Astro `<Layout>` + `<Nav>` component — while doing this, fix the existing bug where the nav links to `game.html` but the actual file is `birthday-game.html`.
 - **`rsvp.html` → `src/pages/rsvp/[token].astro`**: server-loads the guest by token, renders the existing form fields (name read-only/prefilled, attendance, camping, vehicle, dietary, accessibility, arrival/departure day, contact email/phone, notes), posts to an Astro API route instead of Formspree, and swaps in a confirmation + QR on success. Update the existing "Data protection notice" copy to describe Supabase instead of Formspree as the processor.
 - **`ticket.html` → `src/pages/ticket/[token].astro`**: becomes the durable "your ticket" view — current status, QR, and (in v2) the relevant Payment Link button, replacing the "TBC"/"Paying — TBD" placeholders.
-- **New**: `src/pages/api/rsvp.ts` (submit/update handler, triggers the confirmation email), `src/pages/admin/*` (login + guest list/edit/add), `src/pages/api/admin/*` (guest CRUD, auth-checked), `src/pages/api/webhooks/stripe.ts` (v2), `src/lib/supabase.ts` (server-side client using the service role key from env), `src/lib/email.ts` (Resend client + confirmation template), a small QR component.
-- **Env/secrets**: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_PASSWORD`, `RESEND_API_KEY` (and later `STRIPE_WEBHOOK_SECRET`) stored as Cloudflare Pages secrets, never committed.
+- **New**: `src/pages/api/rsvp.ts` (submit/update handler, triggers the confirmation email), `src/pages/admin/*` (guest list/edit/add/regenerate — no login page needed, Cloudflare Access handles that before the request arrives), `src/pages/api/admin/*` (guest CRUD), `src/pages/api/webhooks/stripe.ts` (v2), `src/lib/supabase.ts` (server-side client using the service role key from env), `src/lib/email.ts` (Resend client + confirmation template), a small QR component.
+- **Cloudflare config (dashboard, not code)**: a Cloudflare Access application covering `/admin/*`, with a policy listing the hosts' email addresses.
+- **Env/secrets**: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY` (and later `STRIPE_WEBHOOK_SECRET`) stored as Cloudflare Pages secrets, never committed.
 
 ## Verification
 
@@ -141,6 +143,7 @@ create table guest_inviters (
 - Confirm an unknown/garbage token shows the "invalid link" state on both `/rsvp/[token]` and `/ticket/[token]`.
 - Confirm a guest whose `token_expires_at` is in the past and who hasn't responded sees the "link expired" state on `/rsvp/[token]`; confirm a guest in the same state who *has* responded can still access `/rsvp/[token]` and `/ticket/[token]` normally.
 - Confirm "Regenerate link" on the admin page issues a new token/expiry and that the old token immediately stops working.
+- Confirm `/admin` is unreachable without a Cloudflare Access login (e.g. in an incognito window / signed out), and that a listed host's email successfully gets in via the one-time PIN flow.
 - Confirm the admin page's view/edit/add flows work against real guest rows, including a guest with multiple inviters.
 - Confirm the migrated static pages (nav, links, styling) still look and link correctly, including the `birthday-game.html` nav fix.
 - Deploy to a Cloudflare Pages preview environment and repeat the same walkthrough against the deployed site before pointing the real domain at it.
