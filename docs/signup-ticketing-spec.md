@@ -10,21 +10,23 @@ This spec migrates the whole site to a small framework rather than bolting a dat
 
 - **Framework: Astro.** The site is almost entirely static content (about/camping/food/activities/travel/faq/line-up/game) with only two pages needing real interactivity (RSVP, ticket). Astro components are close to plain HTML/CSS, so migrating the existing pages is near copy-paste, and only the RSVP/ticket/admin pages need client-side JS ("islands"). This avoids the overhead of converting every page into React (which a full Next.js migration would require) while still giving us npm, a build step, server endpoints, and typed data.
 - **Hosting: Cloudflare Pages**, using the official `@astrojs/cloudflare` SSR adapter. Astro pages render on Cloudflare's edge; API routes become Pages Functions. This meets all our needs (server-side secrets, dynamic routes, a webhook target for v2).
-- **Database: Supabase** (hosted Postgres). Accessed **only from server-side Astro code** (page server code / API routes running as Pages Functions) using the Supabase **service role key**, stored as a Cloudflare Pages secret — it never reaches the browser. The server is the trust boundary: it only ever looks up a guest by the token supplied in the URL, never lists all guests to unauthenticated callers. Row Level Security is still enabled on the tables as defense-in-depth, but the app's own logic is the primary access control.
+- **Database: Cloudflare D1** (their serverless SQLite). D1 has no public network endpoint at all — it's reachable only via a binding configured on the Cloudflare Pages project, so only our own server-side code (page server code / API routes running as Pages Functions) can ever query it; there's no API key that could leak, unlike a hosted-Postgres-over-HTTP setup. The server is still the trust boundary in application terms: it only ever looks up a guest by the token supplied in the URL, never lists all guests to unauthenticated callers. Chosen over a hosted-Postgres option (e.g. Supabase) since everything here is already server-side-only Cloudflare Pages Functions with no use of client-side REST/Auth/realtime features — D1 gives the same capability with lower latency (native binding vs. an external HTTPS call), no separate vendor/account, and no free-tier "project sleeps after a week of inactivity" behaviour to worry about between invite waves. The trade-off: no Supabase-style Table Editor GUI for eyeballing raw data by hand (the admin page is the intended way to view/edit data instead), and D1's data is tied to Cloudflare specifically rather than portable standard Postgres.
 - **Guest links use a path segment**, e.g. `https://overthehill.xyz/rsvp/<token>`, not a query string — idiomatic for Astro dynamic routes (`src/pages/rsvp/[token].astro`) and easy to hand out as a single copy-pasteable link.
 - **Transactional email: Resend.** Used only for the automated RSVP confirmation email (see below) — a lightweight fit for a Cloudflare Pages/serverless setup, with a free tier well within our volume. Called server-side from the RSVP API route using an API key stored as a Cloudflare Pages secret.
 - **Admin auth: Cloudflare Access.** Rather than building our own login page and session handling, `/admin/*` is protected by a Cloudflare Access application (Zero Trust) sitting in front of Cloudflare Pages — unauthenticated requests never reach Astro at all. This also gives us per-host identity for free (see "Admin page" below) instead of a single shared password.
 
-## Data model (Supabase, two tables)
+## Data model (Cloudflare D1, two tables)
 
 One `guests` row per invite (no plus-ones, so no attendee join table needed for that). `invited_by` is a **separate join table** since a guest can be invited by more than one person.
 
+D1 is SQLite, so a few things are written differently than they would be in Postgres: there's no `uuid` type or `gen_random_uuid()` — ids/tokens are generated in application code (`crypto.randomUUID()`, available in the Workers runtime) and passed in on insert, rather than filled in by a database default. Timestamps are stored as ISO 8601 `text` rather than `timestamptz`, and `token_expires_at` is computed in application code (`now + 30 days`) at insert/regenerate time rather than via an `interval` default.
+
 ```sql
 create table guests (
-  id                uuid primary key default gen_random_uuid(),
-  token             text unique not null default gen_random_uuid()::text,  -- guest's link credential
-  token_expires_at  timestamptz not null default (now() + interval '30 days'), -- see "Link expiry" below
-  ticket_ref        text unique,                -- short code, set once attendance = 'yes'
+  id                text primary key,            -- crypto.randomUUID(), set by app on insert
+  token             text unique not null,        -- crypto.randomUUID(), guest's link credential
+  token_expires_at  text not null,                -- ISO 8601; app sets to now + 30 days, see "Link expiry" below
+  ticket_ref        text unique,                  -- short code, set once attendance = 'yes'
 
   name              text not null,
   email             text,
@@ -50,19 +52,19 @@ create table guests (
   amount_paid_pence integer default 0,
   payment_ref       text,                        -- Stripe client_reference_id / payment intent id
 
-  checked_in_at     timestamptz,                 -- future door check-in
+  checked_in_at     text,                          -- ISO 8601; future door check-in
 
-  confirmation_email_sent_at timestamptz,        -- last time we successfully emailed them
+  confirmation_email_sent_at text,                -- ISO 8601; last time we successfully emailed them
 
-  created_at        timestamptz not null default now(),
-  updated_at        timestamptz not null default now()
+  created_at        text not null,                 -- ISO 8601, set by app on insert
+  updated_at        text not null                  -- ISO 8601, set by app on every write
 );
 
 -- a guest can be invited by more than one person, and an inviter isn't
 -- necessarily another guest row, so this is a simple free-text join table
 create table guest_inviters (
-  id            uuid primary key default gen_random_uuid(),
-  guest_id      uuid not null references guests(id) on delete cascade,
+  id            text primary key,                 -- crypto.randomUUID(), set by app on insert
+  guest_id      text not null references guests(id) on delete cascade,
   inviter_name  text not null,
   unique (guest_id, inviter_name)
 );
@@ -70,8 +72,8 @@ create table guest_inviters (
 
 ## Security model for unique links
 
-- Token = `gen_random_uuid()` per row — unguessable, no separate shared password needed. A shared passphrase would add friction without real protection in a friend group (people forward passphrases as casually as links), while the per-guest token already fully isolates one guest's data from another's.
-- Guest-facing routes never expose a "list all guests" capability. `/rsvp/[token]` and `/ticket/[token]` each do a single lookup by token server-side.
+- Token = a random UUID per row (`crypto.randomUUID()`) — unguessable, no separate shared password needed. A shared passphrase would add friction without real protection in a friend group (people forward passphrases as casually as links), while the per-guest token already fully isolates one guest's data from another's.
+- Guest-facing routes never expose a "list all guests" capability. `/rsvp/[token]` and `/ticket/[token]` each do a single lookup by token server-side. There's also no network path to the database at all except through our own server-side code, since D1 is only reachable via the Cloudflare Pages binding — an even stronger guarantee than "RLS plus a service-role key," since there's nothing resembling a key that could leak in the first place.
 - Invalid/unknown token → friendly "this link isn't valid, contact the hosts" page, not an error page.
 - Resubmitting the RSVP form is allowed (matches the existing site copy: "if your plans change, complete it again") — it updates the row in place and does not regenerate `ticket_ref`, so a guest's QR code stays stable across edits.
 
@@ -86,7 +88,7 @@ create table guest_inviters (
 ## v1 process flow (no payment)
 
 1. **Import**: the existing spreadsheet (name + who invited them, plus email/phone if available) is imported into `guests` + `guest_inviters` — either via the admin page's "add guest" flow (below) or a one-off script for the initial bulk load, since a guest can have more than one inviter.
-2. **Generate links**: the admin page lists every guest's `https://overthehill.xyz/rsvp/<token>` link for copying (also obtainable via one SQL query directly in Supabase if preferred).
+2. **Generate links**: the admin page lists every guest's `https://overthehill.xyz/rsvp/<token>` link for copying (also obtainable via one SQL query run through `wrangler d1 execute` if preferred).
 3. **Distribute manually**: hosts copy each guest's personal link into email/WhatsApp themselves (no automated sending in v1).
 4. **Guest opens their link** → `/rsvp/[token]` fetches their row server-side, pre-fills any previously-submitted answers.
 5. **Guest submits** the form (attendance yes/no, dietary & allergies, contact email/phone, arrival/departure day, camping/accommodation) → an Astro API route validates the token again and writes the update.
@@ -100,7 +102,7 @@ create table guest_inviters (
 - **Route**: `/admin`, gated by **Cloudflare Access** — a Zero Trust policy allowing only a defined list of host email addresses. A host visiting `/admin` is redirected by Cloudflare to confirm their email with a one-time PIN (or Google sign-in, if we enable it) before ever reaching the page; no password to create, remember, or share. Adding or removing a host is just editing the allow-list in the Cloudflare dashboard — no code change. Astro itself trusts that anything reaching `/admin/*` has already been authenticated by Access; the signed `Cf-Access-Jwt-Assertion` header Access attaches can optionally be verified server-side too, as defense-in-depth, but isn't required to ship v1.
 - **View**: table of all guests — name, inviter(s), attendance/status, contact info, camping/dietary/accessibility details, payment status, whether their confirmation email sent successfully, link expiry date — sortable/filterable, with each guest's `/rsvp/<token>` link shown for copying.
 - **Filter by inviter**: a filter (e.g. a dropdown of inviter names, driven by `guest_inviters`) narrows the table to just the guests a given host invited, so each host can quickly find and copy links for their own invitees without scrolling the full list. Since a guest can have multiple inviters, filtering by one inviter surfaces that guest under each of their inviters.
-- **Edit**: a host can correct any guest's details directly (e.g. fixing a typo'd email, adjusting attendance if told verbally) — writes through the same server-side Supabase access as the guest-facing routes.
+- **Edit**: a host can correct any guest's details directly (e.g. fixing a typo'd email, adjusting attendance if told verbally) — writes through the same server-side D1 access as the guest-facing routes.
 - **Add**: a form to add a new guest (name + one or more inviters + optional email/phone), which generates their `token` and surfaces their new personal link immediately — becomes the ongoing way to extend the invite list beyond the initial import.
 - **Regenerate link**: a button per guest that issues them a fresh token and expiry (see "Link expiry" above) — for a lapsed link or one that needs invalidating.
 
@@ -123,22 +125,22 @@ create table guest_inviters (
 
 - **Currency: GBP throughout.** Stripe Payment Links are created in GBP, and the `amount_due_pence`/`amount_paid_pence` columns store whole pence (e.g. £15.00 deposit = `1500`) to avoid floating-point rounding issues.
 - **Mechanism: Stripe Payment Links**, one per price point (deposit vs. full balance) created in Stripe's dashboard — no custom checkout code. Each guest's payment link includes `?client_reference_id=<ticket_ref>` so a payment can always be traced back to a specific guest.
-- **Getting status back into the database: automated via webhook.** One Astro API route (`/api/webhooks/stripe`, runs as a Cloudflare Pages Function) verifies the Stripe signature and updates the guest's `status`/`amount_paid_pence`/`payment_ref` using the service role key server-side, matched via `ticket_ref`/`client_reference_id`. This is the only place v2 needs a true secret (`STRIPE_WEBHOOK_SECRET`), and it slots into infrastructure we already have (Cloudflare Pages Functions) — no new hosting platform. The admin page's guest table still shows payment status as a read-only reflection of this, with manual edit available as a fallback for one-off corrections.
+- **Getting status back into the database: automated via webhook.** One Astro API route (`/api/webhooks/stripe`, runs as a Cloudflare Pages Function) verifies the Stripe signature and updates the guest's `status`/`amount_paid_pence`/`payment_ref` server-side via the D1 binding, matched via `ticket_ref`/`client_reference_id`. This is the only place v2 needs a true secret (`STRIPE_WEBHOOK_SECRET`), and it slots into infrastructure we already have (Cloudflare Pages Functions) — no new hosting platform. The admin page's guest table still shows payment status as a read-only reflection of this, with manual edit available as a fallback for one-off corrections.
 - **Guest-facing change**: none of their link/token/ticket_ref changes. They revisit the same `/ticket/[token]` link and see their status progress (RSVP confirmed → Deposit paid → Paid in full), with the same QR now shown with a "paid" badge, and amounts shown as £.
 - This is why the v2 columns (`amount_due_pence`, `amount_paid_pence`, `payment_ref`, and the extra `status` values) are already in the v1 schema — v2 is additive status/UI work, not a migration.
 
 ## File/page changes
 
 - **Migrate all existing pages** (`index`, `about`, `camping`, `food`, `activities`, `travel`, `faq`, `line-up`, `birthday-game`) into Astro pages under `src/pages/`, reusing their current copy/markup almost as-is. Replace the current `js/navigation.js` innerHTML-injection nav hack with a real Astro `<Layout>` + `<Nav>` component — while doing this, fix the existing bug where the nav links to `game.html` but the actual file is `birthday-game.html`.
-- **`rsvp.html` → `src/pages/rsvp/[token].astro`**: server-loads the guest by token, renders the existing form fields (name read-only/prefilled, attendance, camping, vehicle, dietary, accessibility, arrival/departure day, contact email/phone, notes), posts to an Astro API route instead of Formspree, and swaps in a confirmation + QR on success. Update the existing "Data protection notice" copy to describe Supabase instead of Formspree as the processor.
+- **`rsvp.html` → `src/pages/rsvp/[token].astro`**: server-loads the guest by token, renders the existing form fields (name read-only/prefilled, attendance, camping, vehicle, dietary, accessibility, arrival/departure day, contact email/phone, notes), posts to an Astro API route instead of Formspree, and swaps in a confirmation + QR on success. Update the existing "Data protection notice" copy to describe our own database instead of Formspree as the processor.
 - **`ticket.html` → `src/pages/ticket/[token].astro`**: becomes the durable "your ticket" view — current status, QR, and (in v2) the relevant Payment Link button, replacing the "TBC"/"Paying — TBD" placeholders.
-- **New**: `src/pages/api/rsvp.ts` (submit/update handler, triggers the confirmation email), `src/pages/admin/*` (guest list/edit/add/regenerate — no login page needed, Cloudflare Access handles that before the request arrives), `src/pages/api/admin/*` (guest CRUD), `src/pages/api/webhooks/stripe.ts` (v2), `src/lib/supabase.ts` (server-side client using the service role key from env), `src/lib/email.ts` (Resend client + confirmation template), a small QR component.
-- **Cloudflare config (dashboard, not code)**: a Cloudflare Access application covering `/admin/*`, with a policy listing the hosts' email addresses.
-- **Env/secrets**: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY` (and later `STRIPE_WEBHOOK_SECRET`) stored as Cloudflare Pages secrets, never committed.
+- **New**: `src/pages/api/rsvp.ts` (submit/update handler, triggers the confirmation email), `src/pages/admin/*` (guest list/edit/add/regenerate — no login page needed, Cloudflare Access handles that before the request arrives), `src/pages/api/admin/*` (guest CRUD), `src/pages/api/webhooks/stripe.ts` (v2), `src/lib/db.ts` (typed helpers over the D1 binding, `context.locals.runtime.env.DB`), `src/lib/email.ts` (Resend client + confirmation template), a small QR component.
+- **Cloudflare config (dashboard/wrangler, not application code)**: a D1 database created and bound to the Pages project (binding name `DB`), the migration SQL applied via `wrangler d1 migrations apply`; a Cloudflare Access application covering `/admin/*`, with a policy listing the hosts' email addresses.
+- **Env/secrets**: `RESEND_API_KEY` (and later `STRIPE_WEBHOOK_SECRET`) stored as Cloudflare Pages secrets, never committed. D1 needs no secret at all — access is via the binding, configured once in the Pages project settings (or `wrangler.toml`), not an env var.
 
 ## Verification
 
-- Local dev: `astro dev` with a `.env` pointing at a Supabase project; manually walk through: seed a couple of test guests → visit `/rsvp/<token>` → submit → confirm row updates in Supabase and QR renders on `/ticket/<token>` → confirm a confirmation email arrives (use a real inbox or Resend's test mode) with the correct summary and ticket link → resubmit and confirm `ticket_ref` stays stable and a fresh confirmation email is sent.
+- Local dev: `astro dev` against a local D1 database (`wrangler d1` supports a local/emulated mode), with `.env` set for Resend; manually walk through: seed a couple of test guests → visit `/rsvp/<token>` → submit → confirm the row updates in D1 and QR renders on `/ticket/<token>` → confirm a confirmation email arrives (use a real inbox or Resend's test mode) with the correct summary and ticket link → resubmit and confirm `ticket_ref` stays stable and a fresh confirmation email is sent.
 - Confirm a submission still succeeds and saves correctly even if the email send is forced to fail (non-blocking check).
 - Confirm an unknown/garbage token shows the "invalid link" state on both `/rsvp/[token]` and `/ticket/[token]`.
 - Confirm a guest whose `token_expires_at` is in the past and who hasn't responded sees the "link expired" state on `/rsvp/[token]`; confirm a guest in the same state who *has* responded can still access `/rsvp/[token]` and `/ticket/[token]` normally.
