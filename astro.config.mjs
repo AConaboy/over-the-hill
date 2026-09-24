@@ -10,8 +10,6 @@ export default defineConfig({
   }),
   env: {
     schema: {
-      SUPABASE_URL: envField.string({ context: 'server', access: 'secret' }),
-      SUPABASE_SERVICE_ROLE_KEY: envField.string({ context: 'server', access: 'secret' }),
       RESEND_API_KEY: envField.string({ context: 'server', access: 'secret' }),
       SITE_URL: envField.string({ context: 'server', access: 'public' }),
     },

@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Used for local dev and to generate types. Deploying this Worker (and
+  // creating the real D1 database) is a manual step — see docs/deployment.md.
+  "name": "over-the-hill",
+  "compatibility_date": "2026-09-21",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "over-the-hill",
+      // Replace after running `wrangler d1 create over-the-hill` — see docs/deployment.md.
+      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import { getSupabaseClient } from "./supabase";
+import { getDb } from "./db";
 
 export type Attendance = "pending" | "yes" | "no";
 export type Camping = "camping" | "not_camping" | "undecided";
@@ -44,6 +44,14 @@ export interface GuestWithInviters extends Guest {
 
 const TOKEN_EXPIRY_DAYS = 30;
 
+function newId(): string {
+  return crypto.randomUUID();
+}
+
+function nowIso(): string {
+  return new Date().toISOString();
+}
+
 function newExpiry(): string {
   const expires = new Date();
   expires.setDate(expires.getDate() + TOKEN_EXPIRY_DAYS);
@@ -57,47 +65,35 @@ export function isLinkExpired(guest: Pick<Guest, "attendance" | "token_expires_a
 }
 
 export async function getGuestByToken(token: string): Promise<Guest | null> {
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase
-    .from("guests")
-    .select("*")
-    .eq("token", token)
-    .maybeSingle();
-
-  if (error) throw error;
-  return data as Guest | null;
+  const db = getDb();
+  const guest = await db.prepare("select * from guests where token = ?").bind(token).first<Guest>();
+  return guest ?? null;
 }
 
 export async function getInvitersForGuest(guestId: string): Promise<string[]> {
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase
-    .from("guest_inviters")
-    .select("inviter_name")
-    .eq("guest_id", guestId)
-    .order("inviter_name");
-
-  if (error) throw error;
-  return (data ?? []).map((row) => row.inviter_name as string);
+  const db = getDb();
+  const { results } = await db
+    .prepare("select inviter_name from guest_inviters where guest_id = ? order by inviter_name")
+    .bind(guestId)
+    .all<{ inviter_name: string }>();
+  return results.map((row) => row.inviter_name);
 }
 
 /** Marks a guest's link as opened, if this is their first visit. */
 export async function markViewed(guest: Guest): Promise<void> {
   if (guest.status !== "invited") return;
-  const supabase = getSupabaseClient();
-  await supabase.from("guests").update({ status: "viewed" }).eq("id", guest.id);
+  const db = getDb();
+  await db
+    .prepare("update guests set status = 'viewed', updated_at = ? where id = ?")
+    .bind(nowIso(), guest.id)
+    .run();
 }
 
-async function generateUniqueTicketRef(): Promise<string> {
-  const supabase = getSupabaseClient();
+async function generateUniqueTicketRef(db: D1Database): Promise<string> {
   for (let attempt = 0; attempt < 5; attempt++) {
     const candidate = crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase();
-    const { data, error } = await supabase
-      .from("guests")
-      .select("id")
-      .eq("ticket_ref", candidate)
-      .maybeSingle();
-    if (error) throw error;
-    if (!data) return candidate;
+    const existing = await db.prepare("select id from guests where ticket_ref = ?").bind(candidate).first();
+    if (!existing) return candidate;
   }
   throw new Error("Could not generate a unique ticket reference");
 }
@@ -129,11 +125,11 @@ async function writeRsvpFields(
   currentTicketRef: string | null,
   input: RsvpInput,
 ): Promise<Guest> {
-  const supabase = getSupabaseClient();
+  const db = getDb();
 
   let ticketRef = currentTicketRef;
   if (input.attendance === "yes" && !ticketRef) {
-    ticketRef = await generateUniqueTicketRef();
+    ticketRef = await generateUniqueTicketRef(db);
   }
 
   const statusForAttendance: Record<Attendance, GuestStatus | null> = {
@@ -142,31 +138,35 @@ async function writeRsvpFields(
     pending: null,
   };
 
-  const { data, error } = await supabase
-    .from("guests")
-    .update({
-      attendance: input.attendance,
-      email: input.email,
-      phone: input.phone,
-      arrival_day: input.arrivalDay,
-      departure_day: input.departureDay,
-      camping: input.camping,
-      vehicle: input.vehicle,
-      dietary: input.dietary,
-      accessibility: input.accessibility,
-      notes: input.notes,
-      ...(statusForAttendance[input.attendance]
-        ? { status: statusForAttendance[input.attendance] }
-        : {}),
-      ticket_ref: ticketRef,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", guestId)
-    .select("*")
-    .single();
+  await db
+    .prepare(
+      `update guests set
+         attendance = ?, email = ?, phone = ?, arrival_day = ?, departure_day = ?,
+         camping = ?, vehicle = ?, dietary = ?, accessibility = ?, notes = ?,
+         ticket_ref = ?, status = coalesce(?, status), updated_at = ?
+       where id = ?`,
+    )
+    .bind(
+      input.attendance,
+      input.email,
+      input.phone,
+      input.arrivalDay,
+      input.departureDay,
+      input.camping,
+      input.vehicle,
+      input.dietary,
+      input.accessibility,
+      input.notes,
+      ticketRef,
+      statusForAttendance[input.attendance],
+      nowIso(),
+      guestId,
+    )
+    .run();
 
-  if (error) throw error;
-  return data as Guest;
+  const updated = await db.prepare("select * from guests where id = ?").bind(guestId).first<Guest>();
+  if (!updated) throw new Error(`Guest ${guestId} not found after update`);
+  return updated;
 }
 
 /** Re-validates the token and writes the RSVP. Token/expiry checks happen
@@ -181,73 +181,63 @@ export async function submitRsvp(token: string, input: RsvpInput): Promise<Submi
 }
 
 export async function markConfirmationEmailSent(guestId: string): Promise<void> {
-  const supabase = getSupabaseClient();
-  await supabase
-    .from("guests")
-    .update({ confirmation_email_sent_at: new Date().toISOString() })
-    .eq("id", guestId);
+  const db = getDb();
+  await db
+    .prepare("update guests set confirmation_email_sent_at = ? where id = ?")
+    .bind(nowIso(), guestId)
+    .run();
 }
 
 // --- Admin ---
 
 export async function listGuestsWithInviters(inviterFilter?: string): Promise<GuestWithInviters[]> {
-  const supabase = getSupabaseClient();
+  const db = getDb();
 
-  let guestIdsForFilter: string[] | null = null;
-  if (inviterFilter) {
-    const { data, error } = await supabase
-      .from("guest_inviters")
-      .select("guest_id")
-      .eq("inviter_name", inviterFilter);
-    if (error) throw error;
-    guestIdsForFilter = (data ?? []).map((row) => row.guest_id as string);
-    if (guestIdsForFilter.length === 0) return [];
-  }
+  const guestsStmt = inviterFilter
+    ? db
+        .prepare(
+          `select g.* from guests g
+           join guest_inviters gi on gi.guest_id = g.id
+           where gi.inviter_name = ?
+           order by g.name`,
+        )
+        .bind(inviterFilter)
+    : db.prepare("select * from guests order by name");
 
-  let query = supabase.from("guests").select("*").order("name");
-  if (guestIdsForFilter) {
-    query = query.in("id", guestIdsForFilter);
-  }
+  const { results: guests } = await guestsStmt.all<Guest>();
+  if (guests.length === 0) return [];
 
-  const { data: guests, error } = await query;
-  if (error) throw error;
-
-  const { data: inviterRows, error: invitersError } = await supabase
-    .from("guest_inviters")
-    .select("guest_id, inviter_name");
-  if (invitersError) throw invitersError;
+  const { results: inviterRows } = await db
+    .prepare("select guest_id, inviter_name from guest_inviters")
+    .all<{ guest_id: string; inviter_name: string }>();
 
   const invitersByGuest = new Map<string, string[]>();
-  for (const row of inviterRows ?? []) {
-    const list = invitersByGuest.get(row.guest_id as string) ?? [];
-    list.push(row.inviter_name as string);
-    invitersByGuest.set(row.guest_id as string, list);
+  for (const row of inviterRows) {
+    const list = invitersByGuest.get(row.guest_id) ?? [];
+    list.push(row.inviter_name);
+    invitersByGuest.set(row.guest_id, list);
   }
 
-  return (guests ?? []).map((guest) => ({
-    ...(guest as Guest),
-    inviters: invitersByGuest.get((guest as Guest).id) ?? [],
+  return guests.map((guest) => ({
+    ...guest,
+    inviters: invitersByGuest.get(guest.id) ?? [],
   }));
 }
 
 export async function listAllInviterNames(): Promise<string[]> {
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase
-    .from("guest_inviters")
-    .select("inviter_name")
-    .order("inviter_name");
-  if (error) throw error;
-  const unique = Array.from(new Set((data ?? []).map((row) => row.inviter_name as string)));
-  return unique;
+  const db = getDb();
+  const { results } = await db
+    .prepare("select distinct inviter_name from guest_inviters order by inviter_name")
+    .all<{ inviter_name: string }>();
+  return results.map((row) => row.inviter_name);
 }
 
 export async function getGuestById(id: string): Promise<GuestWithInviters | null> {
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase.from("guests").select("*").eq("id", id).maybeSingle();
-  if (error) throw error;
-  if (!data) return null;
+  const db = getDb();
+  const guest = await db.prepare("select * from guests where id = ?").bind(id).first<Guest>();
+  if (!guest) return null;
   const inviters = await getInvitersForGuest(id);
-  return { ...(data as Guest), inviters };
+  return { ...guest, inviters };
 }
 
 export interface AddGuestInput {
@@ -257,26 +247,36 @@ export interface AddGuestInput {
   inviterNames: string[];
 }
 
+async function replaceInviters(db: D1Database, guestId: string, inviterNames: string[]): Promise<void> {
+  const names = inviterNames.map((name) => name.trim()).filter(Boolean);
+  if (names.length === 0) return;
+  await db.batch(
+    names.map((inviter_name) =>
+      db
+        .prepare("insert into guest_inviters (id, guest_id, inviter_name) values (?, ?, ?)")
+        .bind(newId(), guestId, inviter_name),
+    ),
+  );
+}
+
 export async function addGuest(input: AddGuestInput): Promise<Guest> {
-  const supabase = getSupabaseClient();
-  const { data: guest, error } = await supabase
-    .from("guests")
-    .insert({ name: input.name, email: input.email, phone: input.phone })
-    .select("*")
-    .single();
-  if (error) throw error;
+  const db = getDb();
+  const id = newId();
+  const timestamp = nowIso();
 
-  const inviterRows = input.inviterNames
-    .map((name) => name.trim())
-    .filter(Boolean)
-    .map((inviter_name) => ({ guest_id: (guest as Guest).id, inviter_name }));
+  await db
+    .prepare(
+      `insert into guests (id, token, token_expires_at, name, email, phone, created_at, updated_at)
+       values (?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .bind(id, newId(), newExpiry(), input.name, input.email, input.phone, timestamp, timestamp)
+    .run();
 
-  if (inviterRows.length > 0) {
-    const { error: invitersError } = await supabase.from("guest_inviters").insert(inviterRows);
-    if (invitersError) throw invitersError;
-  }
+  await replaceInviters(db, id, input.inviterNames);
 
-  return guest as Guest;
+  const guest = await db.prepare("select * from guests where id = ?").bind(id).first<Guest>();
+  if (!guest) throw new Error("Failed to create guest");
+  return guest;
 }
 
 export interface EditGuestInput {
@@ -295,44 +295,25 @@ export interface EditGuestInput {
 }
 
 export async function updateGuestAsAdmin(id: string, input: EditGuestInput): Promise<void> {
-  const supabase = getSupabaseClient();
+  const db = getDb();
 
   const existing = await getGuestById(id);
   if (!existing) throw new Error(`Guest ${id} not found`);
 
   await writeRsvpFields(id, existing.ticket_ref, input);
 
-  const { error: nameError } = await supabase
-    .from("guests")
-    .update({ name: input.name })
-    .eq("id", id);
-  if (nameError) throw nameError;
+  await db.prepare("update guests set name = ? where id = ?").bind(input.name, id).run();
 
-  const { error: deleteError } = await supabase.from("guest_inviters").delete().eq("guest_id", id);
-  if (deleteError) throw deleteError;
-
-  const inviterRows = input.inviterNames
-    .map((name) => name.trim())
-    .filter(Boolean)
-    .map((inviter_name) => ({ guest_id: id, inviter_name }));
-
-  if (inviterRows.length > 0) {
-    const { error: insertError } = await supabase.from("guest_inviters").insert(inviterRows);
-    if (insertError) throw insertError;
-  }
+  await db.prepare("delete from guest_inviters where guest_id = ?").bind(id).run();
+  await replaceInviters(db, id, input.inviterNames);
 }
 
 /** New token + a fresh 30-day expiry. The old link stops working immediately
  * since it no longer matches any row. */
 export async function regenerateGuestLink(id: string): Promise<void> {
-  const supabase = getSupabaseClient();
-  const { error } = await supabase
-    .from("guests")
-    .update({
-      token: crypto.randomUUID(),
-      token_expires_at: newExpiry(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", id);
-  if (error) throw error;
+  const db = getDb();
+  await db
+    .prepare("update guests set token = ?, token_expires_at = ?, updated_at = ? where id = ?")
+    .bind(newId(), newExpiry(), nowIso(), id)
+    .run();
 }
