@@ -728,6 +728,44 @@ main:has(> .page-hero) {
   background: var(--cream);
 }
 
+/* Desktop: photo and map in one row, text full-width underneath. Below
+   this width the wrapper is a plain block, so mobile keeps source order. */
+@media (min-width: 901px) {
+  .location-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "photo map"
+      "text text";
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .location-photo {
+    grid-area: photo;
+    margin: 0;
+  }
+
+  /* Match the map card's height; the photo crops rather than stretches. */
+  .location-photo img {
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .location-map {
+    grid-area: map;
+    margin: 0;
+  }
+
+  .location-text {
+    grid-area: text;
+  }
+
+  .location-text > :last-child {
+    margin-bottom: 0;
+  }
+}
+
 .form-field-checkbox {
   display: flex;
   align-items: center;
