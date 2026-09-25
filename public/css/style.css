@@ -155,8 +155,11 @@ h2 {
   overflow: hidden;
 }
 
+/* The disco-ball art is square, drawn for a circle and padded, so it can
+   fill the circle: its own margin keeps it clear of the border. */
 .site-logo img {
-  width: 78%;
+  display: block;
+  width: 100%;
   height: auto;
 }
 
