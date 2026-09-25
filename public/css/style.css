@@ -703,6 +703,31 @@ main:has(> .page-hero) {
   color: var(--ink);
 }
 
+/* Location page */
+
+.location-photo {
+  margin: 0 0 1.5rem;
+}
+
+.location-photo img,
+.location-map iframe {
+  display: block;
+  width: 100%;
+  border: var(--outline);
+  border-radius: var(--radius);
+}
+
+.location-photo img {
+  height: auto;
+}
+
+.location-map iframe {
+  aspect-ratio: 4 / 3;
+  height: auto;
+  margin-bottom: 1rem;
+  background: var(--cream);
+}
+
 .form-field-checkbox {
   display: flex;
   align-items: center;

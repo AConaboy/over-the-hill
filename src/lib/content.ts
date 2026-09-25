@@ -47,6 +47,7 @@ export const CONTENT_PAGES: ContentPageDef[] = [
       { key: "tagline", label: "Tagline" },
       { key: "venue_line", label: "Venue & address line" },
       { key: "cta_label", label: "RSVP button label" },
+      { key: "location_cta_label", label: "Location link label" },
       { key: "credits", label: "Brought to you by (one name per line)", multiline: true },
     ],
   },
@@ -63,6 +64,16 @@ export const CONTENT_PAGES: ContentPageDef[] = [
   {
     slug: "rsvp-form",
     label: "RSVP form (surrounding text)",
+    routed: true,
+    fieldKeys: [
+      { key: "hero_eyebrow", label: "Eyebrow" },
+      { key: "hero_heading", label: "Heading" },
+      { key: "hero_introduction", label: "Introduction", multiline: true },
+    ],
+  },
+  {
+    slug: "location",
+    label: "Location",
     routed: true,
     fieldKeys: [
       { key: "hero_eyebrow", label: "Eyebrow" },

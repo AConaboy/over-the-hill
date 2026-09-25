@@ -1,0 +1,64 @@
+---
+import Layout from "../layouts/Layout.astro";
+import PageHero from "../components/PageHero.astro";
+import ContentBlockView from "../components/ContentBlockView.astro";
+import { getPageContent } from "../lib/content";
+
+// The hosts' share link (maps.app.goo.gl/8APkniLfPi7vkHAC8) points at the
+// "Out To Grass Camping, Glamping and Events" pin below. The short link
+// can't be the embed itself: it redirects to a regular Maps page, which
+// Google refuses to show inside another site, so the embed is built from
+// the pin's coordinates (52.134436, -2.433987, zoom 15) and the short link
+// is used for "open in Maps". This is Google's keyless /maps/embed URL,
+// which allows framing (unlike maps.google.com/maps?output=embed, whose
+// redirect response sends X-Frame-Options).
+const MAP_EMBED_URL = "https://www.google.com/maps/embed?pb=!1m3!2m1!1s52.134436,-2.433987!6i15";
+const MAP_LINK_URL = "https://maps.app.goo.gl/8APkniLfPi7vkHAC8";
+
+const { fields, blocks } = await getPageContent("location");
+---
+
+<Layout
+  title="Location | Over the Hill"
+  description="Where Over the Hill is: Out to Grass, Woodend Farm, Cradley, near Malvern."
+>
+  <main>
+    <PageHero eyebrow={fields.hero_eyebrow} heading={fields.hero_heading} introduction={fields.hero_introduction} />
+
+    <section class="page-content">
+      <figure class="location-photo">
+        <img
+          src="/images/outtograsssite.webp"
+          alt="The Out to Grass site at dusk: a lit-up dome, bell tents and festoon lights on a grassy hillside"
+          width="1080"
+          height="810"
+        />
+      </figure>
+
+      {blocks.map((block) => <ContentBlockView block={block} />)}
+
+      <article class="content-block location-map">
+        <h2>Map</h2>
+        {/* Our site-wide Referrer-Policy is same-origin (guest tokens live in
+            some URLs). This page has no token, so let Google see our origin. */}
+        <iframe
+          src={MAP_EMBED_URL}
+          title="Map showing Out to Grass, Woodend Farm, Cradley"
+          loading="lazy"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allowfullscreen
+        ></iframe>
+        <p>
+          <a class="text-link" href={MAP_LINK_URL} target="_blank" rel="noopener noreferrer">
+            Open in Google Maps →
+          </a>
+        </p>
+      </article>
+
+      <div class="page-actions">
+        <a class="button" href="/rsvp">Complete your RSVP</a>
+        <a class="text-link" href="/">Return home</a>
+      </div>
+    </section>
+  </main>
+</Layout>

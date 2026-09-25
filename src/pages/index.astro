@@ -49,6 +49,7 @@ const hosts = (fields.credits ?? "")
         <p class="event-details">{fields.venue_line}</p>
         <div class="button-row">
           <a class="button" href="/rsvp">{fields.cta_label}</a>
+          <a class="text-link" href="/location">{fields.location_cta_label || "Where is it?"}</a>
         </div>
 
         <p class="credit-line">Brought to you by {hosts.join(", ")}</p>
