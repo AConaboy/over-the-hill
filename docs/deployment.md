@@ -133,8 +133,8 @@ expose your local dev server publicly.
 
 ## What's not built yet (v2)
 
-Deposits/paid tickets (Stripe Payment Links + a webhook) are described in
+Deposits/paid tickets (Stripe Checkout Sessions + a webhook) are described in
 `docs/signup-ticketing-spec.md` but intentionally not implemented in this
-version — the `amount_due_pence`, `amount_paid_pence`, `payment_ref`, and
-`payment_status` columns already exist in the schema so that work won't
+version — the `amount_due_pence`, `amount_paid_pence`, `payment_ref`,
+`payment_status` and `is_performer` columns already exist in the schema so that work won't
 need a migration.

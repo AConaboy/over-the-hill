@@ -2,7 +2,8 @@
 import Layout from "../../layouts/Layout.astro";
 import LinkProblemNotice from "../../components/LinkProblemNotice.astro";
 import TicketQr from "../../components/TicketQr.astro";
-import { getGuestByToken } from "../../lib/guests";
+import { getGuestByToken, hasNothingToPay } from "../../lib/guests";
+import { formatPence } from "../../lib/money";
 import { REMEMBER_COOKIE_NAME, REMEMBER_COOKIE_OPTIONS } from "../../lib/rememberCookie";
 
 const { token } = Astro.params;
@@ -86,12 +87,20 @@ if (guest) {
 
               <article class="content-block">
                 <h2>Paying</h2>
-                <p>
-                  No payment is needed yet — this is a free RSVP for now. If we
-                  add a deposit or ticket price later, it'll show up here with
-                  a link to pay, and this same ticket will update to show it's
-                  been paid.
-                </p>
+                {hasNothingToPay(guest) ? (
+                  <p>
+                    Nothing to pay — you're performing, so your ticket's on us.
+                  </p>
+                ) : (
+                  <p>
+                    {guest.is_performer === 1 && guest.amount_due_pence !== null && (
+                      <>As a performer, your ticket price is {formatPence(guest.amount_due_pence)}. </>
+                    )}
+                    No payment is needed yet. When payments open, a link to
+                    pay will show up here, and this same ticket will update to
+                    show it's been paid.
+                  </p>
+                )}
               </article>
             </>
           )}

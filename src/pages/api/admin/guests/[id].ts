@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import { updateGuestAsAdmin, ATTENDANCE_VALUES, CAMPING_VALUES, VEHICLE_VALUES } from "../../../../lib/guests";
-import { choiceField, inviterNamesField, LONG_TEXT_MAX, textField } from "../../../../lib/forms";
+import { choiceField, inviterNamesField, LONG_TEXT_MAX, performerFields, textField } from "../../../../lib/forms";
 
 export const prerender = false;
 
@@ -12,12 +12,16 @@ export const POST: APIRoute = async ({ params, request, redirect }) => {
 
   const form = await request.formData();
   const name = textField(form, "name");
-  if (!name) {
+  // Both fields are validated in the browser too, so this only rejects
+  // hand-crafted requests.
+  const performer = performerFields(form);
+  if (!name || !performer) {
     return redirect(`/admin/guests/${id}/edit`, 303);
   }
 
   await updateGuestAsAdmin(id, {
     name,
+    ...performer,
     email: textField(form, "email"),
     phone: textField(form, "phone"),
     attendance: choiceField(form, "attendance", ATTENDANCE_VALUES) ?? "pending",

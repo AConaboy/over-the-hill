@@ -31,12 +31,16 @@ export interface Guest {
   notes: string | null;
   status: GuestStatus;
   payment_status: PaymentStatus;
+  /** null = standard price, 0 = free, otherwise this guest's own price.
+   * Only ever set for performers (see migrations/0006_performers.sql). */
   amount_due_pence: number | null;
   amount_paid_pence: number | null;
   payment_ref: string | null;
   checked_in_at: string | null;
   confirmation_email_sent_at: string | null;
   magic_link_sent_at: string | null;
+  /** 0/1 (SQLite has no boolean). Set by hosts only. */
+  is_performer: number;
   created_at: string;
   updated_at: string;
 }
@@ -279,23 +283,46 @@ export function isGuestSort(value: string | null): value is GuestSort {
   return value !== null && Object.hasOwn(GUEST_SORTS, value);
 }
 
-export async function listGuestsWithInviters(
-  inviterFilter?: string,
-  sort: GuestSort = "name",
-): Promise<GuestWithInviters[]> {
-  const db = getDb();
-  const orderBy = GUEST_SORTS[sort].orderBy;
+export const GUEST_KINDS = {
+  all: { label: "Everyone", where: null },
+  guests: { label: "Guests only", where: "g.is_performer = 0" },
+  performers: { label: "Performers only", where: "g.is_performer = 1" },
+} as const;
 
-  const guestsStmt = inviterFilter
-    ? db
-        .prepare(
-          `select g.* from guests g
-           join guest_inviters gi on gi.guest_id = g.id
-           where gi.inviter_name = ?
-           order by ${orderBy}`,
-        )
-        .bind(inviterFilter)
-    : db.prepare(`select g.* from guests g order by ${orderBy}`);
+export type GuestKind = keyof typeof GUEST_KINDS;
+
+export function isGuestKind(value: string | null): value is GuestKind {
+  return value !== null && Object.hasOwn(GUEST_KINDS, value);
+}
+
+export interface GuestListOptions {
+  inviter?: string;
+  kind?: GuestKind;
+  sort?: GuestSort;
+}
+
+export async function listGuestsWithInviters({
+  inviter,
+  kind = "all",
+  sort = "name",
+}: GuestListOptions = {}): Promise<GuestWithInviters[]> {
+  const db = getDb();
+
+  // Only whitelisted SQL fragments are interpolated; the one user-supplied
+  // value (the inviter name) is always bound.
+  const conditions: string[] = [];
+  const bindings: string[] = [];
+  if (inviter) {
+    conditions.push("g.id in (select guest_id from guest_inviters where inviter_name = ?)");
+    bindings.push(inviter);
+  }
+  const kindWhere = GUEST_KINDS[kind].where;
+  if (kindWhere) conditions.push(kindWhere);
+
+  const where = conditions.length > 0 ? `where ${conditions.join(" and ")}` : "";
+  const guestsStmt = db
+    .prepare(`select g.* from guests g ${where} order by ${GUEST_SORTS[sort].orderBy}`)
+    .bind(...bindings);
 
   const { results: guests } = await guestsStmt.all<Guest>();
   if (guests.length === 0) return [];
@@ -333,7 +360,23 @@ export async function getGuestById(id: string): Promise<GuestWithInviters | null
   return { ...guest, inviters };
 }
 
-export interface AddGuestInput {
+/** Admin-only. amountDuePence only applies to performers, so it's stored as
+ * null (standard price) whenever isPerformer is false. */
+export interface PerformerInput {
+  isPerformer: boolean;
+  amountDuePence: number | null;
+}
+
+function performerColumns(input: PerformerInput): [number, number | null] {
+  return input.isPerformer ? [1, input.amountDuePence] : [0, null];
+}
+
+/** True when a performer's price is set to £0: v2 skips payment for them. */
+export function hasNothingToPay(guest: Pick<Guest, "is_performer" | "amount_due_pence">): boolean {
+  return guest.is_performer === 1 && guest.amount_due_pence === 0;
+}
+
+export interface AddGuestInput extends PerformerInput {
   name: string;
   email: string | null;
   phone: string | null;
@@ -348,17 +391,28 @@ export async function addGuest(input: AddGuestInput): Promise<Guest> {
   await db.batch([
     db
       .prepare(
-        `insert into guests (id, token, token_expires_at, name, email, phone, created_at, updated_at)
-         values (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `insert into guests (id, token, token_expires_at, name, email, phone,
+                             is_performer, amount_due_pence, created_at, updated_at)
+         values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
-      .bind(id, newId(), newExpiry(), input.name, input.email, input.phone, timestamp, timestamp),
+      .bind(
+        id,
+        newId(),
+        newExpiry(),
+        input.name,
+        input.email,
+        input.phone,
+        ...performerColumns(input),
+        timestamp,
+        timestamp,
+      ),
     ...insertInviterStatements(db, id, input.inviterNames),
   ]);
 
   return getGuestRowById(db, id);
 }
 
-export interface EditGuestInput {
+export interface EditGuestInput extends PerformerInput {
   name: string;
   email: string | null;
   phone: string | null;
@@ -381,7 +435,9 @@ export async function updateGuestAsAdmin(id: string, input: EditGuestInput): Pro
 
   await db.batch([
     await rsvpFieldsStatement(db, id, existing.ticket_ref, input),
-    db.prepare("update guests set name = ? where id = ?").bind(input.name, id),
+    db
+      .prepare("update guests set name = ?, is_performer = ?, amount_due_pence = ? where id = ?")
+      .bind(input.name, ...performerColumns(input), id),
     db.prepare("delete from guest_inviters where guest_id = ?").bind(id),
     ...insertInviterStatements(db, id, input.inviterNames),
   ]);

@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { choiceField, inviterNamesField, LONG_TEXT_MAX, SHORT_TEXT_MAX, textField } from "../src/lib/forms";
+import {
+  checkboxField,
+  choiceField,
+  inviterNamesField,
+  LONG_TEXT_MAX,
+  penceField,
+  performerFields,
+  SHORT_TEXT_MAX,
+  textField,
+} from "../src/lib/forms";
 
 function formWith(entries: Record<string, string>): FormData {
   const form = new FormData();
@@ -38,5 +47,44 @@ describe("inviterNamesField", () => {
       "Andrew",
       "Alice",
     ]);
+  });
+});
+
+describe("penceField", () => {
+  const pence = (value: string) => penceField(formWith({ price: value }), "price");
+
+  it("converts pounds to pence without float rounding", () => {
+    expect(pence("25")).toBe(2500);
+    expect(pence("12.5")).toBe(1250);
+    expect(pence("£12.50")).toBe(1250);
+    expect(pence("0.29")).toBe(29);
+    expect(pence("1,000")).toBe(100000);
+    expect(pence("0")).toBe(0);
+  });
+
+  it("treats blank as null", () => {
+    expect(pence("  ")).toBeNull();
+    expect(penceField(formWith({}), "price")).toBeNull();
+  });
+
+  it("rejects anything else", () => {
+    expect(pence("-5")).toBe("invalid");
+    expect(pence("12.505")).toBe("invalid");
+    expect(pence("100000")).toBe("invalid");
+    expect(pence("free")).toBe("invalid");
+  });
+});
+
+describe("performerFields", () => {
+  it("reads the checkbox and price", () => {
+    expect(performerFields(formWith({ isPerformer: "on", ticketPrice: "0" }))).toEqual({
+      isPerformer: true,
+      amountDuePence: 0,
+    });
+    expect(checkboxField(formWith({}), "isPerformer")).toBe(false);
+  });
+
+  it("returns null for an invalid price", () => {
+    expect(performerFields(formWith({ isPerformer: "on", ticketPrice: "lots" }))).toBeNull();
   });
 });

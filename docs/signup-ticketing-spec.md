@@ -51,13 +51,18 @@ create table guests (
 
   -- v2 fields, present now so v2 needs zero migration. All amounts are
   -- GBP, stored as pence (integer) to avoid floating-point rounding:
-  amount_due_pence  integer,
+  amount_due_pence  integer,                     -- per-guest price override: null = standard price,
+                                                  -- 0 = free (skips payment); set for performers only
   amount_paid_pence integer default 0,
   payment_ref       text,                        -- Stripe client_reference_id / payment intent id
 
   checked_in_at     text,                          -- ISO 8601; future door check-in
 
   confirmation_email_sent_at text,                -- ISO 8601; last time we successfully emailed them
+
+  -- added in migration 0006: performers use the same RSVP form, but the
+  -- flag (and their price, in amount_due_pence) is set by hosts only
+  is_performer      integer not null default 0 check (is_performer in (0, 1)),
 
   created_at        text not null,                 -- ISO 8601, set by app on insert
   updated_at        text not null                  -- ISO 8601, set by app on every write
@@ -108,6 +113,7 @@ create table guest_inviters (
 - **Edit**: a host can correct any guest's details directly (e.g. fixing a typo'd email, adjusting attendance if told verbally) — writes through the same server-side D1 access as the guest-facing routes.
 - **Add**: a form to add a new guest (name + one or more inviters + optional email/phone), which generates their `token` and surfaces their new personal link immediately — becomes the ongoing way to extend the invite list beyond the initial import.
 - **Regenerate link**: a button per guest that issues them a fresh token and expiry (see "Link expiry" above) — for a lapsed link or one that needs invalidating.
+- **Performers**: the add and edit forms have a "Performer" checkbox and a "Performer ticket price". These are the only places either can be set. Guests never see them, and the guest RSVP route never writes them. Performers get the same invite link and RSVP form as everyone else. The price is stored in `amount_due_pence`: blank means the standard price, `0` means free, anything else is that performer's own price. It only applies while the box is ticked; unticking "Performer" clears it. The guest table labels performers with their price and can filter to performers or guests only.
 
 ## QR / ticket display
 
@@ -126,20 +132,23 @@ create table guest_inviters (
 
 ## v2: deposit / payment flow
 
-- **Currency: GBP throughout.** Stripe Payment Links are created in GBP, and the `amount_due_pence`/`amount_paid_pence` columns store whole pence (e.g. £15.00 deposit = `1500`) to avoid floating-point rounding issues.
-- **Mechanism: Stripe Payment Links**, one per price point (deposit vs. full balance) created in Stripe's dashboard — no custom checkout code. Each guest's payment link includes `?client_reference_id=<ticket_ref>` so a payment can always be traced back to a specific guest.
-- **Getting status back into the database: automated via webhook.** One Astro API route (`/api/webhooks/stripe`, a handler within the same Worker) verifies the Stripe signature and updates the guest's `payment_status`/`amount_paid_pence`/`payment_ref` server-side via the D1 binding, matched via `ticket_ref`/`client_reference_id`. This is the only place v2 needs a true secret (`STRIPE_WEBHOOK_SECRET`, set via `wrangler secret put`), and it slots into infrastructure we already have — no new hosting platform. The admin page's guest table still shows payment status as a read-only reflection of this, with manual edit available as a fallback for one-off corrections.
-- **Guest-facing change**: none of their link/token/ticket_ref changes. They revisit the same `/ticket/[token]` link and see their status progress (RSVP confirmed → Deposit paid → Paid in full), with the same QR now shown with a "paid" badge, and amounts shown as £.
-- This is why the v2 columns (`amount_due_pence`, `amount_paid_pence`, `payment_ref`, `payment_status`) are already in the schema — v2 is additive status/UI work, not a migration. Payment state lives in `payment_status`, never in `status`: `status` is rewritten on every RSVP submit, so a payment recorded there would be lost when a paid guest updates their answers.
+- **Currency: GBP throughout.** Checkout Sessions are created in GBP, and the `amount_due_pence`/`amount_paid_pence` columns store whole pence (e.g. £15.00 deposit = `1500`) to avoid floating-point rounding issues.
+- **What each guest owes.** A guest's ticket price is their own `amount_due_pence` if set (performers only, set by hosts), otherwise the standard price. The standard price and deposit amount live in one config constant, not per row. So changing the standard price is a code/config change, and guests on it don't need their rows rewritten.
+- **Free performers skip payment entirely.** When a performer's price is `0` (`hasNothingToPay()` in `src/lib/guests.ts`), there's no pay button and no Stripe session; their ticket shows "nothing to pay" and counts as settled. `payment_status` stays `unpaid` for them, so reporting should treat "price 0" as settled rather than checking `payment_status` alone. v1 already shows the "nothing to pay" copy.
+- **Mechanism: Stripe Checkout Sessions**, created server-side, **replacing the earlier plan of Payment Links**. A Payment Link has one fixed price, so per-performer prices would need a separate link for every distinct amount, kept in sync by hand. Instead, a pay button on `/ticket/[token]` posts to `/api/pay/[token]`. That route re-checks the token, works out the amount (price, or deposit, minus `amount_paid_pence`), creates a Checkout Session with that amount and `client_reference_id=<ticket_ref>`, and redirects to Stripe. The amount is always computed on the server, so a guest can't change what they pay. This needs `STRIPE_SECRET_KEY` as a Worker secret alongside `STRIPE_WEBHOOK_SECRET`.
+- **Deposits vs. performers (open question).** Standard guests pay a deposit then the balance. For performers with their own price, the default proposal is a single full payment with no deposit step, since the amounts are typically small. Confirm this with the hosts before building.
+- **Getting status back into the database: automated via webhook.** One Astro API route (`/api/webhooks/stripe`, a handler within the same Worker) verifies the Stripe signature on `checkout.session.completed` and updates the guest's `payment_status`/`amount_paid_pence`/`payment_ref` server-side via the D1 binding, matched via `ticket_ref`/`client_reference_id`. Along with `/api/pay/[token]`, this is the only new code that needs secrets (`STRIPE_WEBHOOK_SECRET`, `STRIPE_SECRET_KEY`, set via `wrangler secret put`), and it slots into infrastructure we already have — no new hosting platform. The admin page's guest table still shows payment status as a read-only reflection of this, with manual edit available as a fallback for one-off corrections.
+- **Guest-facing change**: none of their link/token/ticket_ref changes. They revisit the same `/ticket/[token]` link and see their status progress (RSVP confirmed → Deposit paid → Paid in full), with the same QR now shown with a "paid" badge, and amounts shown as £. Performers see their own price; free performers see "nothing to pay" and no pay button.
+- This is why the v2 columns (`amount_due_pence`, `amount_paid_pence`, `payment_ref`, `payment_status`, `is_performer`) are already in the schema — v2 is additive status/UI work, not a migration. Payment state lives in `payment_status`, never in `status`: `status` is rewritten on every RSVP submit, so a payment recorded there would be lost when a paid guest updates their answers.
 
 ## File/page changes
 
 - **Migrate all existing pages** (`index`, `about`, `camping`, `food`, `activities`, `travel`, `faq`, `line-up`, `birthday-game`) into Astro pages under `src/pages/`, reusing their current copy/markup almost as-is. Replace the current `js/navigation.js` innerHTML-injection nav hack with a real Astro `<Layout>` + `<Nav>` component — while doing this, fix the existing bug where the nav links to `game.html` but the actual file is `birthday-game.html`.
 - **`rsvp.html` → `src/pages/rsvp/[token].astro`**: server-loads the guest by token, renders the existing form fields (name read-only/prefilled, attendance, camping, vehicle, dietary, accessibility, arrival/departure day, contact email/phone, notes), posts to an Astro API route instead of Formspree, and swaps in a confirmation + QR on success. Update the existing "Data protection notice" copy to describe our own database instead of Formspree as the processor.
-- **`ticket.html` → `src/pages/ticket/[token].astro`**: becomes the durable "your ticket" view — current status, QR, and (in v2) the relevant Payment Link button, replacing the "TBC"/"Paying — TBD" placeholders.
-- **New**: `src/pages/api/rsvp.ts` (submit/update handler, triggers the confirmation email), `src/pages/admin/*` (guest list/edit/add/regenerate — no login page needed, Cloudflare Access handles that before the request arrives), `src/pages/api/admin/*` (guest CRUD), `src/pages/api/webhooks/stripe.ts` (v2), `src/lib/db.ts` (typed helpers over the D1 binding, accessed via `import { env } from "cloudflare:workers"`), `src/lib/email.ts` (Resend client + confirmation template), a small QR component.
+- **`ticket.html` → `src/pages/ticket/[token].astro`**: becomes the durable "your ticket" view — current status, QR, and (in v2) a pay button (none for free performers), replacing the "TBC"/"Paying — TBD" placeholders.
+- **New**: `src/pages/api/rsvp.ts` (submit/update handler, triggers the confirmation email), `src/pages/admin/*` (guest list/edit/add/regenerate — no login page needed, Cloudflare Access handles that before the request arrives), `src/pages/api/admin/*` (guest CRUD), `src/pages/api/pay/[token].ts` and `src/pages/api/webhooks/stripe.ts` (v2), `src/lib/db.ts` (typed helpers over the D1 binding, accessed via `import { env } from "cloudflare:workers"`), `src/lib/email.ts` (Resend client + confirmation template), a small QR component.
 - **Cloudflare config (`wrangler.jsonc`, not application code)**: a D1 database created and declared as the `DB` binding, its migration SQL applied via `wrangler d1 migrations apply`; a Cloudflare Access application covering `/admin/*` configured separately in the dashboard, with a policy listing the hosts' email addresses.
-- **Env/secrets**: `RESEND_API_KEY`, `SITE_URL` (and later `STRIPE_WEBHOOK_SECRET`) stored as Worker secrets (`wrangler secret put`), never committed. D1 needs no secret at all — access is via the binding declared in `wrangler.jsonc`, not an env var.
+- **Env/secrets**: `RESEND_API_KEY`, `SITE_URL` (and later `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`) stored as Worker secrets (`wrangler secret put`), never committed. D1 needs no secret at all — access is via the binding declared in `wrangler.jsonc`, not an env var.
 
 ## Verification
 
@@ -150,5 +159,6 @@ create table guest_inviters (
 - Confirm "Regenerate link" on the admin page issues a new token/expiry and that the old token immediately stops working.
 - Confirm `/admin` is unreachable without a Cloudflare Access login (e.g. in an incognito window / signed out), and that a listed host's email successfully gets in via the one-time PIN flow.
 - Confirm the admin page's view/edit/add flows work against real guest rows, including a guest with multiple inviters.
+- Confirm a performer can only be marked (and priced) from the admin page, that a free performer's ticket shows "nothing to pay" and hides the RSVP form's Paying section, and that unticking "Performer" clears their price.
 - Confirm the migrated static pages (nav, links, styling) still look and link correctly, including the `birthday-game.html` nav fix.
 - Deploy with `wrangler deploy` to the `*.workers.dev` preview URL and repeat the same walkthrough against the deployed site before pointing the real domain at it.

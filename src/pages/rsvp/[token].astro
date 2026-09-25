@@ -4,7 +4,7 @@ import LinkProblemNotice from "../../components/LinkProblemNotice.astro";
 import TicketQr from "../../components/TicketQr.astro";
 import PageHero from "../../components/PageHero.astro";
 import ContentBlockView from "../../components/ContentBlockView.astro";
-import { getGuestByToken, isLinkExpired, markViewed } from "../../lib/guests";
+import { getGuestByToken, hasNothingToPay, isLinkExpired, markViewed } from "../../lib/guests";
 import { REMEMBER_COOKIE_NAME, REMEMBER_COOKIE_OPTIONS } from "../../lib/rememberCookie";
 import { findBlock, getPageContent } from "../../lib/content";
 
@@ -197,7 +197,9 @@ const emailed = Astro.url.searchParams.get("emailed") === "1";
           </form>
 
           {changingBlock && <ContentBlockView block={changingBlock} />}
-          {payingBlock && <ContentBlockView block={payingBlock} />}
+          {/* Free performers have nothing to pay, now or in v2, so the
+              general "we may add a ticket price later" copy doesn't apply. */}
+          {payingBlock && !hasNothingToPay(guest) && <ContentBlockView block={payingBlock} />}
           {questionsBlock && <ContentBlockView block={questionsBlock} />}
           {privacyBlock && <ContentBlockView block={privacyBlock} />}
 

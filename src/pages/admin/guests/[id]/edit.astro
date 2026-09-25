@@ -1,5 +1,6 @@
 ---
 import Layout from "../../../../layouts/Layout.astro";
+import PerformerFields from "../../../../components/PerformerFields.astro";
 import { getGuestById } from "../../../../lib/guests";
 
 const { id } = Astro.params;
@@ -51,6 +52,11 @@ const guest = id ? await getGuestById(id) : null;
               <label for="phone">Phone number</label>
               <input id="phone" name="phone" type="tel" value={guest.phone ?? ""} />
             </div>
+
+            <PerformerFields
+              isPerformer={guest.is_performer === 1}
+              amountDuePence={guest.amount_due_pence}
+            />
 
             <div class="form-field">
               <label for="attendance">Attendance</label>

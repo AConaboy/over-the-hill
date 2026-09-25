@@ -1,5 +1,6 @@
 ---
 import Layout from "../../../layouts/Layout.astro";
+import PerformerFields from "../../../components/PerformerFields.astro";
 ---
 
 <Layout title="Add guest | Over the Hill" description="Add a new guest to the Over the Hill invite list.">
@@ -41,6 +42,8 @@ import Layout from "../../../layouts/Layout.astro";
           <label for="phone">Phone number (optional)</label>
           <input id="phone" name="phone" type="tel" autocomplete="tel" />
         </div>
+
+        <PerformerFields />
 
         <button class="button" type="submit">Add guest</button>
       </form>

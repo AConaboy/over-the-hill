@@ -703,6 +703,23 @@ main:has(> .page-hero) {
   color: var(--ink);
 }
 
+.form-field-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.form-field.form-field-checkbox input {
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  accent-color: var(--orange);
+}
+
+.form-field.form-field-checkbox label {
+  margin-bottom: 0;
+}
+
 .form-field input:disabled {
   background: var(--cream);
   color: var(--ink-soft);
@@ -1051,6 +1068,12 @@ main:has(> .page-hero) {
   border-radius: 0.5rem;
   background: white;
   font-size: 0.8rem;
+}
+
+.admin-performer {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ink-soft);
 }
 
 .status-expired {

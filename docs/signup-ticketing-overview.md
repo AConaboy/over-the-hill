@@ -37,6 +37,16 @@ Because the link is personal to them, nobody else can see or edit their answers,
 
 This is the same information the current RSVP form asks for — we're not adding new questions, just changing how it's collected and stored.
 
+## Performers
+
+Performers sign up the same way as everyone else: same personal link, same form. Whether someone is a performer is something only we set, on the admin page. Guests can't mark themselves as performers.
+
+For each performer we can also set their own ticket price:
+
+- **Blank**: they pay the standard ticket price, like any other guest.
+- **£0**: they don't pay anything. Their ticket says "nothing to pay", and once payments are switched on they skip the payment step completely.
+- **Any other amount**: that's what they pay instead of the standard price.
+
 Note: guests don't get to bring uninvited plus-ones — one invite is one person. A guest can, however, be invited by more than one of us (the system will track that).
 
 ## The "ticket" (QR code)
@@ -51,13 +61,15 @@ Once someone confirms they're attending, they get a QR code on screen. For now i
   - Fix a typo in someone's contact details.
   - Add a new guest to the list ourselves (e.g. someone we decide to invite later), which gives them their own personal link straight away.
   - Regenerate a guest's link if it's expired, lost, or we just want to invalidate the old one.
+  - Mark someone as a performer and set their ticket price (including free), and filter the list to just performers.
 - This replaces having to dig through spreadsheet rows or email threads to see where things stand.
 
 ## What happens with payments (later, not yet)
 
 No payment is part of this first stage — sign-up stays free-to-submit, same as it is now. When we're ready to add a deposit or full ticket price (all in GBP, £):
 
-- We'd set up a simple payment link (via Stripe) for the amount we want to collect.
+- Guests would press a "Pay" button on their ticket page and pay by card (via Stripe). The amount is worked out for them: the standard price, or a performer's own price.
+- Free performers never see a payment step at all.
 - A guest's payment would automatically be matched back to their record, so we always know who's paid and how much.
 - Guests wouldn't need a new link or a new QR code — they'd just see their existing ticket update to show "deposit paid" or "paid in full" once they've paid.
 - We'd still be able to see and, if needed, manually correct payment status ourselves.
@@ -73,3 +85,4 @@ No payment is part of this first stage — sign-up stays free-to-submit, same as
 - Whose email addresses should be on the admin access list?
 - Any concerns about guests being able to revisit and change their answers at any time?
 - Is 30 days a sensible default before an unanswered link expires, or would we rather it be shorter/longer?
+- When payments open, should performers with their own price pay it all at once, or pay a deposit first like everyone else?

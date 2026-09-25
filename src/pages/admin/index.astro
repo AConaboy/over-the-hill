@@ -5,15 +5,20 @@ import {
   listAllInviterNames,
   isLinkExpired,
   isGuestSort,
+  isGuestKind,
   GUEST_SORTS,
+  GUEST_KINDS,
 } from "../../lib/guests";
+import { formatPence } from "../../lib/money";
 import { SITE_URL } from "astro:env/server";
 
 const inviterFilter = Astro.url.searchParams.get("inviter") ?? "";
 const sortParam = Astro.url.searchParams.get("sort");
 const sort = isGuestSort(sortParam) ? sortParam : "name";
+const kindParam = Astro.url.searchParams.get("kind");
+const kind = isGuestKind(kindParam) ? kindParam : "all";
 const [guests, inviterNames] = await Promise.all([
-  listGuestsWithInviters(inviterFilter || undefined, sort),
+  listGuestsWithInviters({ inviter: inviterFilter || undefined, kind, sort }),
   listAllInviterNames(),
 ]);
 
@@ -66,6 +71,15 @@ function statusLabel(guest: (typeof guests)[number]): string {
           </div>
 
           <div class="admin-filter">
+            <label for="kind">Show</label>
+            <select id="kind" name="kind" onchange="this.form.submit()">
+              {Object.entries(GUEST_KINDS).map(([value, { label }]) => (
+                <option value={value} selected={kind === value}>{label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div class="admin-filter">
             <label for="sort">Sort by</label>
             <select id="sort" name="sort" onchange="this.form.submit()">
               {Object.entries(GUEST_SORTS).map(([value, { label }]) => (
@@ -99,7 +113,15 @@ function statusLabel(guest: (typeof guests)[number]): string {
           <tbody>
             {guests.map((guest) => (
               <tr>
-                <td>{guest.name}</td>
+                <td>
+                  {guest.name}
+                  {guest.is_performer === 1 && (
+                    <div class="admin-performer">
+                      Performer ·{" "}
+                      {guest.amount_due_pence === null ? "standard price" : guest.amount_due_pence === 0 ? "free" : formatPence(guest.amount_due_pence)}
+                    </div>
+                  )}
+                </td>
                 <td>{guest.inviters.join(", ") || "—"}</td>
                 <td>
                   {statusLabel(guest)}

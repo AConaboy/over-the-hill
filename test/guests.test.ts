@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   canSendConfirmationEmail,
   canSendMagicLink,
+  hasNothingToPay,
+  isGuestKind,
   isGuestSort,
   isLinkExpired,
   normaliseInviterNames,
@@ -73,5 +75,23 @@ describe("isGuestSort", () => {
     expect(isGuestSort("name; drop table guests")).toBe(false);
     expect(isGuestSort("toString")).toBe(false);
     expect(isGuestSort(null)).toBe(false);
+  });
+});
+
+describe("isGuestKind", () => {
+  it("only accepts the whitelisted kinds", () => {
+    expect(isGuestKind("performers")).toBe(true);
+    expect(isGuestKind("all")).toBe(true);
+    expect(isGuestKind("1=1")).toBe(false);
+    expect(isGuestKind(null)).toBe(false);
+  });
+});
+
+describe("hasNothingToPay", () => {
+  it("is only true for a performer priced at £0", () => {
+    expect(hasNothingToPay({ is_performer: 1, amount_due_pence: 0 })).toBe(true);
+    expect(hasNothingToPay({ is_performer: 1, amount_due_pence: null })).toBe(false);
+    expect(hasNothingToPay({ is_performer: 1, amount_due_pence: 1500 })).toBe(false);
+    expect(hasNothingToPay({ is_performer: 0, amount_due_pence: 0 })).toBe(false);
   });
 });
