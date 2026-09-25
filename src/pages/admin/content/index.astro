@@ -1,0 +1,55 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import { CONTENT_PAGES } from "../../../lib/content";
+---
+
+<Layout title="Edit site text | Over the Hill" description="Edit the site's copy.">
+  <main>
+    <section class="page-hero">
+      <div class="page-hero-content">
+        <p class="eyebrow">Hosts only</p>
+        <h1>Edit site text</h1>
+        <p class="page-introduction">
+          Change the wording on any page — no code or git needed. "Not yet
+          published" pages aren't live on the site yet, but their text is
+          ready to go whenever they are.
+        </p>
+      </div>
+    </section>
+
+    <section class="page-content admin-content">
+      <div class="admin-table-wrapper">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Page</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {CONTENT_PAGES.map((page) => (
+              <tr>
+                <td>{page.label}</td>
+                <td>
+                  {page.routed ? (
+                    <span class="status-live">Live</span>
+                  ) : (
+                    <span class="status-pending">Not yet published</span>
+                  )}
+                </td>
+                <td class="admin-row-actions">
+                  <a class="text-link" href={`/admin/content/${page.slug}`}>Edit →</a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="page-actions">
+        <a class="text-link" href="/admin">← Back to guest list</a>
+      </div>
+    </section>
+  </main>
+</Layout>

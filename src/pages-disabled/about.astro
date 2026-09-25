@@ -1,0 +1,46 @@
+---
+import Layout from "../layouts/Layout.astro";
+import PageHero from "../components/PageHero.astro";
+import ContentBlockView from "../components/ContentBlockView.astro";
+import { getPageContent } from "../lib/content";
+
+const { fields, blocks } = await getPageContent("about");
+---
+
+<Layout title="About | Over the Hill" description="Camping information for Our Big Party.">
+  <main>
+    <PageHero
+      eyebrow={fields.hero_eyebrow}
+      heading={fields.hero_heading}
+      introduction={fields.hero_introduction}
+      image="/images/spot-discoball.webp"
+    />
+
+    <section class="page-content">
+      {blocks.map((block) => <ContentBlockView block={block} />)}
+
+      <div class="photo-grid" aria-label="Over the Hill photo gallery">
+        <figure class="photo-card">
+          <img
+            src="/images/over-the-hill-artwork-1.jpeg"
+            alt="Over the Hill artwork"
+          />
+        </figure>
+
+        <figure class="photo-card">
+          <img
+            src="/images/over-the-hill-artwork-1.jpeg"
+            alt="Over the Hill artwork detail"
+          />
+        </figure>
+
+        <figure class="photo-card">
+          <img
+            src="/images/over-the-hill-artwork-1.jpeg"
+            alt="Over the Hill artwork close-up"
+          />
+        </figure>
+      </div>
+    </section>
+  </main>
+</Layout>

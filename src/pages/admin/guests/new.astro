@@ -1,0 +1,56 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import PerformerFields from "../../../components/PerformerFields.astro";
+---
+
+<Layout title="Add guest | Over the Hill" description="Add a new guest to the Over the Hill invite list.">
+  <main>
+    <section class="page-hero">
+      <div class="page-hero-content">
+        <p class="eyebrow">Hosts only</p>
+        <h1>Add a guest</h1>
+        <p class="page-introduction">
+          Adds them to the list and generates their personal RSVP link
+          straight away.
+        </p>
+      </div>
+    </section>
+
+    <section class="page-content">
+      <form class="rsvp-form" method="POST" action="/api/admin/guests">
+        <div class="form-field">
+          <label for="name">Name</label>
+          <input id="name" name="name" type="text" required />
+        </div>
+
+        <div class="form-field">
+          <label for="inviterNames">Invited by</label>
+          <input
+            id="inviterNames"
+            name="inviterNames"
+            type="text"
+            placeholder="e.g. Andrew, Alice — separate multiple names with commas"
+          />
+        </div>
+
+        <div class="form-field">
+          <label for="email">Email address (optional)</label>
+          <input id="email" name="email" type="email" autocomplete="email" />
+        </div>
+
+        <div class="form-field">
+          <label for="phone">Phone number (optional)</label>
+          <input id="phone" name="phone" type="tel" autocomplete="tel" />
+        </div>
+
+        <PerformerFields />
+
+        <button class="button" type="submit">Add guest</button>
+      </form>
+
+      <div class="page-actions">
+        <a class="text-link" href="/admin">← Back to guest list</a>
+      </div>
+    </section>
+  </main>
+</Layout>

@@ -1,0 +1,28 @@
+---
+import { parseBody, type ContentBlock } from "../lib/content";
+
+export interface Props {
+  block: ContentBlock;
+}
+
+const { block } = Astro.props;
+const nodes = parseBody(block.body);
+const Tag = block.variant === "notice" ? "aside" : "article";
+---
+
+<Tag class={block.variant === "notice" ? "notice" : "content-block"}>
+  {block.variant === "notice" && block.eyebrow && <p class="eyebrow">{block.eyebrow}</p>}
+  {block.heading && <h2>{block.heading}</h2>}
+
+  {nodes.map((node) =>
+    node.type === "ul" ? (
+      <ul class="information-list">
+        {node.items!.map((item) => (
+          <li>{item}</li>
+        ))}
+      </ul>
+    ) : (
+      <p>{node.text}</p>
+    ),
+  )}
+</Tag>

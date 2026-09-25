@@ -1,0 +1,52 @@
+---
+import Nav from "../components/Nav.astro";
+
+export interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+const currentPath = Astro.url.pathname.replace(/\/$/, "") || "/";
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content={description} />
+
+  <title>{title}</title>
+
+  <meta name="theme-color" content="#ffe8cc" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <!-- Spins the disco-ball tab icon in Chrome, Edge and Firefox (others keep
+       the static icon). Self-contained, and off for reduced-motion users. -->
+  <script is:inline src="/favicon-animate.js" defer></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand+SC&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+
+<body>
+  <Nav currentPath={currentPath} />
+
+  <slot />
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div>
+        <p class="footer-title">Over the Hill Festival</p>
+        <p>August 13th – 15th 2027 @ Out to Grass</p>
+        <p class="footer-credit">Artwork by Jess Porter</p>
+      </div>
+      <p class="footer-contact">Questions? Contact us.</p>
+    </div>
+  </footer>
+</body>
+</html>

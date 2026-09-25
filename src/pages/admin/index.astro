@@ -1,0 +1,183 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import {
+  listGuestsWithInviters,
+  listAllInviterNames,
+  isLinkExpired,
+  isGuestSort,
+  isGuestKind,
+  GUEST_SORTS,
+  GUEST_KINDS,
+} from "../../lib/guests";
+import { formatPence } from "../../lib/money";
+import { SITE_URL } from "astro:env/server";
+
+const inviterFilter = Astro.url.searchParams.get("inviter") ?? "";
+const sortParam = Astro.url.searchParams.get("sort");
+const sort = isGuestSort(sortParam) ? sortParam : "name";
+const kindParam = Astro.url.searchParams.get("kind");
+const kind = isGuestKind(kindParam) ? kindParam : "all";
+const [guests, inviterNames] = await Promise.all([
+  listGuestsWithInviters({ inviter: inviterFilter || undefined, kind, sort }),
+  listAllInviterNames(),
+]);
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function statusLabel(guest: (typeof guests)[number]): string {
+  switch (guest.status) {
+    case "invited":
+      return "Invited (not opened)";
+    case "viewed":
+      return "Opened, not responded";
+    case "rsvp_yes":
+      return "Attending";
+    case "rsvp_no":
+      return "Not attending";
+    case "cancelled":
+      return "Cancelled";
+    default:
+      return guest.status;
+  }
+}
+---
+
+<Layout title="Admin | Over the Hill" description="Manage the Over the Hill guest list.">
+  <main>
+    <section class="page-hero">
+      <div class="page-hero-content">
+        <p class="eyebrow">Hosts only</p>
+        <h1>Guest list</h1>
+        <p class="page-introduction">
+          View, edit and add guests, copy invite links, and regenerate a link
+          if it's lapsed or lost.
+        </p>
+      </div>
+    </section>
+
+    <section class="page-content admin-content">
+      <div class="admin-toolbar">
+        <form method="GET" action="/admin" class="admin-filters">
+          <div class="admin-filter">
+            <label for="inviter">Filter by inviter</label>
+            <select id="inviter" name="inviter" onchange="this.form.submit()">
+              <option value="" selected={!inviterFilter}>All guests</option>
+              {inviterNames.map((name) => (
+                <option value={name} selected={inviterFilter === name}>{name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div class="admin-filter">
+            <label for="kind">Show</label>
+            <select id="kind" name="kind" onchange="this.form.submit()">
+              {Object.entries(GUEST_KINDS).map(([value, { label }]) => (
+                <option value={value} selected={kind === value}>{label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div class="admin-filter">
+            <label for="sort">Sort by</label>
+            <select id="sort" name="sort" onchange="this.form.submit()">
+              {Object.entries(GUEST_SORTS).map(([value, { label }]) => (
+                <option value={value} selected={sort === value}>{label}</option>
+              ))}
+            </select>
+          </div>
+        </form>
+
+        <div class="admin-toolbar-actions">
+          <a class="text-link" href="/admin/content">Edit site text</a>
+          <a class="button" href="/admin/guests/new">Add guest</a>
+        </div>
+      </div>
+
+      <div class="admin-table-wrapper">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Invited by</th>
+              <th>Status</th>
+              <th>Contact</th>
+              <th>Details</th>
+              <th>Email sent</th>
+              <th>Link</th>
+              <th>Expires</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {guests.map((guest) => (
+              <tr>
+                <td>
+                  {guest.name}
+                  {guest.is_performer === 1 && (
+                    <div class="admin-performer">
+                      Performer ·{" "}
+                      {guest.amount_due_pence === null ? "standard price" : guest.amount_due_pence === 0 ? "free" : formatPence(guest.amount_due_pence)}
+                    </div>
+                  )}
+                </td>
+                <td>{guest.inviters.join(", ") || "—"}</td>
+                <td>
+                  {statusLabel(guest)}
+                  {guest.payment_status && guest.payment_status !== "unpaid" && (
+                    <div>{guest.payment_status === "paid_full" ? "Paid in full" : "Deposit paid"}</div>
+                  )}
+                </td>
+                <td>
+                  {guest.email && <div>{guest.email}</div>}
+                  {guest.phone && <div>{guest.phone}</div>}
+                  {!guest.email && !guest.phone && "—"}
+                </td>
+                <td>
+                  {(guest.arrival_day || guest.departure_day) && (
+                    <div>Dates: {guest.arrival_day ?? "?"} → {guest.departure_day ?? "?"}</div>
+                  )}
+                  {guest.camping && <div>Camping: {guest.camping.replace("_", " ")}</div>}
+                  {guest.vehicle && <div>Vehicle: {guest.vehicle}</div>}
+                  {guest.dietary && <div>Dietary: {guest.dietary}</div>}
+                  {guest.accessibility && <div>Access: {guest.accessibility}</div>}
+                  {guest.notes && <div>Notes: {guest.notes}</div>}
+                </td>
+                <td>{guest.confirmation_email_sent_at ? "✓" : "—"}</td>
+                <td>
+                  <input
+                    type="text"
+                    readonly
+                    class="admin-link-input"
+                    value={new URL(`/rsvp/${guest.token}`, SITE_URL).toString()}
+                    onclick="this.select()"
+                  />
+                </td>
+                <td>
+                  {isLinkExpired(guest) ? <span class="status-expired">Expired</span> : formatDate(guest.token_expires_at)}
+                </td>
+                <td class="admin-row-actions">
+                  <a class="text-link" href={`/admin/guests/${guest.id}/edit`}>Edit</a>
+                  <form
+                    method="POST"
+                    action={`/api/admin/guests/${guest.id}/regenerate`}
+                    onsubmit="return confirm('Regenerate this guest\'s link? Their current link will stop working immediately.')"
+                  >
+                    <button class="text-link admin-inline-button" type="submit">Regenerate link</button>
+                  </form>
+                </td>
+              </tr>
+            ))}
+
+            {guests.length === 0 && (
+              <tr>
+                <td colspan="9">No guests match this filter.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</Layout>

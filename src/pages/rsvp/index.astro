@@ -1,0 +1,78 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import PageHero from "../../components/PageHero.astro";
+import ContentBlockView from "../../components/ContentBlockView.astro";
+import { getGuestByToken, isLinkExpired } from "../../lib/guests";
+import { REMEMBER_COOKIE_NAME } from "../../lib/rememberCookie";
+import { findBlock, getPageContent, parseBody } from "../../lib/content";
+
+const remembered = Astro.cookies.get(REMEMBER_COOKIE_NAME)?.value;
+
+if (remembered) {
+  const guest = await getGuestByToken(remembered);
+  if (guest && !isLinkExpired(guest)) {
+    return Astro.redirect(`/rsvp/${guest.token}`, 302);
+  }
+  // Stale cookie (guest not found, or an unanswered link that's since
+  // expired) — clear it rather than checking again on every future visit.
+  Astro.cookies.delete(REMEMBER_COOKIE_NAME, { path: "/" });
+}
+
+const sent = Astro.url.searchParams.get("sent") === "1";
+const { fields, blocks } = await getPageContent("rsvp");
+const getLinkBlock = findBlock(blocks, "rsvp-get-link");
+const stillCantFindBlock = findBlock(blocks, "rsvp-still-cant-find");
+---
+
+<Layout
+  title="RSVP | Over the Hill"
+  description="RSVP for Over the Hill using your personal invite link."
+>
+  <main>
+    <PageHero eyebrow={fields.hero_eyebrow} heading={fields.hero_heading} introduction={fields.hero_introduction} />
+
+    <section class="page-content">
+      <article class="content-block">
+        <h2>{getLinkBlock?.heading ?? "Get your link by email"}</h2>
+
+        {sent ? (
+          <p>
+            If we've got an invite for that email address, we've sent a link
+            to it — check your inbox (and spam folder, just in case).
+          </p>
+        ) : (
+          <>
+            {getLinkBlock &&
+              parseBody(getLinkBlock.body).map((node) =>
+                node.type === "ul" ? (
+                  <ul class="information-list">
+                    {node.items!.map((item) => (
+                      <li>{item}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>{node.text}</p>
+                ),
+              )}
+
+            <form class="rsvp-form" method="POST" action="/api/rsvp/find-link">
+              <div class="form-field">
+                <label for="email">Email address</label>
+                <input id="email" name="email" type="email" autocomplete="email" required />
+              </div>
+
+              <button class="button" type="submit">Email me my link</button>
+            </form>
+          </>
+        )}
+      </article>
+
+      {stillCantFindBlock && <ContentBlockView block={stillCantFindBlock} />}
+
+      <div class="page-actions">
+        <a class="button" href="/">Return home</a>
+        <a class="text-link" href="/location">Where's the festival? →</a>
+      </div>
+    </section>
+  </main>
+</Layout>

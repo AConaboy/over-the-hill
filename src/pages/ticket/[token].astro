@@ -1,0 +1,115 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import LinkProblemNotice from "../../components/LinkProblemNotice.astro";
+import TicketQr from "../../components/TicketQr.astro";
+import { getGuestByToken, hasNothingToPay } from "../../lib/guests";
+import { formatPence } from "../../lib/money";
+import { REMEMBER_COOKIE_NAME, REMEMBER_COOKIE_OPTIONS } from "../../lib/rememberCookie";
+
+const { token } = Astro.params;
+const guest = token ? await getGuestByToken(token) : null;
+
+// Once a guest has responded, their ticket link never expires — they still
+// need it to view/update their answers and, later, pay. So unlike
+// /rsvp/[token], there's no expiry check here.
+
+if (guest) {
+  Astro.cookies.set(REMEMBER_COOKIE_NAME, guest.token, REMEMBER_COOKIE_OPTIONS);
+}
+---
+
+<Layout title="Your ticket | Over the Hill" description="View your Over the Hill ticket and RSVP status.">
+  <main>
+    {!guest && <LinkProblemNotice kind="not_found" />}
+
+    {guest && (
+      <>
+        <section class="page-hero">
+          <div class="page-hero-content">
+            <p class="eyebrow">Your ticket</p>
+            <h1>{guest.name}</h1>
+            <p class="page-introduction">
+              Everything you need to know about your ticket, and what's next.
+            </p>
+          </div>
+        </section>
+
+        <section class="page-content">
+          {guest.attendance === "pending" && (
+            <article class="content-block notice">
+              <h2>You haven't RSVP'd yet</h2>
+              <p>
+                We don't have your answers yet. Head over to your
+                <a href={`/rsvp/${guest.token}`}>RSVP form</a> to let us know
+                if you're coming.
+              </p>
+            </article>
+          )}
+
+          {guest.attendance === "no" && (
+            <article class="content-block notice">
+              <h2>You're marked as not attending</h2>
+              <p>
+                Sorry to miss you! If your plans change, you can update your
+                answer any time on your <a href={`/rsvp/${guest.token}`}>RSVP form</a>.
+              </p>
+            </article>
+          )}
+
+          {guest.attendance === "yes" && (
+            <>
+              <article class="content-block">
+                <h2>You're on the list 🎉</h2>
+                <p>
+                  Show this at the gate if asked — it's your confirmation
+                  that you're coming to Over the Hill.
+                </p>
+
+                {guest.ticket_ref && <TicketQr ticketRef={guest.ticket_ref} />}
+              </article>
+
+              <article class="content-block">
+                <h2>Your details</h2>
+                <ul class="information-list">
+                  {guest.arrival_day && <li>Arriving: {guest.arrival_day}</li>}
+                  {guest.departure_day && <li>Departing: {guest.departure_day}</li>}
+                  {guest.camping && <li>Camping: {guest.camping.replace("_", " ")}</li>}
+                  {guest.vehicle && <li>Vehicle: {guest.vehicle.replace("_", " ")}</li>}
+                  {guest.dietary && <li>Dietary requirements: {guest.dietary}</li>}
+                  {guest.accessibility && <li>Accessibility requirements: {guest.accessibility}</li>}
+                </ul>
+                <p>
+                  <a class="text-link" href={`/rsvp/${guest.token}`}>
+                    Need to change something? Update your RSVP →
+                  </a>
+                </p>
+              </article>
+
+              <article class="content-block">
+                <h2>Paying</h2>
+                {hasNothingToPay(guest) ? (
+                  <p>
+                    Nothing to pay — you're performing, so your ticket's on us.
+                  </p>
+                ) : (
+                  <p>
+                    {guest.is_performer === 1 && guest.amount_due_pence !== null && (
+                      <>As a performer, your ticket price is {formatPence(guest.amount_due_pence)}. </>
+                    )}
+                    No payment is needed yet. When payments open, a link to
+                    pay will show up here, and this same ticket will update to
+                    show it's been paid.
+                  </p>
+                )}
+              </article>
+            </>
+          )}
+
+          <div class="page-actions">
+            <a class="button" href="/">Return home</a>
+          </div>
+        </section>
+      </>
+    )}
+  </main>
+</Layout>

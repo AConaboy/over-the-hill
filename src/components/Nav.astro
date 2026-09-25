@@ -1,0 +1,75 @@
+---
+export interface Props {
+  currentPath: string;
+}
+
+const { currentPath } = Astro.props;
+
+const navItems = [
+  { href: "/location", label: "Location" },
+  { href: "/rsvp", label: "RSVP", className: "nav-rsvp" },
+];
+---
+
+<header class="site-header">
+  <div class="nav-container">
+    <div class="brand-group">
+      <a class="site-logo" href="/" aria-label="Go to the homepage">
+        <!-- Spinning disco ball; a still frame for anyone who prefers reduced
+             motion. alt is empty because the link has its own label. -->
+        <picture>
+          <source srcset="/images/logo-static.webp" media="(prefers-reduced-motion: reduce)" />
+          <img src="/images/logo-animated.webp" alt="" width="54" height="54" />
+        </picture>
+      </a>
+      <a class="site-name" href="/">Over the Hill</a>
+    </div>
+
+    <button
+      class="menu-button"
+      type="button"
+      aria-expanded="false"
+      aria-controls="main-navigation"
+    >
+      Menu
+    </button>
+
+    <nav id="main-navigation" class="main-navigation" aria-label="Main navigation">
+      {navItems.map(({ href, label, className }) => {
+        const isCurrent = currentPath === href || currentPath.startsWith(`${href}/`);
+        const classes = [className, isCurrent ? "is-current" : ""].filter(Boolean).join(" ");
+        return (
+          <a href={href} class={classes || undefined} aria-current={isCurrent ? "page" : undefined}>
+            {label}
+          </a>
+        );
+      })}
+    </nav>
+  </div>
+</header>
+
+<script>
+  function attachMenuToggle() {
+    const header = document.querySelector(".site-header");
+    const menuButton = header?.querySelector<HTMLButtonElement>(".menu-button");
+    const navigation = header?.querySelector<HTMLElement>(".main-navigation");
+
+    if (!menuButton || !navigation) {
+      return;
+    }
+
+    menuButton.addEventListener("click", () => {
+      const isOpen = navigation.classList.toggle("is-open");
+      menuButton.setAttribute("aria-expanded", String(isOpen));
+    });
+
+    navigation.addEventListener("click", (event) => {
+      if (event.target instanceof HTMLAnchorElement) {
+        navigation.classList.remove("is-open");
+        menuButton.setAttribute("aria-expanded", "false");
+      }
+    });
+  }
+
+  attachMenuToggle();
+</script>
