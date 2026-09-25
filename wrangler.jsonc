@@ -46,7 +46,7 @@
         {
           "binding": "DB",
           "database_name": "over-the-hill-staging",
-          "database_id": "REPLACE_WITH_STAGING_D1_DATABASE_ID"
+          "database_id": "27f23751-e643-44f9-a7ef-f486d865dbc3"
         }
       ]
     }
