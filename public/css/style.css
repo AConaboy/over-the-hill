@@ -876,6 +876,13 @@ main:has(> .page-hero) {
   font-size: 1.7rem;
 }
 
+.site-footer .footer-credit {
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
 /* Responsive */
 
 @media (max-width: 1100px) {
