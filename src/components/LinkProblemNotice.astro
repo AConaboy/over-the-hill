@@ -1,12 +1,18 @@
 ---
 export interface Props {
-  kind: "not_found" | "expired";
+  kind: "not_found" | "expired" | "cancelled";
 }
 
 const { kind } = Astro.props;
 
 const copy =
-  kind === "expired"
+  kind === "cancelled"
+    ? {
+        eyebrow: "Place cancelled",
+        heading: "Your place has been cancelled",
+        body: "If you think this is a mistake, please contact one of the hosts.",
+      }
+    : kind === "expired"
     ? {
         eyebrow: "Link expired",
         heading: "This link has expired",

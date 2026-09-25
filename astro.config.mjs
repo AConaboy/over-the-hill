@@ -20,6 +20,10 @@ export default defineConfig({
       // routes refuse all requests until both are set.
       CF_ACCESS_TEAM_DOMAIN: envField.string({ context: 'server', access: 'secret', optional: true }),
       CF_ACCESS_AUD: envField.string({ context: 'server', access: 'secret', optional: true }),
+      // Stripe (v2 payments) — per-environment Worker secrets, see
+      // docs/deployment.md. Optional: without them payments stay closed.
+      STRIPE_SECRET_KEY: envField.string({ context: 'server', access: 'secret', optional: true }),
+      STRIPE_WEBHOOK_SECRET: envField.string({ context: 'server', access: 'secret', optional: true }),
     },
   },
 });

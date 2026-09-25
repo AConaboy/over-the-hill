@@ -1,10 +1,29 @@
 ---
 import Layout from "../../../../layouts/Layout.astro";
 import PerformerFields from "../../../../components/PerformerFields.astro";
-import { getGuestById } from "../../../../lib/guests";
+import { getGuestById, listPaymentsForGuest } from "../../../../lib/guests";
+import { getPaymentSettings } from "../../../../lib/settings";
+import { overpaidBy, ticketPrice } from "../../../../lib/payments";
+import { formatPence } from "../../../../lib/money";
 
 const { id } = Astro.params;
 const guest = id ? await getGuestById(id) : null;
+const payments = guest ? await listPaymentsForGuest(guest.id) : [];
+const settings = await getPaymentSettings();
+const price = guest ? ticketPrice(guest, settings) : null;
+const paid = guest?.amount_paid_pence ?? 0;
+const cancelled = guest?.status === "cancelled";
+const overpaid = guest ? overpaidBy(guest, settings) : 0;
+
+const PAYMENT_MESSAGES: Record<string, string> = {
+  recorded: "Recorded.",
+  invalid_amount: "Enter an amount in pounds, like 20 or 12.50.",
+  refund_too_big: "That's more than they've paid, so it wasn't recorded.",
+};
+const paymentMessage = PAYMENT_MESSAGES[Astro.url.searchParams.get("payment") ?? ""];
+const KIND_LABELS = { deposit: "Deposit (card)", balance: "Balance (card)", manual: "Manual payment", refund: "Refund" };
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 ---
 
 <Layout title="Edit guest | Over the Hill" description="Edit a guest's details.">
@@ -115,6 +134,95 @@ const guest = id ? await getGuestById(id) : null;
 
             <button class="button" type="submit">Save changes</button>
           </form>
+
+          <section id="payments" class="content-block admin-payments">
+            <h2>Payments</h2>
+            {paymentMessage && <p class="notice">{paymentMessage}</p>}
+            <ul class="information-list">
+              <li>Ticket price: {price === null ? "not set yet" : formatPence(price)}</li>
+              <li>Paid: {formatPence(paid)}{price !== null && paid < price && `, ${formatPence(price - paid)} left`}</li>
+              {cancelled && <li><strong>Place cancelled</strong>{paid > 0 && `: ${formatPence(paid)} still recorded as paid (refund it in Stripe, then record the refund)`}</li>}
+              {!cancelled && overpaid > 0 && <li><strong>Overpaid by {formatPence(overpaid)}</strong>: refund it in Stripe, then record the refund below.</li>}
+            </ul>
+
+            {payments.length > 0 && (
+              <div class="admin-table-wrapper">
+                <table class="admin-table">
+                  <thead>
+                    <tr><th>Date</th><th>Type</th><th>Amount</th><th>Note / reference</th></tr>
+                  </thead>
+                  <tbody>
+                    {payments.map((payment) => (
+                      <tr>
+                        <td>{formatDate(payment.created_at)}</td>
+                        <td>{KIND_LABELS[payment.kind]}</td>
+                        <td>{payment.amount_pence < 0 ? `−${formatPence(-payment.amount_pence)}` : formatPence(payment.amount_pence)}</td>
+                        <td>{[payment.note, payment.stripe_ref].filter(Boolean).join(" · ") || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <form
+              class="rsvp-form admin-payment-form"
+              method="POST"
+              action={`/api/admin/guests/${guest.id}/payments`}
+              onsubmit="return confirm('Record this payment?')"
+            >
+              <h3>Record a manual payment</h3>
+              <input type="hidden" name="action" value="manual" />
+              <div class="form-field">
+                <label for="manualAmount">Amount (£)</label>
+                <input id="manualAmount" name="amount" type="text" inputmode="decimal" pattern="£?[0-9]{1,5}(\.[0-9]{1,2})?" required />
+              </div>
+              <div class="form-field">
+                <label for="manualNote">Note</label>
+                <input id="manualNote" name="note" type="text" placeholder="e.g. Cash at the planning meeting" />
+              </div>
+              <button class="button" type="submit">Record payment</button>
+            </form>
+
+            {paid > 0 && (
+              <form
+                class="rsvp-form admin-payment-form"
+                method="POST"
+                action={`/api/admin/guests/${guest.id}/payments`}
+                onsubmit="return confirm('Have you already made this refund in the Stripe Dashboard?')"
+              >
+                <h3>Record a refund</h3>
+                <p class="form-field-help">Make the refund in the Stripe Dashboard first. This only updates our records.</p>
+                <input type="hidden" name="action" value="refund" />
+                <div class="form-field">
+                  <label for="refundAmount">Amount refunded (£)</label>
+                  <input id="refundAmount" name="amount" type="text" inputmode="decimal" pattern="£?[0-9]{1,5}(\.[0-9]{1,2})?" required />
+                </div>
+                <div class="form-field">
+                  <label for="refundRef">Stripe refund ID (optional)</label>
+                  <input id="refundRef" name="stripeRef" type="text" placeholder="re_..." />
+                </div>
+                <div class="form-field">
+                  <label for="refundNote">Note</label>
+                  <input id="refundNote" name="note" type="text" placeholder="e.g. Can't make it any more" />
+                </div>
+                <button class="button" type="submit">Record refund</button>
+              </form>
+            )}
+
+            <form
+              method="POST"
+              action={`/api/admin/guests/${guest.id}/cancel`}
+              onsubmit={cancelled
+                ? "return confirm('Reinstate this place? They will be able to pay again.')"
+                : "return confirm('Cancel this place? They will no longer be able to pay, and their ticket will show as cancelled.')"}
+            >
+              <input type="hidden" name="action" value={cancelled ? "reinstate" : "cancel"} />
+              <button class="text-link admin-inline-button status-expired" type="submit">
+                {cancelled ? "Reinstate place" : "Cancel place"}
+              </button>
+            </form>
+          </section>
 
           <form
             method="POST"

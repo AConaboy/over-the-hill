@@ -2,8 +2,10 @@
 import Layout from "../../layouts/Layout.astro";
 import LinkProblemNotice from "../../components/LinkProblemNotice.astro";
 import TicketQr from "../../components/TicketQr.astro";
-import { getGuestByToken, hasNothingToPay } from "../../lib/guests";
-import { formatPence } from "../../lib/money";
+import PaymentPanel from "../../components/PaymentPanel.astro";
+import { getGuestByToken } from "../../lib/guests";
+import { getPaymentSettings } from "../../lib/settings";
+import { isStripeConfigured } from "../../lib/stripe";
 import { REMEMBER_COOKIE_NAME, REMEMBER_COOKIE_OPTIONS } from "../../lib/rememberCookie";
 
 const { token } = Astro.params;
@@ -16,6 +18,13 @@ const guest = token ? await getGuestByToken(token) : null;
 if (guest) {
   Astro.cookies.set(REMEMBER_COOKIE_NAME, guest.token, REMEMBER_COOKIE_OPTIONS);
 }
+
+const settings = await getPaymentSettings();
+const cancelled = guest?.status === "cancelled";
+// Back from Stripe. The webhook, not this redirect, records the payment, so
+// it may take a moment to show.
+const justPaid = Astro.url.searchParams.get("paid") === "1";
+const payError = Astro.url.searchParams.get("payerror") === "1";
 ---
 
 <Layout title="Your ticket | Over the Hill" description="View your Over the Hill ticket and RSVP status.">
@@ -35,7 +44,28 @@ if (guest) {
         </section>
 
         <section class="page-content">
-          {guest.attendance === "pending" && (
+          {cancelled && (
+            <article class="content-block notice">
+              <h2>Your place has been cancelled</h2>
+              <p>If you think this is a mistake, please contact one of the hosts.</p>
+            </article>
+          )}
+
+          {!cancelled && justPaid && guest.payment_status !== "paid_full" && (
+            <article class="content-block notice">
+              <h2>Thanks for your payment!</h2>
+              <p>It's being confirmed. Refresh this page in a moment if it isn't showing yet.</p>
+            </article>
+          )}
+
+          {!cancelled && payError && (
+            <article class="content-block notice">
+              <h2>We couldn't start the payment</h2>
+              <p>Nothing has been charged. Please try again, or contact a host if it keeps happening.</p>
+            </article>
+          )}
+
+          {!cancelled && guest.attendance === "pending" && (
             <article class="content-block notice">
               <h2>You haven't RSVP'd yet</h2>
               <p>
@@ -46,7 +76,7 @@ if (guest) {
             </article>
           )}
 
-          {guest.attendance === "no" && (
+          {!cancelled && guest.attendance === "no" && (
             <article class="content-block notice">
               <h2>You're marked as not attending</h2>
               <p>
@@ -56,7 +86,7 @@ if (guest) {
             </article>
           )}
 
-          {guest.attendance === "yes" && (
+          {!cancelled && guest.attendance === "yes" && (
             <>
               <article class="content-block">
                 <h2>You're on the list 🎉</h2>
@@ -66,6 +96,7 @@ if (guest) {
                 </p>
 
                 {guest.ticket_ref && <TicketQr ticketRef={guest.ticket_ref} />}
+                {guest.payment_status === "paid_full" && <p class="paid-badge">Paid in full</p>}
               </article>
 
               <article class="content-block">
@@ -85,23 +116,7 @@ if (guest) {
                 </p>
               </article>
 
-              <article class="content-block">
-                <h2>Paying</h2>
-                {hasNothingToPay(guest) ? (
-                  <p>
-                    Nothing to pay — you're performing, so your ticket's on us.
-                  </p>
-                ) : (
-                  <p>
-                    {guest.is_performer === 1 && guest.amount_due_pence !== null && (
-                      <>As a performer, your ticket price is {formatPence(guest.amount_due_pence)}. </>
-                    )}
-                    No payment is needed yet. When payments open, a link to
-                    pay will show up here, and this same ticket will update to
-                    show it's been paid.
-                  </p>
-                )}
-              </article>
+              <PaymentPanel guest={guest} settings={settings} stripeConfigured={isStripeConfigured()} />
             </>
           )}
 

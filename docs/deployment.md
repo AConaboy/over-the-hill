@@ -188,10 +188,44 @@ bake localhost links into a production deploy. The admin page
 has no auth locally (Cloudflare Access only applies once deployed), so don't
 expose your local dev server publicly.
 
-## What's not built yet (v2)
+## 6. Stripe (payments)
 
-Deposits/paid tickets (Stripe Checkout Sessions + a webhook) are described in
-`docs/signup-ticketing-spec.md` but intentionally not implemented in this
-version — the `amount_due_pence`, `amount_paid_pence`, `payment_ref`,
-`payment_status` and `is_performer` columns already exist in the schema so that work won't
-need a migration.
+Payments stay closed until Stripe is set up **and** a host opens them on
+`/admin/payments`. Set up each environment separately:
+
+1. **Test first, in sandboxes.** A Stripe sandbox is an isolated test
+   environment. Use one sandbox for local development and another for
+   staging, and switch to live keys for production only when you're ready to
+   take real money. No account yet? `npm i -g @stripe/cli` and
+   `stripe sandbox create` gives you test keys without signing up.
+2. **API key:** create a **restricted key** (`rk_...`) with write access to
+   Checkout Sessions, rather than using the full secret key.
+3. **Webhook endpoint** (Developers → Webhooks → Add endpoint):
+   - URL: `https://overthehill.live/api/webhooks/stripe` (production) or
+     `https://staging.overthehill.live/api/webhooks/stripe` (staging)
+   - Events: `checkout.session.completed`,
+     `checkout.session.async_payment_succeeded`,
+     `checkout.session.async_payment_failed`, `checkout.session.expired`
+   - Copy the endpoint's signing secret (`whsec_...`).
+4. **Worker secrets:**
+   `npx wrangler secret put STRIPE_SECRET_KEY` and
+   `npx wrangler secret put STRIPE_WEBHOOK_SECRET` (add `--env staging` for
+   staging).
+5. **Staging only:** its Access app covers the whole hostname, which would
+   block Stripe. Add a second Access application for
+   `staging.overthehill.live/api/webhooks/stripe` with a **Bypass** policy
+   (Include: Everyone). The signature check in the webhook is what
+   authenticates those requests.
+6. **Open payments** on `/admin/payments`: set the deposit, tick "Deposits
+   open", and save. Set the ticket price and tick "Balance payments open" once
+   the price is decided.
+
+**Refunds and cancellations:** refund in the Stripe Dashboard first, then
+record the refund on the guest's admin page (and "Cancel place" if they're
+not coming). The site never refunds on its own.
+
+**Local testing:** put test keys in `.env` (`STRIPE_SECRET_KEY`,
+`STRIPE_WEBHOOK_SECRET`), then run
+`stripe listen --forward-to localhost:4321/api/webhooks/stripe` and use the
+`whsec_` it prints as `STRIPE_WEBHOOK_SECRET`. Pay with test card
+`4242 4242 4242 4242`.

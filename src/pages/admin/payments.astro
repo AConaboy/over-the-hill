@@ -1,0 +1,162 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { listGuestsForPayments } from "../../lib/guests";
+import { getPaymentSettings, paymentSettingsProblem, savePaymentSettings } from "../../lib/settings";
+import { overpaidBy, ticketPrice } from "../../lib/payments";
+import { isStripeConfigured } from "../../lib/stripe";
+import { checkboxField, penceField } from "../../lib/forms";
+import { formatPence } from "../../lib/money";
+
+// Handles its own form: on a problem, the page re-renders with the host's
+// input kept and the reason shown; on success it redirects (so a refresh
+// doesn't resubmit).
+const stripeConfigured = isStripeConfigured();
+let error: string | null = null;
+let settings = await getPaymentSettings();
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const depositPence = penceField(form, "deposit");
+  const standardPricePence = penceField(form, "standardPrice");
+  const submitted = {
+    depositPence: depositPence === "invalid" ? null : depositPence,
+    standardPricePence: standardPricePence === "invalid" ? null : standardPricePence,
+    depositsOpen: checkboxField(form, "depositsOpen"),
+    balanceOpen: checkboxField(form, "balanceOpen"),
+  };
+  error =
+    depositPence === "invalid" || standardPricePence === "invalid"
+      ? "Amounts must be in pounds, like 20 or 12.50."
+      : paymentSettingsProblem(submitted, stripeConfigured);
+  if (!error) {
+    await savePaymentSettings(submitted);
+    return Astro.redirect("/admin/payments?saved=1", 303);
+  }
+  settings = submitted;
+}
+
+const saved = Astro.url.searchParams.get("saved") === "1";
+const amountValue = (pence: number | null) => (pence === null ? "" : formatPence(pence, { symbol: false }));
+
+// Totals over guests who are attending and not cancelled.
+const guests = await listGuestsForPayments();
+const attending = guests.filter((g) => g.attendance === "yes" && g.status !== "cancelled");
+const received = guests.reduce((sum, g) => sum + (g.amount_paid_pence ?? 0), 0);
+let toCollect = 0;
+let unpriced = 0;
+for (const g of attending) {
+  const price = ticketPrice(g, settings);
+  if (price === null) unpriced++;
+  else toCollect += Math.max(0, price - (g.amount_paid_pence ?? 0));
+}
+const counts = {
+  unpaid: attending.filter((g) => g.payment_status === "unpaid").length,
+  deposit_paid: attending.filter((g) => g.payment_status === "deposit_paid").length,
+  paid_full: attending.filter((g) => g.payment_status === "paid_full").length,
+};
+// Anyone owed money back: overpaid against their current price, or
+// cancelled with money still recorded as paid.
+const owed = guests
+  .map((g) => ({
+    guest: g,
+    amount: g.status === "cancelled" ? Math.max(0, g.amount_paid_pence ?? 0) : overpaidBy(g, settings),
+  }))
+  .filter((row) => row.amount > 0);
+---
+
+<Layout title="Payments | Over the Hill" description="Ticket price, deposit and payment settings.">
+  <main>
+    <section class="page-hero">
+      <div class="page-hero-content">
+        <p class="eyebrow">Hosts only</p>
+        <h1>Payments</h1>
+        <p class="page-introduction">
+          Set the deposit and ticket price, and open payments when you're
+          ready. You can set or change the price after deposits have been
+          taken: balances are always worked out from the current price.
+        </p>
+      </div>
+    </section>
+
+    <section class="page-content">
+      {!stripeConfigured && (
+        <article class="content-block notice">
+          <h2>Stripe isn't set up on this site yet</h2>
+          <p>You can save amounts, but payments can't be opened until the Stripe keys are added (see docs/deployment.md).</p>
+        </article>
+      )}
+      {error && (
+        <article class="content-block notice">
+          <h2>Not saved</h2>
+          <p>{error}</p>
+        </article>
+      )}
+      {saved && !error && (
+        <article class="content-block notice">
+          <p>Saved.</p>
+        </article>
+      )}
+
+      <form class="rsvp-form" method="POST" action="/admin/payments">
+        <div class="form-field">
+          <label for="deposit">Deposit (£)</label>
+          <input id="deposit" name="deposit" type="text" inputmode="decimal" pattern="£?[0-9]{1,5}(\.[0-9]{1,2})?" value={amountValue(settings.depositPence)} />
+        </div>
+
+        <div class="form-field">
+          <label for="standardPrice">Ticket price (£)</label>
+          <input id="standardPrice" name="standardPrice" type="text" inputmode="decimal" pattern="£?[0-9]{1,5}(\.[0-9]{1,2})?" placeholder="Not decided yet" value={amountValue(settings.standardPricePence)} />
+        </div>
+        <p class="form-field-help">
+          Leave blank until the final price is known. Performers with their own
+          price (set on their guest page) use that instead, and pay a deposit
+          capped at their price.
+        </p>
+
+        <div class="form-field form-field-checkbox">
+          <input id="depositsOpen" name="depositsOpen" type="checkbox" checked={settings.depositsOpen} />
+          <label for="depositsOpen">Deposits open</label>
+        </div>
+        <div class="form-field form-field-checkbox">
+          <input id="balanceOpen" name="balanceOpen" type="checkbox" checked={settings.balanceOpen} />
+          <label for="balanceOpen">Balance payments open</label>
+        </div>
+        <p class="form-field-help">
+          Guests who haven't paid anything see a "Pay deposit" button while
+          deposits are open. Guests who've paid a deposit see "Pay balance"
+          once balance payments are open and a price is set.
+        </p>
+
+        <button class="button" type="submit">Save payment settings</button>
+      </form>
+
+      <article class="content-block">
+        <h2>Totals</h2>
+        <ul class="information-list">
+          <li>Received: {formatPence(received)}</li>
+          <li>Still to collect: {formatPence(toCollect)}{unpriced > 0 && ` (plus ${unpriced} ${unpriced === 1 ? "guest" : "guests"} with no price set yet)`}</li>
+          <li>Attending: {attending.length} ({counts.paid_full} paid in full, {counts.deposit_paid} deposit paid, {counts.unpaid} not paid)</li>
+        </ul>
+      </article>
+
+      {owed.length > 0 && (
+        <article class="content-block">
+          <h2>Refunds to make</h2>
+          <p>Refund these in the Stripe Dashboard first, then record the refund on the guest's page.</p>
+          <ul class="information-list">
+            {owed.map(({ guest, amount }) => (
+              <li>
+                <a class="text-link" href={`/admin/guests/${guest.id}/edit`}>{guest.name}</a>:{" "}
+                {formatPence(amount)} {guest.status === "cancelled" ? "(cancelled)" : "(paid over their price)"}
+              </li>
+            ))}
+          </ul>
+        </article>
+      )}
+
+      <div class="page-actions">
+        <a class="text-link" href="/admin">← Back to guest list</a>
+      </div>
+    </section>
+  </main>
+</Layout>

@@ -10,6 +10,8 @@ import {
   GUEST_KINDS,
 } from "../../lib/guests";
 import { formatPence } from "../../lib/money";
+import { getPaymentSettings } from "../../lib/settings";
+import { overpaidBy, ticketPrice } from "../../lib/payments";
 import { SITE_URL } from "astro:env/server";
 
 const inviterFilter = Astro.url.searchParams.get("inviter") ?? "";
@@ -17,10 +19,21 @@ const sortParam = Astro.url.searchParams.get("sort");
 const sort = isGuestSort(sortParam) ? sortParam : "name";
 const kindParam = Astro.url.searchParams.get("kind");
 const kind = isGuestKind(kindParam) ? kindParam : "all";
-const [guests, inviterNames] = await Promise.all([
+const [guests, inviterNames, paymentSettings] = await Promise.all([
   listGuestsWithInviters({ inviter: inviterFilter || undefined, kind, sort }),
   listAllInviterNames(),
+  getPaymentSettings(),
 ]);
+
+/** e.g. "£20 of £60", "£20 · price TBC", or null when nothing's been paid
+ * and there's no price to show. */
+function paymentSummary(guest: (typeof guests)[number]): string | null {
+  const paid = guest.amount_paid_pence ?? 0;
+  const price = ticketPrice(guest, paymentSettings);
+  if (price === null) return paid > 0 ? `${formatPence(paid)} paid · price TBC` : null;
+  if (price === 0) return null;
+  return `${formatPence(paid)} of ${formatPence(price)}`;
+}
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
@@ -90,6 +103,7 @@ function statusLabel(guest: (typeof guests)[number]): string {
         </form>
 
         <div class="admin-toolbar-actions">
+          <a class="text-link" href="/admin/payments">Payments</a>
           <a class="text-link" href="/admin/content">Edit site text</a>
           <a class="button" href="/admin/guests/new">Add guest</a>
         </div>
@@ -125,8 +139,11 @@ function statusLabel(guest: (typeof guests)[number]): string {
                 <td>{guest.inviters.join(", ") || "—"}</td>
                 <td>
                   {statusLabel(guest)}
-                  {guest.payment_status && guest.payment_status !== "unpaid" && (
-                    <div>{guest.payment_status === "paid_full" ? "Paid in full" : "Deposit paid"}</div>
+                  {guest.status !== "cancelled" && guest.attendance === "yes" && paymentSummary(guest) && (
+                    <div>{paymentSummary(guest)}</div>
+                  )}
+                  {(guest.status === "cancelled" ? (guest.amount_paid_pence ?? 0) : overpaidBy(guest, paymentSettings)) > 0 && (
+                    <div class="status-expired">Refund owed</div>
                   )}
                 </td>
                 <td>

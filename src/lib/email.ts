@@ -2,6 +2,7 @@ import { Resend } from "resend";
 import Mustache from "mustache";
 import { RESEND_API_KEY, SITE_URL } from "astro:env/server";
 import type { Guest } from "./guests";
+import { formatPence } from "./money";
 import rsvpConfirmationTemplate from "./emails/rsvp-confirmation.html?raw";
 
 let client: Resend | null = null;
@@ -103,6 +104,50 @@ export async function sendMagicLinkEmail(guest: Guest): Promise<void> {
     from: FROM_ADDRESS,
     to: guest.email,
     subject: "Your Over the Hill invite link",
+    text: textBody,
+  });
+
+  if (error) {
+    throw new Error(`Resend rejected the email: ${error.name} — ${error.message}`);
+  }
+}
+
+/** Sent once per newly recorded payment (from the Stripe webhook). Non-
+ * blocking like the others: the payment is already saved. `pricePence` is
+ * null while the final ticket price hasn't been set. */
+export async function sendPaymentReceivedEmail(
+  guest: Guest,
+  amountPence: number,
+  pricePence: number | null,
+): Promise<void> {
+  if (!guest.email) return;
+
+  const ticketUrl = new URL(`/ticket/${guest.token}`, SITE_URL).toString();
+  const paid = guest.amount_paid_pence ?? 0;
+  const standing =
+    pricePence === null
+      ? `You've paid ${formatPence(paid)} so far. We'll let you know the final ticket price and when the balance is due.`
+      : paid >= pricePence
+        ? `That's your ticket paid in full (${formatPence(pricePence)}).`
+        : `You've paid ${formatPence(paid)} of ${formatPence(pricePence)}, so ${formatPence(pricePence - paid)} is left to pay.`;
+
+  const textBody = [
+    `Hi ${guest.name},`,
+    "",
+    `Thanks! We've received your payment of ${formatPence(amountPence)} for Over the Hill.`,
+    "",
+    standing,
+    "",
+    `Your ticket: ${ticketUrl}`,
+    "",
+    "See you there!",
+  ].join("\n");
+
+  const resend = getResendClient();
+  const { error } = await resend.emails.send({
+    from: FROM_ADDRESS,
+    to: guest.email,
+    subject: "Payment received: Over the Hill",
     text: textBody,
   });
 

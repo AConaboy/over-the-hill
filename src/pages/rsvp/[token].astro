@@ -18,6 +18,8 @@ const questionsBlock = findBlock(blocks, "rsvp-form-questions");
 const privacyBlock = findBlock(blocks, "rsvp-form-privacy");
 
 const expired = guest ? isLinkExpired(guest) : false;
+// A host cancelled their place (usually with a refund): no form to resubmit.
+const cancelled = guest?.status === "cancelled";
 
 if (guest && !expired) {
   await markViewed(guest);
@@ -40,8 +42,9 @@ const emailed = Astro.url.searchParams.get("emailed") === "1";
   <main>
     {!guest && <LinkProblemNotice kind="not_found" />}
     {guest && expired && <LinkProblemNotice kind="expired" />}
+    {guest && !expired && cancelled && <LinkProblemNotice kind="cancelled" />}
 
-    {guest && !expired && (
+    {guest && !expired && !cancelled && (
       <>
         <PageHero
           eyebrow={fields.hero_eyebrow}

@@ -64,15 +64,13 @@ Once someone confirms they're attending, they get a QR code on screen. For now i
   - Mark someone as a performer and set their ticket price (including free), and filter the list to just performers.
 - This replaces having to dig through spreadsheet rows or email threads to see where things stand.
 
-## What happens with payments (later, not yet)
+## Payments
 
-No payment is part of this first stage — sign-up stays free-to-submit, same as it is now. When we're ready to add a deposit or full ticket price (all in GBP, £):
-
-- Guests would press a "Pay" button on their ticket page and pay by card (via Stripe). The amount is worked out for them: the standard price, or a performer's own price.
-- Free performers never see a payment step at all.
-- A guest's payment would automatically be matched back to their record, so we always know who's paid and how much.
-- Guests wouldn't need a new link or a new QR code — they'd just see their existing ticket update to show "deposit paid" or "paid in full" once they've paid.
-- We'd still be able to see and, if needed, manually correct payment status ourselves.
+- **Opening deposits:** when we're ready, we set a deposit amount on the admin Payments page and open deposits. Everyone who's attending sees a "Pay deposit" button on their ticket page and pays by card (via Stripe).
+- **The final price can come later.** Once we've decided it, we enter it and open balance payments, and guests see "Pay balance" for whatever's left. We can change the price at any time: balances are always worked out from the current price.
+- **Performers:** they pay their own price if we've set one, or nothing at all if they're free.
+- **Guests' links don't change:** nobody gets a new link or QR code, their ticket just updates to "deposit paid" or "paid in full", and they get an email receipt.
+- **Refunds and cancellations:** we refund in Stripe ourselves, then press "Record refund" (and "Cancel place" if they're not coming) on their admin page. The Payments page lists anyone who's owed money back.
 
 ## What this doesn't change
 
@@ -85,4 +83,3 @@ No payment is part of this first stage — sign-up stays free-to-submit, same as
 - Whose email addresses should be on the admin access list?
 - Any concerns about guests being able to revisit and change their answers at any time?
 - Is 30 days a sensible default before an unanswered link expires, or would we rather it be shorter/longer?
-- When payments open, should performers with their own price pay it all at once, or pay a deposit first like everyone else?
