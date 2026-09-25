@@ -4,7 +4,7 @@ import PageHero from "../../components/PageHero.astro";
 import ContentBlockView from "../../components/ContentBlockView.astro";
 import { getGuestByToken, isLinkExpired } from "../../lib/guests";
 import { REMEMBER_COOKIE_NAME } from "../../lib/rememberCookie";
-import { getPageContent, parseBody } from "../../lib/content";
+import { findBlock, getPageContent, parseBody } from "../../lib/content";
 
 const remembered = Astro.cookies.get(REMEMBER_COOKIE_NAME)?.value;
 
@@ -20,7 +20,8 @@ if (remembered) {
 
 const sent = Astro.url.searchParams.get("sent") === "1";
 const { fields, blocks } = await getPageContent("rsvp");
-const [getLinkBlock, stillCantFindBlock] = blocks;
+const getLinkBlock = findBlock(blocks, "rsvp-get-link");
+const stillCantFindBlock = findBlock(blocks, "rsvp-still-cant-find");
 ---
 
 <Layout

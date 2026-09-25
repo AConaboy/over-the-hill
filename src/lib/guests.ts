@@ -8,14 +8,10 @@ export const VEHICLE_VALUES = ["none", "car", "campervan", "undecided"] as const
 export type Attendance = (typeof ATTENDANCE_VALUES)[number];
 export type Camping = (typeof CAMPING_VALUES)[number];
 export type Vehicle = (typeof VEHICLE_VALUES)[number];
-export type GuestStatus =
-  | "invited"
-  | "viewed"
-  | "rsvp_yes"
-  | "rsvp_no"
-  | "deposit_paid"
-  | "paid_full"
-  | "cancelled";
+/** RSVP lifecycle only; payment is tracked separately in PaymentStatus
+ * (see migrations/0005_payment_status.sql). */
+export type GuestStatus = "invited" | "viewed" | "rsvp_yes" | "rsvp_no" | "cancelled";
+export type PaymentStatus = "unpaid" | "deposit_paid" | "paid_full";
 
 export interface Guest {
   id: string;
@@ -34,6 +30,7 @@ export interface Guest {
   accessibility: string | null;
   notes: string | null;
   status: GuestStatus;
+  payment_status: PaymentStatus;
   amount_due_pence: number | null;
   amount_paid_pence: number | null;
   payment_ref: string | null;

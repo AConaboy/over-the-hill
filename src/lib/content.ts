@@ -175,6 +175,13 @@ export async function getPageContent(slug: string): Promise<PageContent> {
   return { fields, blocks: blockRows };
 }
 
+/** Look a block up by its id (set in the seeding migration) rather than by
+ * position, so deleting or reordering one block from the editor can't
+ * shift the others into the wrong place on a page. */
+export function findBlock(blocks: ContentBlock[], id: string): ContentBlock | undefined {
+  return blocks.find((block) => block.id === id);
+}
+
 export async function setContentFields(slug: string, values: Record<string, string>): Promise<void> {
   const db = getDb();
   const timestamp = nowIso();

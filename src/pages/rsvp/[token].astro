@@ -6,12 +6,16 @@ import PageHero from "../../components/PageHero.astro";
 import ContentBlockView from "../../components/ContentBlockView.astro";
 import { getGuestByToken, isLinkExpired, markViewed } from "../../lib/guests";
 import { REMEMBER_COOKIE_NAME, REMEMBER_COOKIE_OPTIONS } from "../../lib/rememberCookie";
-import { getPageContent } from "../../lib/content";
+import { findBlock, getPageContent } from "../../lib/content";
 
 const { token } = Astro.params;
 const guest = token ? await getGuestByToken(token) : null;
 const { fields, blocks } = await getPageContent("rsvp-form");
-const [deadlineBlock, changingBlock, payingBlock, questionsBlock, privacyBlock] = blocks;
+const deadlineBlock = findBlock(blocks, "rsvp-form-deadline");
+const changingBlock = findBlock(blocks, "rsvp-form-changing");
+const payingBlock = findBlock(blocks, "rsvp-form-paying");
+const questionsBlock = findBlock(blocks, "rsvp-form-questions");
+const privacyBlock = findBlock(blocks, "rsvp-form-privacy");
 
 const expired = guest ? isLinkExpired(guest) : false;
 

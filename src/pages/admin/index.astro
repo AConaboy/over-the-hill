@@ -23,10 +23,6 @@ function statusLabel(guest: (typeof guests)[number]): string {
       return "Attending";
     case "rsvp_no":
       return "Not attending";
-    case "deposit_paid":
-      return "Deposit paid";
-    case "paid_full":
-      return "Paid in full";
     case "cancelled":
       return "Cancelled";
     default:
@@ -83,7 +79,12 @@ function statusLabel(guest: (typeof guests)[number]): string {
               <tr>
                 <td>{guest.name}</td>
                 <td>{guest.inviters.join(", ") || "—"}</td>
-                <td>{statusLabel(guest)}</td>
+                <td>
+                  {statusLabel(guest)}
+                  {guest.payment_status && guest.payment_status !== "unpaid" && (
+                    <div>{guest.payment_status === "paid_full" ? "Paid in full" : "Deposit paid"}</div>
+                  )}
+                </td>
                 <td>
                   {guest.email && <div>{guest.email}</div>}
                   {guest.phone && <div>{guest.phone}</div>}

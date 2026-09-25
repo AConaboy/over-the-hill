@@ -136,5 +136,5 @@ expose your local dev server publicly.
 Deposits/paid tickets (Stripe Payment Links + a webhook) are described in
 `docs/signup-ticketing-spec.md` but intentionally not implemented in this
 version — the `amount_due_pence`, `amount_paid_pence`, `payment_ref`, and
-extra `status` values already exist in the schema so that work won't need a
-migration.
+`payment_status` columns already exist in the schema so that work won't
+need a migration.

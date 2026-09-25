@@ -43,8 +43,11 @@ create table guests (
 
   status            text not null default 'invited' check (status in (
                       'invited','viewed','rsvp_yes','rsvp_no',
-                      'deposit_paid','paid_full','cancelled'   -- v2 values, unused in v1
+                      'deposit_paid','paid_full','cancelled'   -- deposit_paid/paid_full retired, see payment_status
                     )),
+  -- added in migration 0005: payment state is separate from the RSVP
+  -- lifecycle, so resubmitting an RSVP can't overwrite a payment
+  payment_status    text not null default 'unpaid' check (payment_status in ('unpaid','deposit_paid','paid_full')),
 
   -- v2 fields, present now so v2 needs zero migration. All amounts are
   -- GBP, stored as pence (integer) to avoid floating-point rounding:
@@ -125,9 +128,9 @@ create table guest_inviters (
 
 - **Currency: GBP throughout.** Stripe Payment Links are created in GBP, and the `amount_due_pence`/`amount_paid_pence` columns store whole pence (e.g. £15.00 deposit = `1500`) to avoid floating-point rounding issues.
 - **Mechanism: Stripe Payment Links**, one per price point (deposit vs. full balance) created in Stripe's dashboard — no custom checkout code. Each guest's payment link includes `?client_reference_id=<ticket_ref>` so a payment can always be traced back to a specific guest.
-- **Getting status back into the database: automated via webhook.** One Astro API route (`/api/webhooks/stripe`, a handler within the same Worker) verifies the Stripe signature and updates the guest's `status`/`amount_paid_pence`/`payment_ref` server-side via the D1 binding, matched via `ticket_ref`/`client_reference_id`. This is the only place v2 needs a true secret (`STRIPE_WEBHOOK_SECRET`, set via `wrangler secret put`), and it slots into infrastructure we already have — no new hosting platform. The admin page's guest table still shows payment status as a read-only reflection of this, with manual edit available as a fallback for one-off corrections.
+- **Getting status back into the database: automated via webhook.** One Astro API route (`/api/webhooks/stripe`, a handler within the same Worker) verifies the Stripe signature and updates the guest's `payment_status`/`amount_paid_pence`/`payment_ref` server-side via the D1 binding, matched via `ticket_ref`/`client_reference_id`. This is the only place v2 needs a true secret (`STRIPE_WEBHOOK_SECRET`, set via `wrangler secret put`), and it slots into infrastructure we already have — no new hosting platform. The admin page's guest table still shows payment status as a read-only reflection of this, with manual edit available as a fallback for one-off corrections.
 - **Guest-facing change**: none of their link/token/ticket_ref changes. They revisit the same `/ticket/[token]` link and see their status progress (RSVP confirmed → Deposit paid → Paid in full), with the same QR now shown with a "paid" badge, and amounts shown as £.
-- This is why the v2 columns (`amount_due_pence`, `amount_paid_pence`, `payment_ref`, and the extra `status` values) are already in the v1 schema — v2 is additive status/UI work, not a migration.
+- This is why the v2 columns (`amount_due_pence`, `amount_paid_pence`, `payment_ref`, `payment_status`) are already in the schema — v2 is additive status/UI work, not a migration. Payment state lives in `payment_status`, never in `status`: `status` is rewritten on every RSVP submit, so a payment recorded there would be lost when a paid guest updates their answers.
 
 ## File/page changes
 
