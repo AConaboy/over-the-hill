@@ -93,10 +93,6 @@ const { fields, blocks } = pageDef ? await getPageContent(pageDef.slug) : { fiel
             </form>
           ))}
 
-          <form method="POST" action={`/api/admin/content/${pageDef.slug}/blocks`}>
-            <button class="button" type="submit">Add a section</button>
-          </form>
-
           <div class="page-actions">
             <a class="text-link" href="/admin/content">← Back to pages</a>
           </div>

@@ -139,10 +139,6 @@ export function getContentPageDef(slug: string): ContentPageDef | undefined {
   return CONTENT_PAGES.find((page) => page.slug === slug);
 }
 
-function newId(): string {
-  return crypto.randomUUID();
-}
-
 function nowIso(): string {
   return new Date().toISOString();
 }
@@ -210,30 +206,6 @@ export async function updateContentBlocks(updates: ContentBlockUpdate[]): Promis
         .bind(update.variant, update.eyebrow, update.heading, update.body, timestamp, update.id),
     ),
   );
-}
-
-export async function addContentBlock(slug: string, variant: ContentVariant): Promise<ContentBlock> {
-  const db = getDb();
-  const id = newId();
-  const timestamp = nowIso();
-
-  const { results } = await db
-    .prepare("select coalesce(max(sort_order), -1) as maxOrder from content_blocks where page_slug = ?")
-    .bind(slug)
-    .all<{ maxOrder: number }>();
-  const nextOrder = (results[0]?.maxOrder ?? -1) + 1;
-
-  await db
-    .prepare(
-      `insert into content_blocks (id, page_slug, sort_order, variant, eyebrow, heading, body, created_at, updated_at)
-       values (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .bind(id, slug, nextOrder, variant, null, "New section", "", timestamp, timestamp)
-    .run();
-
-  const block = await db.prepare("select * from content_blocks where id = ?").bind(id).first<ContentBlock>();
-  if (!block) throw new Error("Failed to create content block");
-  return block;
 }
 
 export async function deleteContentBlock(id: string): Promise<void> {
