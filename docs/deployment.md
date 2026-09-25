@@ -40,31 +40,87 @@ If you ever change the binding in `wrangler.jsonc`, rerun
    your verified domain (it currently defaults to a placeholder
    `rsvp@overthehill.xyz`).
 
-## 3. Cloudflare (hosting)
+## 3. Cloudflare (hosting) and deploying
 
-**Note:** this app builds as a Cloudflare Worker with static assets (the
-`@astrojs/cloudflare` adapter's current model — Cloudflare has been merging
-"Pages" into "Workers"), not the older Pages-only git-connected build flow.
-The most direct path is deploying with `wrangler` from your machine or CI,
-which also picks up the D1 binding and everything else already declared in
-`wrangler.jsonc` automatically:
+This app builds as a Cloudflare Worker with static assets (the
+`@astrojs/cloudflare` adapter's current model), not the older Pages-only
+flow. There are two environments, both declared in `wrangler.jsonc`:
 
-1. Add the one remaining secret (D1 needs none, per step 1 above):
-   `npx wrangler secret put RESEND_API_KEY`. `SITE_URL` is *not* a Worker
-   secret: Astro bakes it into the build, and it defaults to
-   `https://overthehill.live` in `astro.config.mjs`. Change that default if
-   the production domain ever changes. Setting it with `wrangler secret put`
-   has no effect.
-2. Deploy: `npm run build && npx wrangler deploy`. Cloudflare will give you a
-   `*.workers.dev` URL to test against before pointing your real domain at
-   it.
+| | Production | Staging |
+|---|---|---|
+| URL | `overthehill.live` | `staging.overthehill.live` (hosts only) |
+| Worker | `over-the-hill` | `over-the-hill-staging` |
+| D1 database | `over-the-hill` | `over-the-hill-staging` |
+| Deployed by | a push to `main` | a push to any other branch |
 
-If you'd rather use Cloudflare's git-connected dashboard flow instead of
-deploying from the command line, that's also possible (**Workers & Pages →
-Create → Connect to Git**, framework preset **Astro**) — just make sure the
-D1 binding and secrets are configured there too, since a dashboard-managed
-deploy won't automatically read `wrangler.jsonc` the same way `wrangler
-deploy` does.
+**Deploys run from GitHub Actions** (`.github/workflows/deploy.yml`). Don't
+deploy from your laptop. Each deploy does, in order:
+
+1. Checks (`.github/workflows/checks.yml`): type-check, unit tests, build.
+   The same workflow runs on every PR, and it's the check `main` requires.
+2. A build for the target environment. The environment is chosen **at build
+   time**: `CLOUDFLARE_ENV=staging` makes the Astro adapter write a
+   `dist/server/wrangler.json` for staging, and `SITE_URL` is baked in then
+   too. So `wrangler deploy` takes no `--env`.
+3. `wrangler d1 migrations apply ... --remote` for that environment's
+   database. Migrations run before the new code goes live, so they must
+   only ever *add* things (new tables/columns), never rename or drop.
+4. `wrangler deploy`.
+
+Staging is shared, so the last branch pushed is what's on it. Pushes that
+only touch `docs/` or Markdown files don't deploy.
+
+`SITE_URL` is *not* a Worker secret: Astro bakes it into the build. It
+defaults to `https://overthehill.live` in `astro.config.mjs`, and the
+workflow overrides it for staging. Setting it with `wrangler secret put` has
+no effect.
+
+### One-off setup
+
+Already done for production. To set up staging (or redo it):
+
+1. **Staging database:** `npx wrangler d1 create over-the-hill-staging`, and
+   put the printed `database_id` into `env.staging` in `wrangler.jsonc`. The
+   first staging deploy applies every migration, including the site text.
+2. **Staging Access app:** as in step 4 below, but with destination
+   `staging.overthehill.live` and **no path**, so the whole staging site is
+   hosts-only. Put its AUD tag in `env.staging.vars.CF_ACCESS_AUD`.
+3. **Cloudflare API token for CI** (dashboard → My Profile → API Tokens →
+   Create custom token):
+   - Account → Workers Scripts: Edit
+   - Account → Workers KV Storage: Edit (the Astro adapter declares a
+     `SESSION` KV binding, which wrangler creates on a Worker's first deploy)
+   - Account → D1: Edit
+   - Account → Account Settings: Read
+   - Zone `overthehill.live` → Workers Routes: Edit, DNS: Edit (for the
+     custom domains)
+4. **GitHub** (needs repo admin), Settings → Environments:
+   - `staging`: any branch. `production`: deployment branches limited to
+     `main`, so feature branches can never use production's credentials.
+   - In **both**, add secrets `CLOUDFLARE_API_TOKEN` (the token above) and
+     `CLOUDFLARE_ACCOUNT_ID`.
+   - Settings → Branches: protect `main`, requiring a PR and the
+     "Type-check, test and build" check.
+5. **Resend key per Worker**, after each Worker's first deploy:
+   `npx wrangler secret put RESEND_API_KEY` (production) and
+   `npx wrangler secret put RESEND_API_KEY --env staging` (use a separate
+   key). Staging sends real emails, so use hosts' own addresses for test
+   guests.
+
+### Resetting staging
+
+A migration from an abandoned branch stays applied to the staging database.
+To start clean: `npx wrangler d1 delete over-the-hill-staging`, create it
+again (step 1 above, new `database_id`), and push. The next deploy re-runs
+every migration.
+
+### Emergency manual deploy
+
+Only if Actions is unavailable. Production (from an up-to-date `main`):
+`npm run build && npx wrangler d1 migrations apply over-the-hill --remote && npx wrangler deploy`.
+Staging: the same with `CLOUDFLARE_ENV=staging SITE_URL=https://staging.overthehill.live`
+before `npm run build`, and `over-the-hill-staging --remote --env staging`
+for the migrations.
 
 ## 4. Cloudflare Access (admin page protection)
 
@@ -102,18 +158,19 @@ to everyone.
    }
    ```
 
-   Then rebuild and deploy (`npm run build && npx wrangler deploy`).
-7. Test in an incognito window:
-   - `/admin` should redirect to Cloudflare's login. After you sign in with an
-     allowed email, the guest list loads.
-   - `https://over-the-hill.<subdomain>.workers.dev/admin` should return 403
-     (it bypasses Access, so the middleware blocks it).
+   Then push, so the deploy workflow picks it up.
+7. Test in an incognito window: `/admin` should redirect to Cloudflare's
+   login. After you sign in with an allowed email, the guest list loads.
+   (The `*.workers.dev` address, which skips Access, is switched off in
+   `wrangler.jsonc`; the middleware would refuse admin requests there
+   anyway.)
 
 ## 5. DNS
 
-Point your domain's DNS at your deployed Worker per Cloudflare's own
-instructions for **Custom domains** (Cloudflare handles this automatically
-if the domain's nameservers are already on Cloudflare).
+Both hostnames are declared as custom domains in `wrangler.jsonc`
+(`routes` with `custom_domain: true`). `overthehill.live` is on Cloudflare
+DNS, so `wrangler deploy` creates the DNS record and certificate itself.
+Nothing to do by hand.
 
 ## Local development
 

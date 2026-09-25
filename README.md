@@ -8,6 +8,14 @@ Built with [Astro](https://astro.build) (SSR, via the `@astrojs/cloudflare` adap
 `docs/signup-ticketing-spec.md` for the design and `docs/deployment.md` for
 how to set this up from scratch.
 
+## Deploying
+
+GitHub Actions deploys on every push: **any branch → staging**
+(`staging.overthehill.live`, hosts only) and **`main` → production**
+(`overthehill.live`). Checks (type-check, tests, build) run first, and on
+every PR. Work on a branch, check it on staging, then merge via a PR. See
+`docs/deployment.md` for details and the one-off setup.
+
 ## Project structure
 
 ```text
@@ -24,7 +32,8 @@ how to set this up from scratch.
 │       ├── admin/        guest list, add/edit, protected by Cloudflare Access
 │       └── api/          form-submission handlers
 ├── migrations/          D1 SQL schema
-├── wrangler.jsonc       Cloudflare Worker config (D1 binding, etc.)
+├── .github/workflows/   CI checks + deploys (staging / production)
+├── wrangler.jsonc       Cloudflare Worker config, production + env.staging
 └── docs/                spec + deployment guide
 ```
 

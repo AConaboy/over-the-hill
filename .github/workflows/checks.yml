@@ -1,0 +1,30 @@
+# Type-check, unit tests and a production build. Runs on every PR (this is
+# the status check branch protection requires on main) and is reused by
+# deploy.yml before anything is deployed.
+#
+# Needs no secrets, so it's safe for PRs from forks.
+name: Checks
+
+on:
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Type-check, test and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npx astro check
+      - run: npm test
+      - run: npm run build

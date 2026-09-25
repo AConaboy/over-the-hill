@@ -1,0 +1,81 @@
+# Deploys on push: main → production, any other branch → staging.
+#
+# Only `push` (and manual re-runs) deploy — never pull_request — so PRs
+# from forks of this public repo can't reach the Cloudflare secrets. The
+# GitHub "production" environment is also restricted to main in the repo
+# settings, so a feature branch can't use production's credentials even if
+# this file were edited.
+name: Deploy
+
+on:
+  push:
+    # first-release is the old static site (GitHub Pages), not this app.
+    branches-ignore:
+      - first-release
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    uses: ./.github/workflows/checks.yml
+
+  deploy:
+    name: Deploy to ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+    needs: checks
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+      url: ${{ github.ref_name == 'main' && 'https://overthehill.live' || 'https://staging.overthehill.live' }}
+    # One deploy per environment at a time. A newer push to staging replaces
+    # an in-flight one; production deploys always run to completion.
+    concurrency:
+      group: deploy-${{ github.ref_name == 'main' && 'production' || 'staging' }}
+      cancel-in-progress: ${{ github.ref_name != 'main' }}
+    env:
+      TARGET: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # The environment is chosen at build time: the Astro adapter resolves
+      # wrangler.jsonc for CLOUDFLARE_ENV into dist/server/wrangler.json.
+      # SITE_URL is baked in at build time too (it defaults to production).
+      - name: Build
+        run: |
+          if [ "$TARGET" = staging ]; then
+            export CLOUDFLARE_ENV=staging
+            export SITE_URL=https://staging.overthehill.live
+          fi
+          npm run build
+
+      # Before the deploy, so new code never runs against an old schema.
+      # Migrations must stay additive for this ordering to be safe.
+      - name: Apply database migrations
+        run: |
+          if [ "$TARGET" = staging ]; then
+            npx wrangler d1 migrations apply over-the-hill-staging --remote --env staging
+          else
+            npx wrangler d1 migrations apply over-the-hill --remote
+          fi
+
+      # No --env: the build output already targets the right Worker.
+      - name: Deploy
+        run: npx wrangler deploy
+
+      - name: Summary
+        run: |
+          url=${{ github.ref_name == 'main' && 'https://overthehill.live' || 'https://staging.overthehill.live' }}
+          echo "Deployed \`${GITHUB_REF_NAME}\` (${GITHUB_SHA::7}) to **$TARGET**: $url" >> "$GITHUB_STEP_SUMMARY"

@@ -1,9 +1,20 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  // Used for local dev and to generate types. Deploying this Worker (and
-  // creating the real D1 database) is a manual step — see docs/deployment.md.
+  // Top level = production. Staging lives under env.staging below. Deploys
+  // run from GitHub Actions (.github/workflows/deploy.yml): pushes to main
+  // go to production, pushes to any other branch go to staging. See
+  // docs/deployment.md.
+  //
+  // The build picks the environment (CLOUDFLARE_ENV=staging), not
+  // `wrangler deploy --env`: the Astro adapter writes an already-resolved
+  // dist/server/wrangler.json, which is what gets deployed.
   "name": "over-the-hill",
   "compatibility_date": "2026-09-21",
+  "routes": [{ "pattern": "overthehill.live", "custom_domain": true }],
+  // Nothing uses the *.workers.dev address, and it skips Cloudflare Access
+  // (the app's own JWT check still guards /admin, but no need to expose it).
+  "workers_dev": false,
+  "preview_urls": false,
   // Cloudflare Access for /admin and /api/admin — see docs/deployment.md step 4.
   "vars": {
     "CF_ACCESS_TEAM_DOMAIN": "https://lewis-lap-apps.cloudflareaccess.com",
@@ -15,5 +26,29 @@
       "database_name": "over-the-hill",
       "database_id": "066a9125-39d8-4293-ae62-cb02c9d508a2"
     }
-  ]
+  ],
+
+  "env": {
+    // Wrangler doesn't inherit vars, d1_databases or routes into an
+    // environment, so each is repeated here with staging's own values.
+    "staging": {
+      "name": "over-the-hill-staging",
+      "routes": [{ "pattern": "staging.overthehill.live", "custom_domain": true }],
+      "workers_dev": false,
+      "preview_urls": false,
+      // A separate Access app covers the whole staging hostname (hosts
+      // only), so this AUD is that app's, not production's.
+      "vars": {
+        "CF_ACCESS_TEAM_DOMAIN": "https://lewis-lap-apps.cloudflareaccess.com",
+        "CF_ACCESS_AUD": "REPLACE_WITH_STAGING_ACCESS_AUD"
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "over-the-hill-staging",
+          "database_id": "REPLACE_WITH_STAGING_D1_DATABASE_ID"
+        }
+      ]
+    }
+  }
 }
