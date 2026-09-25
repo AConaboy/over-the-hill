@@ -1,38 +1,23 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import PageHero from "../components/PageHero.astro";
+import ContentBlockView from "../components/ContentBlockView.astro";
+import { getPageContent } from "../lib/content";
+
+const { fields, blocks } = await getPageContent("about");
 ---
 
 <Layout title="About | Over the Hill" description="Camping information for Our Big Party.">
   <main>
-    <section class="page-hero">
-      <div class="page-hero-content">
-        <div class="sunburst sunburst-small" aria-hidden="true">
-          <img class="spot-art" src="/images/spot-discoball.webp" alt="" width="360" height="360" />
-        </div>
-
-        <p class="eyebrow">About</p>
-        <h1>Over the Hill</h1>
-
-        <p class="page-introduction">
-          A weekend of friends, dancing, food, games and a lot of very questionable decisions.
-        </p>
-      </div>
-    </section>
+    <PageHero
+      eyebrow={fields.hero_eyebrow}
+      heading={fields.hero_heading}
+      introduction={fields.hero_introduction}
+      image="/images/spot-discoball.webp"
+    />
 
     <section class="page-content">
-      <article class="content-block">
-        <p>
-          We're gathering for a relaxed long weekend in the countryside, with music,
-          good food, campfire energy and plenty of time to sit around chatting and
-          enjoying each other's company.
-        </p>
-
-        <p>
-          The idea is simple: a beautiful place, a few lovely meals, some mischief,
-          and a whole lot of laughter. Whether you're staying for the whole weekend
-          or just popping in for the day, we'd love you to be there.
-        </p>
-      </article>
+      {blocks.map((block) => <ContentBlockView block={block} />)}
 
       <div class="photo-grid" aria-label="Over the Hill photo gallery">
         <figure class="photo-card">

@@ -1,18 +1,12 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { getPageContent } from "../lib/content";
 
-const hosts = [
-  "Beth Adams",
-  "Andrew Conaboy",
-  "Bryony Lumb Morollon",
-  "Kirsty Buchan",
-  "Zubin Roy",
-  "Alex Ball",
-  "Alex Prior Crespo",
-  "Cameron Johnston",
-  "Emma Goss",
-  "James Jackson",
-];
+const { fields } = await getPageContent("index");
+const hosts = (fields.credits ?? "")
+  .split("\n")
+  .map((name) => name.trim())
+  .filter(Boolean);
 ---
 
 <Layout
@@ -51,10 +45,10 @@ const hosts = [
       </div>
 
       <div class="home-text">
-        <p class="hero-description">A weekend of dancing, partying and fannying about</p>
-        <p class="event-details">Out to Grass, Woodend Farm, Cradley, WR13 5JW</p>
+        <p class="hero-description">{fields.tagline}</p>
+        <p class="event-details">{fields.venue_line}</p>
         <div class="button-row">
-          <a class="button" href="/rsvp">RSVP now</a>
+          <a class="button" href="/rsvp">{fields.cta_label}</a>
         </div>
 
         <p class="credit-line">Brought to you by {hosts.join(", ")}</p>

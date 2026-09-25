@@ -1,7 +1,10 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import PageHero from "../../components/PageHero.astro";
+import ContentBlockView from "../../components/ContentBlockView.astro";
 import { getGuestByToken, isLinkExpired } from "../../lib/guests";
 import { REMEMBER_COOKIE_NAME } from "../../lib/rememberCookie";
+import { getPageContent, parseBody } from "../../lib/content";
 
 const remembered = Astro.cookies.get(REMEMBER_COOKIE_NAME)?.value;
 
@@ -16,6 +19,8 @@ if (remembered) {
 }
 
 const sent = Astro.url.searchParams.get("sent") === "1";
+const { fields, blocks } = await getPageContent("rsvp");
+const [getLinkBlock, stillCantFindBlock] = blocks;
 ---
 
 <Layout
@@ -23,21 +28,11 @@ const sent = Astro.url.searchParams.get("sent") === "1";
   description="RSVP for Over the Hill using your personal invite link."
 >
   <main>
-    <section class="page-hero">
-      <div class="page-hero-content">
-        <p class="eyebrow">Be there or be square 🟦</p>
-        <h1>RSVP</h1>
-
-        <p class="page-introduction">
-          RSVPs are by personal invite link, sent to you directly by one of the
-          hosts (by email or WhatsApp) — there's no public form to fill in here.
-        </p>
-      </div>
-    </section>
+    <PageHero eyebrow={fields.hero_eyebrow} heading={fields.hero_heading} introduction={fields.hero_introduction} />
 
     <section class="page-content">
       <article class="content-block">
-        <h2>Get your link by email</h2>
+        <h2>{getLinkBlock?.heading ?? "Get your link by email"}</h2>
 
         {sent ? (
           <p>
@@ -46,10 +41,18 @@ const sent = Astro.url.searchParams.get("sent") === "1";
           </p>
         ) : (
           <>
-            <p>
-              If you know which email address your invite went to, enter it
-              below and we'll send your personal link there.
-            </p>
+            {getLinkBlock &&
+              parseBody(getLinkBlock.body).map((node) =>
+                node.type === "ul" ? (
+                  <ul class="information-list">
+                    {node.items!.map((item) => (
+                      <li>{item}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>{node.text}</p>
+                ),
+              )}
 
             <form class="rsvp-form" method="POST" action="/api/rsvp/find-link">
               <div class="form-field">
@@ -63,15 +66,7 @@ const sent = Astro.url.searchParams.get("sent") === "1";
         )}
       </article>
 
-      <article class="content-block">
-        <h2>Still can't find it?</h2>
-
-        <p>
-          Check the email or WhatsApp message you got when you were invited.
-          If you've genuinely lost it, or it's stopped working, contact one of
-          the hosts and they can send you a new one.
-        </p>
-      </article>
+      {stillCantFindBlock && <ContentBlockView block={stillCantFindBlock} />}
 
       <div class="page-actions">
         <a class="button" href="/">Return home</a>

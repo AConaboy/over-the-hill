@@ -1,0 +1,107 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import { getContentPageDef, getPageContent } from "../../../lib/content";
+
+const { slug } = Astro.params;
+const pageDef = slug ? getContentPageDef(slug) : undefined;
+const { fields, blocks } = pageDef ? await getPageContent(pageDef.slug) : { fields: {}, blocks: [] };
+---
+
+<Layout title="Edit site text | Over the Hill" description="Edit the site's copy.">
+  <main>
+    <section class="page-hero">
+      <div class="page-hero-content">
+        <p class="eyebrow">Hosts only</p>
+        <h1>{pageDef ? `Edit: ${pageDef.label}` : "Page not found"}</h1>
+      </div>
+    </section>
+
+    <section class="page-content">
+      {!pageDef && (
+        <article class="content-block">
+          <p>We couldn't find that page.</p>
+          <a class="text-link" href="/admin/content">← Back to pages</a>
+        </article>
+      )}
+
+      {pageDef && (
+        <>
+          <form class="rsvp-form" method="POST" action={`/api/admin/content/${pageDef.slug}`}>
+            {pageDef.fieldKeys.map(({ key, label, multiline }) => (
+              <div class="form-field">
+                <label for={`field-${key}`}>{label}</label>
+                {multiline ? (
+                  <textarea id={`field-${key}`} name={`field[${key}]`} rows="6">{fields[key] ?? ""}</textarea>
+                ) : (
+                  <input id={`field-${key}`} name={`field[${key}]`} type="text" value={fields[key] ?? ""} />
+                )}
+              </div>
+            ))}
+
+            {blocks.map((block) => (
+              <div class="content-block-editor">
+                <div class="form-field">
+                  <label for={`block-${block.id}-variant`}>Section type</label>
+                  <select id={`block-${block.id}-variant`} name={`block[${block.id}][variant]`}>
+                    <option value="block" selected={block.variant === "block"}>Normal section</option>
+                    <option value="notice" selected={block.variant === "notice"}>Highlighted notice</option>
+                  </select>
+                </div>
+
+                <div class="form-field">
+                  <label for={`block-${block.id}-eyebrow`}>Small label above the heading (optional, mainly for notices)</label>
+                  <input
+                    id={`block-${block.id}-eyebrow`}
+                    name={`block[${block.id}][eyebrow]`}
+                    type="text"
+                    value={block.eyebrow ?? ""}
+                  />
+                </div>
+
+                <div class="form-field">
+                  <label for={`block-${block.id}-heading`}>Heading (optional)</label>
+                  <input
+                    id={`block-${block.id}-heading`}
+                    name={`block[${block.id}][heading]`}
+                    type="text"
+                    value={block.heading ?? ""}
+                  />
+                </div>
+
+                <div class="form-field">
+                  <label for={`block-${block.id}-body`}>Text</label>
+                  <textarea id={`block-${block.id}-body`} name={`block[${block.id}][body]`} rows="8">{block.body}</textarea>
+                </div>
+                <p class="form-field-help">
+                  Leave a blank line between paragraphs. Start a line with "- " (dash, space) to make a bulleted list.
+                </p>
+
+                <div class="content-block-editor-footer">
+                  <button type="submit" form={`delete-block-${block.id}`} class="text-link admin-inline-button">
+                    Delete this section
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            <button class="button" type="submit">Save changes</button>
+          </form>
+
+          {blocks.map((block) => (
+            <form id={`delete-block-${block.id}`} method="POST" action={`/api/admin/content/blocks/${block.id}/delete`}>
+              <input type="hidden" name="slug" value={pageDef.slug} />
+            </form>
+          ))}
+
+          <form method="POST" action={`/api/admin/content/${pageDef.slug}/blocks`}>
+            <button class="button" type="submit">Add a section</button>
+          </form>
+
+          <div class="page-actions">
+            <a class="text-link" href="/admin/content">← Back to pages</a>
+          </div>
+        </>
+      )}
+    </section>
+  </main>
+</Layout>
