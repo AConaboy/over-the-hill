@@ -40,7 +40,7 @@
       // only), so this AUD is that app's, not production's.
       "vars": {
         "CF_ACCESS_TEAM_DOMAIN": "https://lewis-lap-apps.cloudflareaccess.com",
-        "CF_ACCESS_AUD": "REPLACE_WITH_STAGING_ACCESS_AUD"
+        "CF_ACCESS_AUD": "751943f4e824e3b0bccc9a265fb0c1b4ea965e574fd92c68543132c78631f521"
       },
       "d1_databases": [
         {
