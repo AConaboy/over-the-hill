@@ -4,6 +4,11 @@
   // creating the real D1 database) is a manual step — see docs/deployment.md.
   "name": "over-the-hill",
   "compatibility_date": "2026-09-21",
+  // Cloudflare Access for /admin and /api/admin — see docs/deployment.md step 4.
+  "vars": {
+    "CF_ACCESS_TEAM_DOMAIN": "https://lewis-lap-apps.cloudflareaccess.com",
+    "CF_ACCESS_AUD": "7430c3dae4518d53c43cbd3a1ed8c26c0957d563a4bec3b74642619008c93aa1"
+  },
   "d1_databases": [
     {
       "binding": "DB",

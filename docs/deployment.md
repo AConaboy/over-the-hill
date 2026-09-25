@@ -66,19 +66,46 @@ deploy` does.
 
 ## 4. Cloudflare Access (admin page protection)
 
-`/admin/*` has no login page of its own — it's protected entirely by
-Cloudflare at the edge, so unauthenticated requests never reach the app.
+The admin pages (`/admin/*`) and their API (`/api/admin/*`) have no login of
+their own. Cloudflare Access protects them at the edge, so unauthenticated
+requests never reach the app. As a second layer, `src/middleware.ts` checks
+the signed JWT that Access adds to every request it lets through, and refuses
+admin requests that lack a valid one (for example via the `*.workers.dev`
+URL). Until the two variables below are set, the deployed admin returns 403
+to everyone.
 
 1. In the Cloudflare dashboard, go to **Zero Trust → Access → Applications →
-   Add an application → Self-hosted**.
-2. Application domain: your site's domain, path `/admin`.
-3. Add a policy (e.g. "Hosts") with action **Allow**, and an include rule of
+   Add an application → Self-hosted**. (First time only: Zero Trust asks you
+   to pick a team name. This becomes `<team>.cloudflareaccess.com`. The free
+   plan is fine.)
+2. Add **two** destinations (public hostnames) to the same application:
+   - `overthehill.live`, path `admin`
+   - `overthehill.live`, path `api/admin`
+
+   A path covers everything beneath it, so these match `/admin/guests/new`,
+   `/api/admin/guests/123`, and so on.
+3. Add a policy (e.g. "Hosts") with action **Allow** and an include rule of
    **Emails** listing each host's email address.
-4. Leave the default one-time-PIN login method enabled (or add Google as a
-   login method if you prefer) — no extra app config is needed for this.
-5. Test by visiting `/admin` signed out (e.g. an incognito window): you
-   should be redirected to Cloudflare's login prompt before ever reaching
-   the guest list.
+4. Keep the default one-time-PIN login method (or add Google as a login
+   method if you prefer).
+5. Save, then open the application's **Overview/Basic information** and copy
+   the **Application Audience (AUD) Tag**.
+6. Give the Worker the team domain and AUD tag. Neither value is sensitive,
+   so they can go in `wrangler.jsonc`:
+
+   ```jsonc
+   "vars": {
+     "CF_ACCESS_TEAM_DOMAIN": "https://<team>.cloudflareaccess.com",
+     "CF_ACCESS_AUD": "<AUD tag>"
+   }
+   ```
+
+   Then rebuild and deploy (`npm run build && npx wrangler deploy`).
+7. Test in an incognito window:
+   - `/admin` should redirect to Cloudflare's login. After you sign in with an
+     allowed email, the guest list loads.
+   - `https://over-the-hill.<subdomain>.workers.dev/admin` should return 403
+     (it bypasses Access, so the middleware blocks it).
 
 ## 5. DNS
 
