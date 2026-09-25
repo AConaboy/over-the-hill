@@ -49,7 +49,7 @@ const remaining = price === null ? null : Math.max(0, price - paid);
       )}
 
       {!paymentPending && next.kind === "deposit" && (
-        <p class="form-field-help payment-note">
+        <p class="payment-note">
           The deposit secures your place. You'll pay the rest once the final
           price is confirmed.
         </p>

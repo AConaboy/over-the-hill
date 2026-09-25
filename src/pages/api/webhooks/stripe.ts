@@ -1,7 +1,6 @@
 import type { APIRoute } from "astro";
 import { clearCheckout, recordPayment } from "../../../lib/guests";
 import { sendPaymentReceivedEmail, sendRsvpConfirmationEmail } from "../../../lib/email";
-import { formatPence } from "../../../lib/money";
 import { getPaymentSettings } from "../../../lib/settings";
 import { ticketPrice } from "../../../lib/payments";
 import { getStripe, getWebhookSecret, isStripeConfigured } from "../../../lib/stripe";
@@ -37,7 +36,7 @@ export const POST: APIRoute = async ({ request }) => {
       // registered" confirmation (answers + ticket link) with the payment
       // included; later payments get a plain receipt.
       if (completedRegistration) {
-        await sendRsvpConfirmationEmail(guest, [`Deposit paid: ${formatPence(amountPence)}`]);
+        await sendRsvpConfirmationEmail(guest, { depositPaidPence: amountPence });
         return;
       }
       const settings = await getPaymentSettings();

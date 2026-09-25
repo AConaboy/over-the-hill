@@ -725,12 +725,16 @@ main:has(> .page-hero) {
   margin: 0 0 1rem;
 }
 
+/* The button's offset shadow sits outside its box, so leave room for it
+   before the note underneath. */
 .payment-panel form {
-  margin: 1rem 0 0;
+  margin: 1.25rem 0 1.5rem;
 }
 
 .payment-note {
-  margin: 0.75rem 0 0;
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--ink-soft);
 }
 
 /* Location page */

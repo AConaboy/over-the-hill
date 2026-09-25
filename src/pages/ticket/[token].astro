@@ -122,6 +122,13 @@ const payError = Astro.url.searchParams.get("payerror") === "1";
                 </article>
               )}
 
+              <PaymentPanel
+                guest={guest}
+                settings={settings}
+                stripeConfigured={isStripeConfigured()}
+                paymentPending={paymentPending}
+              />
+
               <article class="content-block">
                 <h2>Your details</h2>
                 <ul class="information-list">
@@ -139,12 +146,6 @@ const payError = Astro.url.searchParams.get("payerror") === "1";
                 </p>
               </article>
 
-              <PaymentPanel
-                guest={guest}
-                settings={settings}
-                stripeConfigured={isStripeConfigured()}
-                paymentPending={paymentPending}
-              />
             </>
           )}
 

@@ -1,31 +1,23 @@
 <!DOCTYPE html>
 <!--
-  Over the Hill – RSVP confirmation email
-  Subject: Your Over the Hill RSVP
+  Over the Hill – shared email layout (Mustache). Every email the site
+  sends uses this, so they all match the website and each other; the
+  wording lives in src/lib/emailContent.ts.
 
-  MERGE VARIABLES (double-brace placeholders in the body below)
-  ---------------------------------------------------------------
-  This comment deliberately contains no placeholders, so a global
-  string-replace only touches the real ones.
+  All variables are HTML-escaped by Mustache (double braces).
+    subject        <title>
+    preheader      inbox preview line (hidden in the email itself)
+    guestName      "Hi {name},"
+    paragraphs     array of strings, one <p> each
+    summary        optional { heading, lines[] } shown in the orange box
+    button         optional { label, url }: the big button plus a
+                   copy-paste fallback link
+    footnote       optional string, a paragraph after the button
+    footerReason   why they got the email (footer)
 
-  guestName     The guest's name. HTML-escape it first (& < > ").
-  ticketUrl     Absolute URL to the guest's ticket page. Appears 4 times:
-                the button link, the Outlook (VML) button link, and the
-                copy-paste fallback link (href and visible text).
-  summaryLines  Array of plain strings, one list item each. In the body,
-                the <li> between the "SUMMARY LINES: BEGIN" and "END"
-                comments is the row template, wrapped in Mustache section
-                tags (hash-summaryLines ... slash-summaryLines):
-                  - With a Mustache renderer (e.g. the `mustache` npm
-                    package) the block works as-is and escapes each line.
-                  - With plain string-replace: HTML-escape each line, put
-                    it in place of the dot placeholder in the <li>, join
-                    the rows, and replace the whole section (both tags
-                    included) with the result.
-
-  Everything else is static. All layout styles are inline. The one
-  <style> block only adds web fonts, a phone tweak and Outlook fixes,
-  and the email still works if a client strips it.
+  All layout styles are inline. The one <style> block only adds web
+  fonts, a phone tweak and Outlook fixes, and the email still works if a
+  client strips it.
 -->
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
@@ -37,7 +29,7 @@
   <!-- Keep the poster palette: ask clients not to auto-darken it. -->
   <meta name="color-scheme" content="light">
   <meta name="supported-color-schemes" content="light">
-  <title>Your Over the Hill RSVP</title>
+  <title>{{subject}}</title>
 
   <!-- Progressive enhancement: Apple Mail, iOS Mail and some others load these. Gmail and Outlook use the fallbacks. -->
   <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand+SC&amp;family=Quicksand:wght@500;700&amp;display=swap" rel="stylesheet">
@@ -74,7 +66,7 @@
 
   <!-- Preheader: shown as the inbox preview line, hidden in the email itself. -->
   <div style="display: none; max-height: 0; overflow: hidden; mso-hide: all; font-size: 1px; line-height: 1px; color: #ffe8cc; opacity: 0;">
-    Thanks for your RSVP. Here's what we've got down for you, and a link to update it any time.
+    {{preheader}}
   </div>
 
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffe8cc; border-collapse: collapse;">
@@ -125,57 +117,61 @@
                     <h1 class="oth-display oth-h1" style="margin: 0 0 12px 0; font-family: 'Patrick Hand SC', 'Comic Sans MS', 'Chalkboard SE', 'Trebuchet MS', sans-serif; font-size: 42px; line-height: 46px; font-weight: normal; color: #1a1a17; text-align: center;">
                       Hi {{guestName}},
                     </h1>
+                    {{#paragraphs}}
+                    <p style="margin: 0 0 28px 0; font-family: 'Quicksand', 'Segoe UI', Arial, sans-serif; font-size: 17px; line-height: 26px; font-weight: 500; color: #1a1a17; text-align: center;">{{.}}</p>
+                    {{/paragraphs}}
 
-                    <p style="margin: 0 0 28px 0; font-family: 'Quicksand', 'Segoe UI', Arial, sans-serif; font-size: 17px; line-height: 26px; font-weight: 500; color: #1a1a17; text-align: center;">
-                      Thanks for letting us know your plans for Over the Hill! We can't wait to see you in the field.
-                    </p>
-
-                    <!-- Summary -->
+                    <!-- Summary (optional) -->
+                    {{#summary}}
                     <h2 class="oth-display" style="margin: 0 0 12px 0; font-family: 'Patrick Hand SC', 'Comic Sans MS', 'Chalkboard SE', 'Trebuchet MS', sans-serif; font-size: 28px; line-height: 32px; font-weight: normal; color: #1a1a17;">
-                      Here's what we've got down for you
+                      {{heading}}
                     </h2>
 
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: separate; background-color: #f7cf97; border: 2px solid #1a1a17; border-radius: 16px;">
                       <tr>
                         <td style="padding: 18px 22px 14px 22px;">
                           <ul style="margin: 0; padding: 0 0 0 20px; font-family: 'Quicksand', 'Segoe UI', Arial, sans-serif; font-size: 16px; line-height: 24px; font-weight: 700; color: #1a1a17;">
-                            <!-- ===== SUMMARY LINES: BEGIN (row template: one <li> per summary line) ===== -->
-                            {{#summaryLines}}
+                            
+                            {{#lines}}
                             <li style="margin: 0 0 6px 0; padding: 0; color: #1a1a17;">{{.}}</li>
-                            {{/summaryLines}}
-                            <!-- ===== SUMMARY LINES: END ===== -->
+                            {{/lines}}
+                            
                           </ul>
                         </td>
                       </tr>
                     </table>
 
-                    <!-- Button -->
+                    {{/summary}}
+
+                    <!-- Button (optional) -->
+                    {{#button}}
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                       <tr>
                         <td align="center" style="padding: 32px 0 12px 0;">
                           <!--[if mso]>
-                          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ticketUrl}}" style="height:54px;v-text-anchor:middle;width:320px;" arcsize="50%" strokecolor="#1a1a17" strokeweight="2.25pt" fillcolor="#ee8a0a">
+                          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{url}}" style="height:54px;v-text-anchor:middle;width:320px;" arcsize="50%" strokecolor="#1a1a17" strokeweight="2.25pt" fillcolor="#ee8a0a">
                             <w:anchorlock/>
-                            <center style="color:#1a1a17;font-family:'Comic Sans MS',Arial,sans-serif;font-size:20px;">View or update your RSVP</center>
+                            <center style="color:#1a1a17;font-family:'Comic Sans MS',Arial,sans-serif;font-size:20px;">{{label}}</center>
                           </v:roundrect>
                           <![endif]-->
                           <!--[if !mso]><!-->
-                          <a href="{{ticketUrl}}" target="_blank" class="oth-display" style="display: inline-block; padding: 12px 34px; background-color: #ee8a0a; border: 3px solid #1a1a17; border-radius: 999px; box-shadow: 4px 4px 0 #1a1a17; font-family: 'Patrick Hand SC', 'Comic Sans MS', 'Chalkboard SE', 'Trebuchet MS', sans-serif; font-size: 24px; line-height: 28px; color: #1a1a17; text-decoration: none; mso-hide: all;">View or update your RSVP</a>
+                          <a href="{{url}}" target="_blank" class="oth-display" style="display: inline-block; padding: 12px 34px; background-color: #ee8a0a; border: 3px solid #1a1a17; border-radius: 999px; box-shadow: 4px 4px 0 #1a1a17; font-family: 'Patrick Hand SC', 'Comic Sans MS', 'Chalkboard SE', 'Trebuchet MS', sans-serif; font-size: 24px; line-height: 28px; color: #1a1a17; text-decoration: none; mso-hide: all;">{{label}}</a>
                           <!--<![endif]-->
                         </td>
                       </tr>
                       <tr>
                         <td align="center" style="padding: 0 0 28px 0; font-family: 'Quicksand', 'Segoe UI', Arial, sans-serif; font-size: 13px; line-height: 20px; color: #3b3a33;">
                           Button not working? Copy this link into your browser:<br>
-                          <a href="{{ticketUrl}}" target="_blank" style="color: #8a4b00; font-weight: 700; text-decoration: underline; word-break: break-all;">{{ticketUrl}}</a>
+                          <a href="{{url}}" target="_blank" style="color: #8a4b00; font-weight: 700; text-decoration: underline; word-break: break-all;">{{url}}</a>
                         </td>
                       </tr>
                     </table>
+                    {{/button}}
 
-                    <!-- Plans change -->
-                    <p style="margin: 0 0 28px 0; font-family: 'Quicksand', 'Segoe UI', Arial, sans-serif; font-size: 16px; line-height: 25px; font-weight: 500; color: #1a1a17;">
-                      Plans change? No problem. Just use the same link any time to update your answers, as often as you like.
-                    </p>
+                    <!-- Footnote (optional) -->
+                    {{#footnote}}
+                    <p style="margin: 0 0 28px 0; font-family: 'Quicksand', 'Segoe UI', Arial, sans-serif; font-size: 16px; line-height: 25px; font-weight: 500; color: #1a1a17;">{{.}}</p>
+                    {{/footnote}}
 
                     <!-- Sign-off -->
                     <p class="oth-display" style="margin: 0; font-family: 'Patrick Hand SC', 'Comic Sans MS', 'Chalkboard SE', 'Trebuchet MS', sans-serif; font-size: 30px; line-height: 34px; color: #1a1a17;">
@@ -223,7 +219,7 @@
                 August 13th &ndash; 15th 2027 &middot; Out to Grass, Woodend Farm, Cradley, WR13&nbsp;5JW
               </p>
               <p style="margin: 0; color: #ffe8cc;">
-                You're getting this email because you RSVP'd to Over the Hill.<br>
+                {{footerReason}}<br>
                 <a href="https://overthehill.live/" target="_blank" style="color: #ffe8cc; font-weight: 700; text-decoration: underline;">overthehill.live</a>
               </p>
             </td>
