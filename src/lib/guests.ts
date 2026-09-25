@@ -264,8 +264,27 @@ export async function markConfirmationEmailSent(guestId: string): Promise<void> 
 
 // --- Admin ---
 
-export async function listGuestsWithInviters(inviterFilter?: string): Promise<GuestWithInviters[]> {
+// Whitelisted ORDER BY clauses: the sort key comes from the query string,
+// so it's only ever used to pick one of these, never interpolated.
+export const GUEST_SORTS = {
+  name: { label: "Name", orderBy: "g.name collate nocase" },
+  status: { label: "Status", orderBy: "g.status, g.name collate nocase" },
+  updated: { label: "Recently updated", orderBy: "g.updated_at desc" },
+  expiry: { label: "Link expiry", orderBy: "g.token_expires_at" },
+} as const;
+
+export type GuestSort = keyof typeof GUEST_SORTS;
+
+export function isGuestSort(value: string | null): value is GuestSort {
+  return value !== null && Object.hasOwn(GUEST_SORTS, value);
+}
+
+export async function listGuestsWithInviters(
+  inviterFilter?: string,
+  sort: GuestSort = "name",
+): Promise<GuestWithInviters[]> {
   const db = getDb();
+  const orderBy = GUEST_SORTS[sort].orderBy;
 
   const guestsStmt = inviterFilter
     ? db
@@ -273,10 +292,10 @@ export async function listGuestsWithInviters(inviterFilter?: string): Promise<Gu
           `select g.* from guests g
            join guest_inviters gi on gi.guest_id = g.id
            where gi.inviter_name = ?
-           order by g.name`,
+           order by ${orderBy}`,
         )
         .bind(inviterFilter)
-    : db.prepare("select * from guests order by name");
+    : db.prepare(`select g.* from guests g order by ${orderBy}`);
 
   const { results: guests } = await guestsStmt.all<Guest>();
   if (guests.length === 0) return [];

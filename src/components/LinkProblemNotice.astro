@@ -10,12 +10,12 @@ const copy =
     ? {
         eyebrow: "Link expired",
         heading: "This link has expired",
-        body: "Ask your host for a new one — they can generate you a fresh link from the admin page.",
+        body: "Ask one of the hosts for a new one.",
       }
     : {
         eyebrow: "Link not recognised",
         heading: "This link isn't valid",
-        body: "Double check you copied the whole link, or contact one of the hosts for a new one.",
+        body: "Double check you copied the whole link, get it emailed to you from the RSVP page, or ask one of the hosts.",
       };
 ---
 
@@ -26,3 +26,11 @@ const copy =
     <p class="page-introduction">{copy.body}</p>
   </div>
 </section>
+
+{kind === "not_found" && (
+  <section class="page-content">
+    <div class="page-actions">
+      <a class="button" href="/rsvp">Email me my link</a>
+    </div>
+  </section>
+)}

@@ -975,6 +975,18 @@ main:has(> .page-hero) {
   margin-bottom: 2rem;
 }
 
+.admin-filters,
+.admin-toolbar-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.admin-toolbar-actions {
+  align-items: center;
+}
+
 .admin-filter {
   display: flex;
   flex-direction: column;

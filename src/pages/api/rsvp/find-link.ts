@@ -1,6 +1,12 @@
 import type { APIRoute } from "astro";
 import { waitUntil } from "cloudflare:workers";
-import { getGuestsByEmail, canSendMagicLink, markMagicLinkSent, type Guest } from "../../../lib/guests";
+import {
+  getGuestsByEmail,
+  canSendMagicLink,
+  markMagicLinkSent,
+  isLinkExpired,
+  type Guest,
+} from "../../../lib/guests";
 import { sendMagicLinkEmail } from "../../../lib/email";
 import { textField } from "../../../lib/forms";
 
@@ -8,7 +14,10 @@ export const prerender = false;
 
 async function sendLinks(guests: Guest[]): Promise<void> {
   for (const guest of guests) {
-    if (!canSendMagicLink(guest)) continue;
+    // An unanswered link that's lapsed would only land them on "This link
+    // has expired". Issuing a fresh one is a host's call, not self-service,
+    // so skip it (the response is the same either way).
+    if (isLinkExpired(guest) || !canSendMagicLink(guest)) continue;
 
     // Non-blocking, same as the RSVP confirmation email: a failed send
     // here must never change what the visitor sees.

@@ -1,11 +1,19 @@
 ---
 import Layout from "../../layouts/Layout.astro";
-import { listGuestsWithInviters, listAllInviterNames, isLinkExpired } from "../../lib/guests";
+import {
+  listGuestsWithInviters,
+  listAllInviterNames,
+  isLinkExpired,
+  isGuestSort,
+  GUEST_SORTS,
+} from "../../lib/guests";
 import { SITE_URL } from "astro:env/server";
 
 const inviterFilter = Astro.url.searchParams.get("inviter") ?? "";
+const sortParam = Astro.url.searchParams.get("sort");
+const sort = isGuestSort(sortParam) ? sortParam : "name";
 const [guests, inviterNames] = await Promise.all([
-  listGuestsWithInviters(inviterFilter || undefined),
+  listGuestsWithInviters(inviterFilter || undefined, sort),
   listAllInviterNames(),
 ]);
 
@@ -46,17 +54,31 @@ function statusLabel(guest: (typeof guests)[number]): string {
 
     <section class="page-content admin-content">
       <div class="admin-toolbar">
-        <form method="GET" action="/admin" class="admin-filter">
-          <label for="inviter">Filter by inviter</label>
-          <select id="inviter" name="inviter" onchange="this.form.submit()">
-            <option value="" selected={!inviterFilter}>All guests</option>
-            {inviterNames.map((name) => (
-              <option value={name} selected={inviterFilter === name}>{name}</option>
-            ))}
-          </select>
+        <form method="GET" action="/admin" class="admin-filters">
+          <div class="admin-filter">
+            <label for="inviter">Filter by inviter</label>
+            <select id="inviter" name="inviter" onchange="this.form.submit()">
+              <option value="" selected={!inviterFilter}>All guests</option>
+              {inviterNames.map((name) => (
+                <option value={name} selected={inviterFilter === name}>{name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div class="admin-filter">
+            <label for="sort">Sort by</label>
+            <select id="sort" name="sort" onchange="this.form.submit()">
+              {Object.entries(GUEST_SORTS).map(([value, { label }]) => (
+                <option value={value} selected={sort === value}>{label}</option>
+              ))}
+            </select>
+          </div>
         </form>
 
-        <a class="button" href="/admin/guests/new">Add guest</a>
+        <div class="admin-toolbar-actions">
+          <a class="text-link" href="/admin/content">Edit site text</a>
+          <a class="button" href="/admin/guests/new">Add guest</a>
+        </div>
       </div>
 
       <div class="admin-table-wrapper">
@@ -91,9 +113,14 @@ function statusLabel(guest: (typeof guests)[number]): string {
                   {!guest.email && !guest.phone && "—"}
                 </td>
                 <td>
+                  {(guest.arrival_day || guest.departure_day) && (
+                    <div>Dates: {guest.arrival_day ?? "?"} → {guest.departure_day ?? "?"}</div>
+                  )}
                   {guest.camping && <div>Camping: {guest.camping.replace("_", " ")}</div>}
+                  {guest.vehicle && <div>Vehicle: {guest.vehicle}</div>}
                   {guest.dietary && <div>Dietary: {guest.dietary}</div>}
                   {guest.accessibility && <div>Access: {guest.accessibility}</div>}
+                  {guest.notes && <div>Notes: {guest.notes}</div>}
                 </td>
                 <td>{guest.confirmation_email_sent_at ? "✓" : "—"}</td>
                 <td>
