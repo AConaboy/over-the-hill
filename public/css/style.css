@@ -709,36 +709,42 @@ main:has(> .page-hero) {
   margin: 0 0 1.5rem;
 }
 
+/* The photo and map are both 4:3, so side by side they come out the same
+   height without cropping. */
 .location-photo img,
 .location-map iframe {
   display: block;
   width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
   border: var(--outline);
   border-radius: var(--radius);
 }
 
-.location-photo img {
-  height: auto;
-}
-
 .location-map iframe {
-  aspect-ratio: 4 / 3;
-  height: auto;
-  margin-bottom: 1rem;
   background: var(--cream);
 }
 
-/* Desktop: photo and map in one row, text full-width underneath. Below
-   this width the wrapper is a plain block, so mobile keeps source order. */
+.location-map-link {
+  margin: 0.75rem 0 1.5rem;
+}
+
+/* Desktop: photo and map share a row that's wider than the 860px text
+   column (up to 1200px, centred on the page), with the "open in Maps" link
+   under the map and the text at normal width underneath. Below this width
+   the wrapper is a plain block, so mobile keeps source order. */
 @media (min-width: 901px) {
   .location-layout {
+    --location-row-width: min(100vw - 3rem, 1200px);
     display: grid;
     grid-template-columns: 1fr 1fr;
     grid-template-areas:
       "photo map"
-      "text text";
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
+      ".     link"
+      "text  text";
+    column-gap: 1.5rem;
+    width: var(--location-row-width);
+    margin-inline: calc((100% - var(--location-row-width)) / 2);
   }
 
   .location-photo {
@@ -746,23 +752,24 @@ main:has(> .page-hero) {
     margin: 0;
   }
 
-  /* Match the map card's height; the photo crops rather than stretches. */
-  .location-photo img {
-    height: 100%;
-    object-fit: cover;
+  /* Let the iframe and link be placed in the grid individually. */
+  .location-map {
+    display: contents;
   }
 
-  .location-map {
+  .location-map iframe {
     grid-area: map;
-    margin: 0;
+  }
+
+  .location-map-link {
+    grid-area: link;
   }
 
   .location-text {
     grid-area: text;
-  }
-
-  .location-text > :last-child {
-    margin-bottom: 0;
+    width: 100%;
+    max-width: 860px;
+    justify-self: center;
   }
 }
 

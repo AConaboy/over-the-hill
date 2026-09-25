@@ -26,9 +26,9 @@ const { fields, blocks } = await getPageContent("location");
     <PageHero eyebrow={fields.hero_eyebrow} heading={fields.hero_heading} introduction={fields.hero_introduction} />
 
     <section class="page-content">
-      {/* On desktop the photo and map sit side by side with the text below
-          (see .location-layout); on mobile everything stacks in source
-          order: photo, text, map. */}
+      {/* On desktop the photo and map sit side by side in a wider row, with
+          the text below (see .location-layout); on mobile everything stacks
+          in source order: photo, text, map. */}
       <div class="location-layout">
         <figure class="location-photo">
           <img
@@ -43,8 +43,7 @@ const { fields, blocks } = await getPageContent("location");
           {blocks.map((block) => <ContentBlockView block={block} />)}
         </div>
 
-        <article class="content-block location-map">
-          <h2>Map</h2>
+        <div class="location-map">
           {/* Our site-wide Referrer-Policy is same-origin (guest tokens live in
               some URLs). This page has no token, so let Google see our origin. */}
           <iframe
@@ -54,12 +53,12 @@ const { fields, blocks } = await getPageContent("location");
             referrerpolicy="strict-origin-when-cross-origin"
             allowfullscreen
           ></iframe>
-          <p>
+          <p class="location-map-link">
             <a class="text-link" href={MAP_LINK_URL} target="_blank" rel="noopener noreferrer">
               Open in Google Maps →
             </a>
           </p>
-        </article>
+        </div>
       </div>
 
       <div class="page-actions">
