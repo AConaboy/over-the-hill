@@ -143,36 +143,67 @@ export type SubmitRsvpResult =
   | { ok: true; guest: Guest }
   | { ok: false; reason: "not_found" | "expired" };
 
+/** Normalises a list of inviter names: trimmed, blanks dropped, and
+ * duplicates removed (case-insensitively, keeping the first spelling) so
+ * "Andrew, andrew" can't trip the unique (guest_id, inviter_name) index. */
+function normaliseInviterNames(inviterNames: string[]): string[] {
+  const seen = new Set<string>();
+  const names: string[] = [];
+  for (const raw of inviterNames) {
+    const name = raw.trim();
+    const key = name.toLowerCase();
+    if (!name || seen.has(key)) continue;
+    seen.add(key);
+    names.push(name);
+  }
+  return names;
+}
+
+function insertInviterStatements(db: D1Database, guestId: string, inviterNames: string[]): D1PreparedStatement[] {
+  return normaliseInviterNames(inviterNames).map((inviterName) =>
+    db
+      .prepare("insert into guest_inviters (id, guest_id, inviter_name) values (?, ?, ?)")
+      .bind(newId(), guestId, inviterName),
+  );
+}
+
 /** Shared by the guest-facing RSVP submit and the admin edit form, so both
  * paths generate a ticket_ref and update status the same way the moment
  * attendance becomes "yes" — an admin marking someone attending because
  * they were told verbally must produce a real ticket, same as a guest
- * submitting the form themselves. */
-async function writeRsvpFields(
+ * submitting the form themselves.
+ *
+ * Returns a statement rather than running it, so callers can batch it with
+ * their other writes (D1 runs a batch as a single transaction). */
+async function rsvpFieldsStatement(
+  db: D1Database,
   guestId: string,
   currentTicketRef: string | null,
   input: RsvpInput,
-): Promise<Guest> {
-  const db = getDb();
-
+): Promise<D1PreparedStatement> {
+  // ticket_ref is kept even if attendance later changes away from "yes",
+  // so a guest who flips back gets the same QR code rather than a new one.
   let ticketRef = currentTicketRef;
   if (input.attendance === "yes" && !ticketRef) {
     ticketRef = await generateUniqueTicketRef(db);
   }
 
-  const statusForAttendance: Record<Attendance, GuestStatus | null> = {
-    yes: "rsvp_yes",
-    no: "rsvp_no",
-    pending: null,
-  };
-
-  await db
+  // "pending" (only reachable via the admin form) resets an RSVP status
+  // back to "viewed", so the admin list doesn't keep showing "Attending"
+  // for someone whose answer has been cleared.
+  return db
     .prepare(
       `update guests set
-         attendance = ?, email = ?, phone = ?, arrival_day = ?, departure_day = ?,
-         camping = ?, vehicle = ?, dietary = ?, accessibility = ?, notes = ?,
-         ticket_ref = ?, status = coalesce(?, status), updated_at = ?
-       where id = ?`,
+         attendance = ?1, email = ?2, phone = ?3, arrival_day = ?4, departure_day = ?5,
+         camping = ?6, vehicle = ?7, dietary = ?8, accessibility = ?9, notes = ?10,
+         ticket_ref = ?11,
+         status = case ?1
+           when 'yes' then 'rsvp_yes'
+           when 'no' then 'rsvp_no'
+           else case when status in ('rsvp_yes', 'rsvp_no') then 'viewed' else status end
+         end,
+         updated_at = ?12
+       where id = ?13`,
     )
     .bind(
       input.attendance,
@@ -186,15 +217,15 @@ async function writeRsvpFields(
       input.accessibility,
       input.notes,
       ticketRef,
-      statusForAttendance[input.attendance],
       nowIso(),
       guestId,
-    )
-    .run();
+    );
+}
 
-  const updated = await db.prepare("select * from guests where id = ?").bind(guestId).first<Guest>();
-  if (!updated) throw new Error(`Guest ${guestId} not found after update`);
-  return updated;
+async function getGuestRowById(db: D1Database, id: string): Promise<Guest> {
+  const guest = await db.prepare("select * from guests where id = ?").bind(id).first<Guest>();
+  if (!guest) throw new Error(`Guest ${id} not found`);
+  return guest;
 }
 
 /** Re-validates the token and writes the RSVP. Token/expiry checks happen
@@ -204,8 +235,9 @@ export async function submitRsvp(token: string, input: RsvpInput): Promise<Submi
   if (!guest) return { ok: false, reason: "not_found" };
   if (isLinkExpired(guest)) return { ok: false, reason: "expired" };
 
-  const updated = await writeRsvpFields(guest.id, guest.ticket_ref, input);
-  return { ok: true, guest: updated };
+  const db = getDb();
+  await (await rsvpFieldsStatement(db, guest.id, guest.ticket_ref, input)).run();
+  return { ok: true, guest: await getGuestRowById(db, guest.id) };
 }
 
 export async function markConfirmationEmailSent(guestId: string): Promise<void> {
@@ -275,36 +307,22 @@ export interface AddGuestInput {
   inviterNames: string[];
 }
 
-async function replaceInviters(db: D1Database, guestId: string, inviterNames: string[]): Promise<void> {
-  const names = inviterNames.map((name) => name.trim()).filter(Boolean);
-  if (names.length === 0) return;
-  await db.batch(
-    names.map((inviter_name) =>
-      db
-        .prepare("insert into guest_inviters (id, guest_id, inviter_name) values (?, ?, ?)")
-        .bind(newId(), guestId, inviter_name),
-    ),
-  );
-}
-
 export async function addGuest(input: AddGuestInput): Promise<Guest> {
   const db = getDb();
   const id = newId();
   const timestamp = nowIso();
 
-  await db
-    .prepare(
-      `insert into guests (id, token, token_expires_at, name, email, phone, created_at, updated_at)
-       values (?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .bind(id, newId(), newExpiry(), input.name, input.email, input.phone, timestamp, timestamp)
-    .run();
+  await db.batch([
+    db
+      .prepare(
+        `insert into guests (id, token, token_expires_at, name, email, phone, created_at, updated_at)
+         values (?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .bind(id, newId(), newExpiry(), input.name, input.email, input.phone, timestamp, timestamp),
+    ...insertInviterStatements(db, id, input.inviterNames),
+  ]);
 
-  await replaceInviters(db, id, input.inviterNames);
-
-  const guest = await db.prepare("select * from guests where id = ?").bind(id).first<Guest>();
-  if (!guest) throw new Error("Failed to create guest");
-  return guest;
+  return getGuestRowById(db, id);
 }
 
 export interface EditGuestInput {
@@ -322,18 +340,25 @@ export interface EditGuestInput {
   inviterNames: string[];
 }
 
+/** All writes go in one batch, so a failure part-way (e.g. mid inviter
+ * replace) can't leave a guest half-updated or stripped of inviters. */
 export async function updateGuestAsAdmin(id: string, input: EditGuestInput): Promise<void> {
   const db = getDb();
+  const existing = await getGuestRowById(db, id);
 
-  const existing = await getGuestById(id);
-  if (!existing) throw new Error(`Guest ${id} not found`);
+  await db.batch([
+    await rsvpFieldsStatement(db, id, existing.ticket_ref, input),
+    db.prepare("update guests set name = ? where id = ?").bind(input.name, id),
+    db.prepare("delete from guest_inviters where guest_id = ?").bind(id),
+    ...insertInviterStatements(db, id, input.inviterNames),
+  ]);
+}
 
-  await writeRsvpFields(id, existing.ticket_ref, input);
-
-  await db.prepare("update guests set name = ? where id = ?").bind(input.name, id).run();
-
-  await db.prepare("delete from guest_inviters where guest_id = ?").bind(id).run();
-  await replaceInviters(db, id, input.inviterNames);
+/** guest_inviters rows go with it via "on delete cascade" — D1 enforces
+ * foreign keys by default. */
+export async function deleteGuest(id: string): Promise<void> {
+  const db = getDb();
+  await db.prepare("delete from guests where id = ?").bind(id).run();
 }
 
 /** New token + a fresh 30-day expiry. The old link stops working immediately

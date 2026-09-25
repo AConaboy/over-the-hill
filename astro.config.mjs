@@ -11,7 +11,10 @@ export default defineConfig({
   env: {
     schema: {
       RESEND_API_KEY: envField.string({ context: 'server', access: 'secret' }),
-      SITE_URL: envField.string({ context: 'server', access: 'public' }),
+      // Inlined at build time (public vars aren't read at runtime), so the
+      // production URL is the default — set SITE_URL in .env to override
+      // it for local dev.
+      SITE_URL: envField.string({ context: 'server', access: 'public', default: 'https://overthehill.live' }),
       // Cloudflare Access (admin protection) — see docs/deployment.md step 4.
       // Optional so local dev works without them; in production, admin
       // routes refuse all requests until both are set.

@@ -49,10 +49,12 @@ The most direct path is deploying with `wrangler` from your machine or CI,
 which also picks up the D1 binding and everything else already declared in
 `wrangler.jsonc` automatically:
 
-1. Add the two remaining secrets (D1 needs none, per step 1 above):
-   `npx wrangler secret put RESEND_API_KEY` and
-   `npx wrangler secret put SITE_URL` (use your production URL once you have
-   one, e.g. `https://overthehill.xyz`).
+1. Add the one remaining secret (D1 needs none, per step 1 above):
+   `npx wrangler secret put RESEND_API_KEY`. `SITE_URL` is *not* a Worker
+   secret: Astro bakes it into the build, and it defaults to
+   `https://overthehill.live` in `astro.config.mjs`. Change that default if
+   the production domain ever changes. Setting it with `wrangler secret put`
+   has no effect.
 2. Deploy: `npm run build && npx wrangler deploy`. Cloudflare will give you a
    `*.workers.dev` URL to test against before pointing your real domain at
    it.
@@ -122,8 +124,10 @@ npx wrangler d1 migrations apply over-the-hill --local   # once, to set up the l
 npm run dev
 ```
 
-`SITE_URL` in `.env` should be `http://localhost:4321` for local testing —
-links in confirmation emails and QR codes will point there. The admin page
+`SITE_URL` for local testing comes from the committed `.env.development`
+(`http://localhost:4321`), which only `astro dev` loads. Don't put
+`SITE_URL` in `.env`: that file also applies to `npm run build` and would
+bake localhost links into a production deploy. The admin page
 has no auth locally (Cloudflare Access only applies once deployed), so don't
 expose your local dev server publicly.
 

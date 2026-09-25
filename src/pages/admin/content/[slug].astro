@@ -88,7 +88,12 @@ const { fields, blocks } = pageDef ? await getPageContent(pageDef.slug) : { fiel
           </form>
 
           {blocks.map((block) => (
-            <form id={`delete-block-${block.id}`} method="POST" action={`/api/admin/content/blocks/${block.id}/delete`}>
+            <form
+              id={`delete-block-${block.id}`}
+              method="POST"
+              action={`/api/admin/content/blocks/${block.id}/delete`}
+              onsubmit="return confirm('Delete this section? This can\'t be undone.')"
+            >
               <input type="hidden" name="slug" value={pageDef.slug} />
             </form>
           ))}

@@ -109,7 +109,11 @@ function statusLabel(guest: (typeof guests)[number]): string {
                 </td>
                 <td class="admin-row-actions">
                   <a class="text-link" href={`/admin/guests/${guest.id}/edit`}>Edit</a>
-                  <form method="POST" action={`/api/admin/guests/${guest.id}/regenerate`}>
+                  <form
+                    method="POST"
+                    action={`/api/admin/guests/${guest.id}/regenerate`}
+                    onsubmit="return confirm('Regenerate this guest\'s link? Their current link will stop working immediately.')"
+                  >
                     <button class="text-link admin-inline-button" type="submit">Regenerate link</button>
                   </form>
                 </td>

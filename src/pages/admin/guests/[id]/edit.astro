@@ -110,8 +110,20 @@ const guest = id ? await getGuestById(id) : null;
             <button class="button" type="submit">Save changes</button>
           </form>
 
-          <form method="POST" action={`/api/admin/guests/${guest.id}/regenerate`}>
+          <form
+            method="POST"
+            action={`/api/admin/guests/${guest.id}/regenerate`}
+            onsubmit="return confirm('Regenerate this guest\'s link? Their current link will stop working immediately.')"
+          >
             <button class="button" type="submit">Regenerate link</button>
+          </form>
+
+          <form
+            method="POST"
+            action={`/api/admin/guests/${guest.id}/delete`}
+            onsubmit={`return confirm(${JSON.stringify(`Delete ${guest.name} and all their RSVP details? This can't be undone.`)})`}
+          >
+            <button class="text-link admin-inline-button status-expired" type="submit">Delete guest</button>
           </form>
 
           <div class="page-actions">
