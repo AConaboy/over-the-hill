@@ -34,6 +34,7 @@ export interface Guest {
   payment_ref: string | null;
   checked_in_at: string | null;
   confirmation_email_sent_at: string | null;
+  magic_link_sent_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -68,6 +69,33 @@ export async function getGuestByToken(token: string): Promise<Guest | null> {
   const db = getDb();
   const guest = await db.prepare("select * from guests where token = ?").bind(token).first<Guest>();
   return guest ?? null;
+}
+
+export async function getGuestsByEmail(email: string): Promise<Guest[]> {
+  const trimmed = email.trim();
+  if (!trimmed) return [];
+  const db = getDb();
+  const { results } = await db
+    .prepare("select * from guests where lower(email) = lower(?)")
+    .bind(trimmed)
+    .all<Guest>();
+  return results;
+}
+
+const MAGIC_LINK_COOLDOWN_MINUTES = 5;
+
+/** Guards the "email me my link" form against being used to spam a guest's
+ * inbox by repeated submissions — silently skips sending (the caller still
+ * shows the same generic "check your inbox" response either way). */
+export function canSendMagicLink(guest: Pick<Guest, "magic_link_sent_at">): boolean {
+  if (!guest.magic_link_sent_at) return true;
+  const elapsedMs = Date.now() - new Date(guest.magic_link_sent_at).getTime();
+  return elapsedMs > MAGIC_LINK_COOLDOWN_MINUTES * 60 * 1000;
+}
+
+export async function markMagicLinkSent(guestId: string): Promise<void> {
+  const db = getDb();
+  await db.prepare("update guests set magic_link_sent_at = ? where id = ?").bind(nowIso(), guestId).run();
 }
 
 export async function getInvitersForGuest(guestId: string): Promise<string[]> {

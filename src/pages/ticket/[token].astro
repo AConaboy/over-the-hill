@@ -3,6 +3,7 @@ import Layout from "../../layouts/Layout.astro";
 import LinkProblemNotice from "../../components/LinkProblemNotice.astro";
 import TicketQr from "../../components/TicketQr.astro";
 import { getGuestByToken } from "../../lib/guests";
+import { REMEMBER_COOKIE_NAME, REMEMBER_COOKIE_OPTIONS } from "../../lib/rememberCookie";
 
 const { token } = Astro.params;
 const guest = token ? await getGuestByToken(token) : null;
@@ -10,6 +11,10 @@ const guest = token ? await getGuestByToken(token) : null;
 // Once a guest has responded, their ticket link never expires — they still
 // need it to view/update their answers and, later, pay. So unlike
 // /rsvp/[token], there's no expiry check here.
+
+if (guest) {
+  Astro.cookies.set(REMEMBER_COOKIE_NAME, guest.token, REMEMBER_COOKIE_OPTIONS);
+}
 ---
 
 <Layout title="Your ticket | Over the Hill" description="View your Over the Hill ticket and RSVP status.">

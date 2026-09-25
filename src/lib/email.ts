@@ -77,3 +77,36 @@ export async function sendRsvpConfirmationEmail(guest: Guest): Promise<void> {
     throw new Error(`Resend rejected the email: ${error.name} — ${error.message}`);
   }
 }
+
+/** Sent from the "find my link" self-service form on /rsvp. Non-blocking by
+ * design, same as sendRsvpConfirmationEmail — callers should catch/ignore
+ * failures. Only ever called for a guest row that actually matched the
+ * submitted email, so this itself reveals nothing either way; the caller is
+ * responsible for showing the same response regardless of match/no-match. */
+export async function sendMagicLinkEmail(guest: Guest): Promise<void> {
+  if (!guest.email) return;
+
+  const rsvpUrl = new URL(`/rsvp/${guest.token}`, SITE_URL).toString();
+
+  const textBody = [
+    `Hi ${guest.name},`,
+    "",
+    "Here's your personal Over the Hill invite link:",
+    "",
+    rsvpUrl,
+    "",
+    "This link is just for you — please don't share it on.",
+  ].join("\n");
+
+  const resend = getResendClient();
+  const { error } = await resend.emails.send({
+    from: FROM_ADDRESS,
+    to: guest.email,
+    subject: "Your Over the Hill invite link",
+    text: textBody,
+  });
+
+  if (error) {
+    throw new Error(`Resend rejected the email: ${error.name} — ${error.message}`);
+  }
+}

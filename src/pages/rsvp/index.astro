@@ -1,5 +1,21 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import { getGuestByToken, isLinkExpired } from "../../lib/guests";
+import { REMEMBER_COOKIE_NAME } from "../../lib/rememberCookie";
+
+const remembered = Astro.cookies.get(REMEMBER_COOKIE_NAME)?.value;
+
+if (remembered) {
+  const guest = await getGuestByToken(remembered);
+  if (guest && !isLinkExpired(guest)) {
+    return Astro.redirect(`/rsvp/${guest.token}`, 302);
+  }
+  // Stale cookie (guest not found, or an unanswered link that's since
+  // expired) — clear it rather than checking again on every future visit.
+  Astro.cookies.delete(REMEMBER_COOKIE_NAME, { path: "/" });
+}
+
+const sent = Astro.url.searchParams.get("sent") === "1";
 ---
 
 <Layout
@@ -21,7 +37,34 @@ import Layout from "../../layouts/Layout.astro";
 
     <section class="page-content">
       <article class="content-block">
-        <h2>Can't find your link?</h2>
+        <h2>Get your link by email</h2>
+
+        {sent ? (
+          <p>
+            If we've got an invite for that email address, we've sent a link
+            to it — check your inbox (and spam folder, just in case).
+          </p>
+        ) : (
+          <>
+            <p>
+              If you know which email address your invite went to, enter it
+              below and we'll send your personal link there.
+            </p>
+
+            <form class="rsvp-form" method="POST" action="/api/rsvp/find-link">
+              <div class="form-field">
+                <label for="email">Email address</label>
+                <input id="email" name="email" type="email" autocomplete="email" required />
+              </div>
+
+              <button class="button" type="submit">Email me my link</button>
+            </form>
+          </>
+        )}
+      </article>
+
+      <article class="content-block">
+        <h2>Still can't find it?</h2>
 
         <p>
           Check the email or WhatsApp message you got when you were invited.

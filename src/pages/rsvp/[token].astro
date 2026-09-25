@@ -3,6 +3,7 @@ import Layout from "../../layouts/Layout.astro";
 import LinkProblemNotice from "../../components/LinkProblemNotice.astro";
 import TicketQr from "../../components/TicketQr.astro";
 import { getGuestByToken, isLinkExpired, markViewed } from "../../lib/guests";
+import { REMEMBER_COOKIE_NAME, REMEMBER_COOKIE_OPTIONS } from "../../lib/rememberCookie";
 
 const { token } = Astro.params;
 const guest = token ? await getGuestByToken(token) : null;
@@ -11,6 +12,10 @@ const expired = guest ? isLinkExpired(guest) : false;
 
 if (guest && !expired) {
   await markViewed(guest);
+  // A valid, live link is the strongest signal we ever get that this
+  // browser belongs to this guest — remember them so /rsvp can skip
+  // straight to their page next time, without needing their link again.
+  Astro.cookies.set(REMEMBER_COOKIE_NAME, guest.token, REMEMBER_COOKIE_OPTIONS);
 }
 
 const submitted = Astro.url.searchParams.get("submitted") === "1";
