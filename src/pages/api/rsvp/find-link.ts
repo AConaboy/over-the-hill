@@ -1,28 +1,34 @@
 import type { APIRoute } from "astro";
-import { getGuestsByEmail, canSendMagicLink, markMagicLinkSent } from "../../../lib/guests";
+import { waitUntil } from "cloudflare:workers";
+import { getGuestsByEmail, canSendMagicLink, markMagicLinkSent, type Guest } from "../../../lib/guests";
 import { sendMagicLinkEmail } from "../../../lib/email";
+import { textField } from "../../../lib/forms";
 
 export const prerender = false;
 
+async function sendLinks(guests: Guest[]): Promise<void> {
+  for (const guest of guests) {
+    if (!canSendMagicLink(guest)) continue;
+
+    // Non-blocking, same as the RSVP confirmation email: a failed send
+    // here must never change what the visitor sees.
+    try {
+      await sendMagicLinkEmail(guest);
+      await markMagicLinkSent(guest.id);
+    } catch (err) {
+      console.error("Failed to send magic link email", err);
+    }
+  }
+}
+
 export const POST: APIRoute = async ({ request, redirect }) => {
   const form = await request.formData();
-  const email = String(form.get("email") ?? "").trim();
+  const email = textField(form, "email");
 
   if (email) {
-    const matches = await getGuestsByEmail(email);
-
-    for (const guest of matches) {
-      if (!canSendMagicLink(guest)) continue;
-
-      // Non-blocking, same as the RSVP confirmation email: a failed send
-      // here must never change what the visitor sees.
-      try {
-        await sendMagicLinkEmail(guest);
-        await markMagicLinkSent(guest.id);
-      } catch (err) {
-        console.error("Failed to send magic link email", err);
-      }
-    }
+    // Sent after the response goes out, so a matching address doesn't
+    // answer measurably slower than an unknown one.
+    waitUntil(sendLinks(await getGuestsByEmail(email)));
   }
 
   // Always the same redirect regardless of whether we found a match, sent

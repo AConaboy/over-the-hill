@@ -1,8 +1,13 @@
 import { getDb } from "./db";
 
-export type Attendance = "pending" | "yes" | "no";
-export type Camping = "camping" | "not_camping" | "undecided";
-export type Vehicle = "none" | "car" | "campervan" | "undecided";
+// Mirrors the CHECK constraints in migrations/0001_init.sql.
+export const ATTENDANCE_VALUES = ["pending", "yes", "no"] as const;
+export const CAMPING_VALUES = ["camping", "not_camping", "undecided"] as const;
+export const VEHICLE_VALUES = ["none", "car", "campervan", "undecided"] as const;
+
+export type Attendance = (typeof ATTENDANCE_VALUES)[number];
+export type Camping = (typeof CAMPING_VALUES)[number];
+export type Vehicle = (typeof VEHICLE_VALUES)[number];
 export type GuestStatus =
   | "invited"
   | "viewed"
@@ -82,15 +87,27 @@ export async function getGuestsByEmail(email: string): Promise<Guest[]> {
   return results;
 }
 
-const MAGIC_LINK_COOLDOWN_MINUTES = 5;
+const EMAIL_COOLDOWN_MINUTES = 5;
+
+function isOutsideEmailCooldown(lastSentAt: string | null): boolean {
+  if (!lastSentAt) return true;
+  const elapsedMs = Date.now() - new Date(lastSentAt).getTime();
+  return elapsedMs > EMAIL_COOLDOWN_MINUTES * 60 * 1000;
+}
 
 /** Guards the "email me my link" form against being used to spam a guest's
  * inbox by repeated submissions — silently skips sending (the caller still
  * shows the same generic "check your inbox" response either way). */
 export function canSendMagicLink(guest: Pick<Guest, "magic_link_sent_at">): boolean {
-  if (!guest.magic_link_sent_at) return true;
-  const elapsedMs = Date.now() - new Date(guest.magic_link_sent_at).getTime();
-  return elapsedMs > MAGIC_LINK_COOLDOWN_MINUTES * 60 * 1000;
+  return isOutsideEmailCooldown(guest.magic_link_sent_at);
+}
+
+/** Same idea for RSVP confirmations: the guest chooses the address, so
+ * without a cooldown anyone holding a link could resubmit in a loop to send
+ * mail from our domain to any address. Answers still save every time; only
+ * the email is skipped. */
+export function canSendConfirmationEmail(guest: Pick<Guest, "confirmation_email_sent_at">): boolean {
+  return isOutsideEmailCooldown(guest.confirmation_email_sent_at);
 }
 
 export async function markMagicLinkSent(guestId: string): Promise<void> {

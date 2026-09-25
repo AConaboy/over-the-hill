@@ -1,4 +1,4 @@
-import { defineMiddleware } from "astro:middleware";
+import { defineMiddleware, sequence } from "astro:middleware";
 import { CF_ACCESS_AUD, CF_ACCESS_TEAM_DOMAIN } from "astro:env/server";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 
@@ -9,9 +9,13 @@ import { createRemoteJWKSet, jwtVerify } from "jose";
 // the Access app doesn't cover — is refused rather than served.
 const ADMIN_PATH = /^\/(api\/)?admin(\/|$)/;
 
+// Pages whose URL carries a guest's token, or that are hosts-only — never
+// worth a search engine indexing, even if a link ends up somewhere public.
+const NOINDEX_PATH = /^\/(rsvp|ticket|admin)\//;
+
 let jwks: ReturnType<typeof createRemoteJWKSet> | undefined;
 
-export const onRequest = defineMiddleware(async (context, next) => {
+const requireAccess = defineMiddleware(async (context, next) => {
   if (!ADMIN_PATH.test(context.url.pathname)) return next();
 
   // Access only exists once deployed, so local dev has no admin auth.
@@ -35,3 +39,25 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   return next();
 });
+
+// Static files get the same headers from public/_headers.
+const securityHeaders = defineMiddleware(async (context, next) => {
+  const response = await next();
+  const headers = response.headers;
+
+  headers.set("Strict-Transport-Security", "max-age=31536000");
+  headers.set("X-Content-Type-Options", "nosniff");
+  // Nothing here is meant to be framed; this stops clickjacking, e.g. a
+  // host being tricked into pressing "Regenerate link" inside an iframe.
+  headers.set("Content-Security-Policy", "frame-ancestors 'none'");
+  headers.set("X-Frame-Options", "DENY");
+  // Guest tokens live in URLs, so never send a path to another site.
+  headers.set("Referrer-Policy", "same-origin");
+  if (NOINDEX_PATH.test(context.url.pathname)) {
+    headers.set("X-Robots-Tag", "noindex, nofollow");
+  }
+
+  return response;
+});
+
+export const onRequest = sequence(securityHeaders, requireAccess);

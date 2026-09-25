@@ -1,20 +1,8 @@
 import type { APIRoute } from "astro";
-import { updateGuestAsAdmin, type Attendance, type Camping, type Vehicle } from "../../../../lib/guests";
+import { updateGuestAsAdmin, ATTENDANCE_VALUES, CAMPING_VALUES, VEHICLE_VALUES } from "../../../../lib/guests";
+import { choiceField, inviterNamesField, LONG_TEXT_MAX, textField } from "../../../../lib/forms";
 
 export const prerender = false;
-
-function splitInviterNames(value: FormDataEntryValue | null): string[] {
-  const str = typeof value === "string" ? value : "";
-  return str
-    .split(",")
-    .map((name) => name.trim())
-    .filter(Boolean);
-}
-
-function emptyToNull(value: FormDataEntryValue | null): string | null {
-  const str = typeof value === "string" ? value.trim() : "";
-  return str.length > 0 ? str : null;
-}
 
 export const POST: APIRoute = async ({ params, request, redirect }) => {
   const id = params.id;
@@ -23,23 +11,24 @@ export const POST: APIRoute = async ({ params, request, redirect }) => {
   }
 
   const form = await request.formData();
-  const attendanceRaw = form.get("attendance");
-  const attendance: Attendance =
-    attendanceRaw === "yes" || attendanceRaw === "no" ? attendanceRaw : "pending";
+  const name = textField(form, "name");
+  if (!name) {
+    return redirect(`/admin/guests/${id}/edit`, 303);
+  }
 
   await updateGuestAsAdmin(id, {
-    name: String(form.get("name") ?? "").trim(),
-    email: emptyToNull(form.get("email")),
-    phone: emptyToNull(form.get("phone")),
-    attendance,
-    arrivalDay: emptyToNull(form.get("arrivalDay")),
-    departureDay: emptyToNull(form.get("departureDay")),
-    camping: (emptyToNull(form.get("camping")) as Camping | null) ?? null,
-    vehicle: (emptyToNull(form.get("vehicle")) as Vehicle | null) ?? null,
-    dietary: emptyToNull(form.get("dietary")),
-    accessibility: emptyToNull(form.get("accessibility")),
-    notes: emptyToNull(form.get("notes")),
-    inviterNames: splitInviterNames(form.get("inviterNames")),
+    name,
+    email: textField(form, "email"),
+    phone: textField(form, "phone"),
+    attendance: choiceField(form, "attendance", ATTENDANCE_VALUES) ?? "pending",
+    arrivalDay: textField(form, "arrivalDay"),
+    departureDay: textField(form, "departureDay"),
+    camping: choiceField(form, "camping", CAMPING_VALUES),
+    vehicle: choiceField(form, "vehicle", VEHICLE_VALUES),
+    dietary: textField(form, "dietary", LONG_TEXT_MAX),
+    accessibility: textField(form, "accessibility", LONG_TEXT_MAX),
+    notes: textField(form, "notes", LONG_TEXT_MAX),
+    inviterNames: inviterNamesField(form, "inviterNames"),
   });
 
   return redirect("/admin", 303);

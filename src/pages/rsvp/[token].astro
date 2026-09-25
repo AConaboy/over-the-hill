@@ -24,6 +24,9 @@ if (guest && !expired) {
 }
 
 const submitted = Astro.url.searchParams.get("submitted") === "1";
+// Only set when a confirmation email actually went out. Repeat submissions
+// inside the email cooldown still save, but don't send another email.
+const emailed = Astro.url.searchParams.get("emailed") === "1";
 ---
 
 <Layout
@@ -51,7 +54,9 @@ const submitted = Astro.url.searchParams.get("submitted") === "1";
               </h2>
               <p>
                 {guest.attendance === "yes"
-                  ? "We've got your answers. A confirmation email is on its way to you too."
+                  ? emailed
+                    ? "We've got your answers. A confirmation email is on its way to you too."
+                    : "We've got your answers."
                   : "Thanks for letting us know — we'll miss you."}
               </p>
 

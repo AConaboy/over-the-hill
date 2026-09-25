@@ -1,24 +1,12 @@
 import type { APIRoute } from "astro";
 import { addGuest } from "../../../lib/guests";
+import { inviterNamesField, textField } from "../../../lib/forms";
 
 export const prerender = false;
 
-function splitInviterNames(value: FormDataEntryValue | null): string[] {
-  const str = typeof value === "string" ? value : "";
-  return str
-    .split(",")
-    .map((name) => name.trim())
-    .filter(Boolean);
-}
-
-function emptyToNull(value: FormDataEntryValue | null): string | null {
-  const str = typeof value === "string" ? value.trim() : "";
-  return str.length > 0 ? str : null;
-}
-
 export const POST: APIRoute = async ({ request, redirect }) => {
   const form = await request.formData();
-  const name = String(form.get("name") ?? "").trim();
+  const name = textField(form, "name");
 
   if (!name) {
     return redirect("/admin/guests/new", 303);
@@ -26,9 +14,9 @@ export const POST: APIRoute = async ({ request, redirect }) => {
 
   await addGuest({
     name,
-    email: emptyToNull(form.get("email")),
-    phone: emptyToNull(form.get("phone")),
-    inviterNames: splitInviterNames(form.get("inviterNames")),
+    email: textField(form, "email"),
+    phone: textField(form, "phone"),
+    inviterNames: inviterNamesField(form, "inviterNames"),
   });
 
   return redirect("/admin", 303);
