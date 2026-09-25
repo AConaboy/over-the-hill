@@ -160,7 +160,7 @@ export type SubmitRsvpResult =
 /** Normalises a list of inviter names: trimmed, blanks dropped, and
  * duplicates removed (case-insensitively, keeping the first spelling) so
  * "Andrew, andrew" can't trip the unique (guest_id, inviter_name) index. */
-function normaliseInviterNames(inviterNames: string[]): string[] {
+export function normaliseInviterNames(inviterNames: string[]): string[] {
   const seen = new Set<string>();
   const names: string[] = [];
   for (const raw of inviterNames) {

@@ -37,6 +37,7 @@ how to set this up from scratch.
 | `npm run build`     | Build for production (`./dist/`)              |
 | `npm run preview`   | Preview the production build locally          |
 | `npm run check`     | Type-check the project                        |
+| `npm test`          | Run the unit tests (pure logic in `src/lib`)  |
 
 Copy `.env.example` to `.env` and fill in a real Resend value to run locally
 (D1 needs no secret — see `docs/deployment.md`).
