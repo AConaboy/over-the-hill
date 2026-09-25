@@ -18,6 +18,7 @@ export interface PaymentSettings {
 export type PaymentKind = "deposit" | "balance" | "manual" | "refund";
 
 type PricedGuest = Pick<Guest, "is_performer" | "amount_due_pence">;
+type RegisteringGuest = Pick<Guest, "attendance" | "status" | "registered_at">;
 type PayingGuest = PricedGuest &
   Pick<Guest, "attendance" | "ticket_ref" | "status" | "amount_paid_pence">;
 
@@ -91,4 +92,20 @@ export function overpaidBy(guest: PricedGuest & Pick<Guest, "amount_paid_pence">
   const price = ticketPrice(guest, settings);
   if (price === null) return 0;
   return Math.max(0, (guest.amount_paid_pence ?? 0) - price);
+}
+
+// --- Registration ---
+//
+// Saying yes saves a guest's details; their registration only completes
+// (ticket, QR code, "you're registered" email) once the deposit is paid, or
+// straight away when no deposit is due. registered_at records that moment.
+
+export function isRegistered(guest: RegisteringGuest): boolean {
+  return guest.attendance === "yes" && guest.status !== "cancelled" && guest.registered_at !== null;
+}
+
+/** An attending guest whose details are saved but who must still pay the
+ * deposit to complete their registration. */
+export function isAwaitingDeposit(guest: RegisteringGuest): boolean {
+  return guest.attendance === "yes" && guest.status !== "cancelled" && guest.registered_at === null;
 }

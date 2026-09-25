@@ -1,5 +1,15 @@
 import type { APIRoute } from "astro";
-import { updateGuestAsAdmin, ATTENDANCE_VALUES, CAMPING_VALUES, VEHICLE_VALUES } from "../../../../lib/guests";
+import {
+  getGuestById,
+  markRegistered,
+  updateGuestAsAdmin,
+  ATTENDANCE_VALUES,
+  CAMPING_VALUES,
+  VEHICLE_VALUES,
+} from "../../../../lib/guests";
+import { getPaymentSettings } from "../../../../lib/settings";
+import { nextPayment } from "../../../../lib/payments";
+import { isStripeConfigured } from "../../../../lib/stripe";
 import { choiceField, inviterNamesField, LONG_TEXT_MAX, performerFields, textField } from "../../../../lib/forms";
 
 export const prerender = false;
@@ -34,6 +44,15 @@ export const POST: APIRoute = async ({ params, request, redirect }) => {
     notes: textField(form, "notes", LONG_TEXT_MAX),
     inviterNames: inviterNamesField(form, "inviterNames"),
   });
+
+  // Same rule as a guest's own RSVP: marking someone attending registers
+  // them straight away only if no deposit is due. Otherwise they need to pay
+  // it (or a host records a manual payment), which completes registration.
+  const updated = await getGuestById(id);
+  if (updated && updated.attendance === "yes" && !updated.registered_at) {
+    const next = nextPayment(updated, await getPaymentSettings(), isStripeConfigured());
+    if (next.kind !== "deposit") await markRegistered(id);
+  }
 
   return redirect("/admin", 303);
 };

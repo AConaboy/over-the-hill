@@ -42,6 +42,9 @@ export interface Guest {
   magic_link_sent_at: string | null;
   /** 0/1 (SQLite has no boolean). Set by hosts only. */
   is_performer: number;
+  /** When their registration completed: said yes and either paid the
+   * deposit or none was due (migrations/0009). null = details saved only. */
+  registered_at: string | null;
   /** The guest's single open Stripe checkout (see migrations/0008). */
   checkout_session_id: string | null;
   checkout_session_url: string | null;
@@ -228,6 +231,12 @@ async function rsvpFieldsStatement(
            when ?1 = 'no' then 'rsvp_no'
            when status in ('rsvp_yes', 'rsvp_no') then 'viewed'
            else status
+         end,
+         -- No longer attending and nothing paid: they'll need to register
+         -- (and pay a deposit, if due) again should they come back.
+         registered_at = case
+           when ?1 <> 'yes' and coalesce(amount_paid_pence, 0) <= 0 then null
+           else registered_at
          end,
          updated_at = ?12
        where id = ?13`,
@@ -518,7 +527,7 @@ export interface RecordPaymentInput {
 }
 
 export type RecordPaymentResult =
-  | { recorded: true; guest: Guest }
+  | { recorded: true; guest: Guest; completedRegistration: boolean }
   | { recorded: false; reason: "duplicate" | "guest_not_found" };
 
 /** Adds a ledger row and brings the guest's totals in line, all in one D1
@@ -526,8 +535,11 @@ export type RecordPaymentResult =
  * the ledger rather than incremented, so it can't drift. */
 export async function recordPayment(input: RecordPaymentInput): Promise<RecordPaymentResult> {
   const db = getDb();
-  const exists = await db.prepare("select id from guests where id = ?").bind(input.guestId).first();
-  if (!exists) return { recorded: false, reason: "guest_not_found" };
+  const before = await db
+    .prepare("select registered_at from guests where id = ?")
+    .bind(input.guestId)
+    .first<{ registered_at: string | null }>();
+  if (!before) return { recorded: false, reason: "guest_not_found" };
 
   const id = input.id ?? newId();
   const [insert] = await db.batch([
@@ -550,6 +562,14 @@ export async function recordPayment(input: RecordPaymentInput): Promise<RecordPa
       )
       .bind(input.guestId, input.stripeRef ?? null, nowIso()),
     refreshPaymentStatusStatement(db, input.guestId),
+    // Money in (a deposit, usually) completes an attending guest's
+    // registration.
+    db
+      .prepare(
+        `update guests set registered_at = ?
+         where id = ? and registered_at is null and attendance = 'yes' and ? > 0`,
+      )
+      .bind(nowIso(), input.guestId, input.amountPence),
     // A completed checkout is no longer "open".
     db
       .prepare(
@@ -561,7 +581,8 @@ export async function recordPayment(input: RecordPaymentInput): Promise<RecordPa
   ]);
 
   if (insert.meta.changes === 0) return { recorded: false, reason: "duplicate" };
-  return { recorded: true, guest: await getGuestRowById(db, input.guestId) };
+  const guest = await getGuestRowById(db, input.guestId);
+  return { recorded: true, guest, completedRegistration: !before.registered_at && Boolean(guest.registered_at) };
 }
 
 export async function listPaymentsForGuest(guestId: string): Promise<PaymentRow[]> {
@@ -625,7 +646,16 @@ export async function setGuestCancelled(id: string, cancelled: boolean): Promise
 
 export type PaymentSummaryRow = Pick<
   Guest,
-  "id" | "name" | "attendance" | "status" | "ticket_ref" | "is_performer" | "amount_due_pence" | "amount_paid_pence" | "payment_status"
+  | "id"
+  | "name"
+  | "attendance"
+  | "status"
+  | "ticket_ref"
+  | "is_performer"
+  | "amount_due_pence"
+  | "amount_paid_pence"
+  | "payment_status"
+  | "registered_at"
 >;
 
 /** Just the columns the admin Payments page needs to total things up. */
@@ -634,9 +664,19 @@ export async function listGuestsForPayments(): Promise<PaymentSummaryRow[]> {
   const { results } = await db
     .prepare(
       `select id, name, attendance, status, ticket_ref, is_performer, amount_due_pence,
-              amount_paid_pence, payment_status
+              amount_paid_pence, payment_status, registered_at
        from guests order by name collate nocase`,
     )
     .all<PaymentSummaryRow>();
   return results;
+}
+
+/** Completes an attending guest's registration when no deposit is due
+ * (deposits closed, or a free performer). No-op if already registered. */
+export async function markRegistered(guestId: string): Promise<void> {
+  const db = getDb();
+  await db
+    .prepare("update guests set registered_at = ? where id = ? and registered_at is null and attendance = 'yes'")
+    .bind(nowIso(), guestId)
+    .run();
 }

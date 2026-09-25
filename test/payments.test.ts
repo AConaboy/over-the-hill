@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { depositFor, nextPayment, overpaidBy, paymentStatusFor, ticketPrice, type PaymentSettings } from "../src/lib/payments";
+import {
+  depositFor,
+  isAwaitingDeposit,
+  isRegistered,
+  nextPayment,
+  overpaidBy,
+  paymentStatusFor,
+  ticketPrice,
+  type PaymentSettings,
+} from "../src/lib/payments";
 import { paymentSettingsProblem } from "../src/lib/settings";
 
 const open: PaymentSettings = { depositPence: 2000, standardPricePence: null, depositsOpen: true, balanceOpen: false };
@@ -103,5 +112,26 @@ describe("paymentSettingsProblem", () => {
 
   it("refuses a deposit above the price", () => {
     expect(paymentSettingsProblem({ ...closed, depositPence: 5000, standardPricePence: 4000 }, true)).toMatch(/more than/);
+  });
+});
+
+describe("registration state", () => {
+  const base = { attendance: "yes" as const, status: "rsvp_yes" as const };
+
+  it("is registered only once registered_at is set", () => {
+    expect(isRegistered({ ...base, registered_at: "2027-01-01T00:00:00Z" })).toBe(true);
+    expect(isRegistered({ ...base, registered_at: null })).toBe(false);
+    expect(isAwaitingDeposit({ ...base, registered_at: null })).toBe(true);
+  });
+
+  it("never counts cancelled or non-attending guests as either", () => {
+    for (const guest of [
+      { ...base, status: "cancelled" as const, registered_at: "x" },
+      { ...base, status: "cancelled" as const, registered_at: null },
+      { attendance: "no" as const, status: "rsvp_no" as const, registered_at: null },
+    ]) {
+      expect(isRegistered(guest)).toBe(false);
+      expect(isAwaitingDeposit(guest)).toBe(false);
+    }
   });
 });

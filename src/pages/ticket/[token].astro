@@ -6,6 +6,7 @@ import PaymentPanel from "../../components/PaymentPanel.astro";
 import { getGuestByToken } from "../../lib/guests";
 import { getPaymentSettings } from "../../lib/settings";
 import { isStripeConfigured } from "../../lib/stripe";
+import { isRegistered } from "../../lib/payments";
 import { REMEMBER_COOKIE_NAME, REMEMBER_COOKIE_OPTIONS } from "../../lib/rememberCookie";
 
 const { token } = Astro.params;
@@ -21,9 +22,16 @@ if (guest) {
 
 const settings = await getPaymentSettings();
 const cancelled = guest?.status === "cancelled";
+// Attending guests only get their ticket and QR code once registration is
+// complete (deposit paid, or none was due). Before that, this page asks them
+// to pay the deposit to finish.
+const registered = guest ? isRegistered(guest) : false;
 // Back from Stripe. The webhook, not this redirect, records the payment, so
 // it may take a moment to show.
 const justPaid = Astro.url.searchParams.get("paid") === "1";
+// Back from Stripe but not recorded yet: the webhook clears the guest's open
+// checkout when it records the payment, so an open one means "still coming".
+const paymentPending = justPaid && Boolean(guest?.checkout_session_id);
 const payError = Astro.url.searchParams.get("payerror") === "1";
 ---
 
@@ -51,10 +59,15 @@ const payError = Astro.url.searchParams.get("payerror") === "1";
             </article>
           )}
 
-          {!cancelled && justPaid && guest.payment_status !== "paid_full" && (
+          {!cancelled && paymentPending && (
             <article class="content-block notice">
               <h2>Thanks for your payment!</h2>
-              <p>It's being confirmed. Refresh this page in a moment if it isn't showing yet.</p>
+              <p>
+                It's being confirmed.
+                {registered
+                  ? " Refresh this page in a moment if it isn't showing yet."
+                  : " Refresh this page in a moment to see your ticket."}
+              </p>
             </article>
           )}
 
@@ -88,16 +101,26 @@ const payError = Astro.url.searchParams.get("payerror") === "1";
 
           {!cancelled && guest.attendance === "yes" && (
             <>
-              <article class="content-block">
-                <h2>You're on the list 🎉</h2>
-                <p>
-                  Show this at the gate if asked — it's your confirmation
-                  that you're coming to Over the Hill.
-                </p>
+              {registered ? (
+                <article class="content-block">
+                  <h2>You're on the list 🎉</h2>
+                  <p>
+                    Show this at the gate if asked — it's your confirmation
+                    that you're coming to Over the Hill.
+                  </p>
 
-                {guest.ticket_ref && <TicketQr ticketRef={guest.ticket_ref} />}
-                {guest.payment_status === "paid_full" && <p class="paid-badge">Paid in full</p>}
-              </article>
+                  {guest.ticket_ref && <TicketQr ticketRef={guest.ticket_ref} />}
+                  {guest.payment_status === "paid_full" && <p class="paid-badge">Paid in full</p>}
+                </article>
+              ) : !paymentPending && (
+                <article class="content-block notice">
+                  <h2>Almost there: pay your deposit to complete your registration</h2>
+                  <p>
+                    We've saved your answers, but your place isn't confirmed
+                    (and you won't get your ticket) until your deposit is paid.
+                  </p>
+                </article>
+              )}
 
               <article class="content-block">
                 <h2>Your details</h2>
@@ -116,7 +139,12 @@ const payError = Astro.url.searchParams.get("payerror") === "1";
                 </p>
               </article>
 
-              <PaymentPanel guest={guest} settings={settings} stripeConfigured={isStripeConfigured()} />
+              <PaymentPanel
+                guest={guest}
+                settings={settings}
+                stripeConfigured={isStripeConfigured()}
+                paymentPending={paymentPending}
+              />
             </>
           )}
 

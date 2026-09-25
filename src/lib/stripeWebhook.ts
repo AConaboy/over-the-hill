@@ -8,8 +8,10 @@ import type { Guest, RecordPaymentInput, RecordPaymentResult } from "./guests";
 export interface WebhookDeps {
   recordPayment(input: RecordPaymentInput): Promise<RecordPaymentResult>;
   clearCheckout(guestId: string, sessionId: string): Promise<void>;
-  /** Called once per newly recorded payment (never for a repeat delivery). */
-  onPaymentRecorded(guest: Guest, amountPence: number): Promise<void>;
+  /** Called once per newly recorded payment (never for a repeat delivery).
+   * `completedRegistration` is true when this payment (normally the deposit)
+   * is what completed the guest's registration. */
+  onPaymentRecorded(guest: Guest, amountPence: number, completedRegistration: boolean): Promise<void>;
 }
 
 /** Throws if the signature doesn't match. Uses Web Crypto, which is what's
@@ -55,7 +57,7 @@ async function recordSessionPayment(session: Stripe.Checkout.Session, deps: Webh
 
   // Non-blocking, like the RSVP confirmation: the payment is already saved.
   try {
-    await deps.onPaymentRecorded(result.guest, session.amount_total);
+    await deps.onPaymentRecorded(result.guest, session.amount_total, result.completedRegistration);
   } catch (err) {
     console.error("Failed to send payment email", err);
   }

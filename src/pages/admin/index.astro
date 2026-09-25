@@ -46,7 +46,7 @@ function statusLabel(guest: (typeof guests)[number]): string {
     case "viewed":
       return "Opened, not responded";
     case "rsvp_yes":
-      return "Attending";
+      return guest.registered_at ? "Attending" : "Attending, deposit not paid";
     case "rsvp_no":
       return "Not attending";
     case "cancelled":

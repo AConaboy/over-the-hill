@@ -49,7 +49,7 @@ describe("verifyStripeEvent", () => {
 
 describe("handleStripeEvent", () => {
   it("records a paid checkout once, keyed on the session id, then emails", async () => {
-    const deps = fakeDeps({ recorded: true, guest: someGuest });
+    const deps = fakeDeps({ recorded: true, guest: someGuest, completedRegistration: true });
     expect(await handleStripeEvent(sessionEvent("checkout.session.completed", {}), deps)).toBe("recorded");
     expect(deps.recordPayment).toHaveBeenCalledWith({
       id: "cs_test_1",
@@ -58,7 +58,7 @@ describe("handleStripeEvent", () => {
       amountPence: 2000,
       stripeRef: "pi_1",
     });
-    expect(deps.onPaymentRecorded).toHaveBeenCalledWith(someGuest, 2000);
+    expect(deps.onPaymentRecorded).toHaveBeenCalledWith(someGuest, 2000, true);
   });
 
   it("doesn't email again for a repeated delivery", async () => {
@@ -68,7 +68,7 @@ describe("handleStripeEvent", () => {
   });
 
   it("waits for async payments to succeed before recording", async () => {
-    const deps = fakeDeps({ recorded: true, guest: someGuest });
+    const deps = fakeDeps({ recorded: true, guest: someGuest, completedRegistration: true });
     expect(await handleStripeEvent(sessionEvent("checkout.session.completed", { payment_status: "unpaid" }), deps)).toBe(
       "pending",
     );
@@ -77,21 +77,21 @@ describe("handleStripeEvent", () => {
   });
 
   it("records the balance kind from metadata", async () => {
-    const deps = fakeDeps({ recorded: true, guest: someGuest });
+    const deps = fakeDeps({ recorded: true, guest: someGuest, completedRegistration: true });
     await handleStripeEvent(sessionEvent("checkout.session.completed", { metadata: { guest_id: "guest-1", kind: "balance" } }), deps);
     expect(deps.recordPayment).toHaveBeenCalledWith(expect.objectContaining({ kind: "balance" }));
   });
 
   it("clears the open checkout when a session expires or an async payment fails", async () => {
     for (const type of ["checkout.session.expired", "checkout.session.async_payment_failed"]) {
-      const deps = fakeDeps({ recorded: true, guest: someGuest });
+      const deps = fakeDeps({ recorded: true, guest: someGuest, completedRegistration: true });
       expect(await handleStripeEvent(sessionEvent(type, {}), deps)).toBe("checkout_cleared");
       expect(deps.clearCheckout).toHaveBeenCalledWith("guest-1", "cs_test_1");
     }
   });
 
   it("keeps going if the email fails, and ignores unrelated events", async () => {
-    const deps = fakeDeps({ recorded: true, guest: someGuest });
+    const deps = fakeDeps({ recorded: true, guest: someGuest, completedRegistration: true });
     deps.onPaymentRecorded.mockRejectedValueOnce(new Error("Resend down"));
     vi.spyOn(console, "error").mockImplementation(() => {});
     expect(await handleStripeEvent(sessionEvent("checkout.session.completed", {}), deps)).toBe("recorded");

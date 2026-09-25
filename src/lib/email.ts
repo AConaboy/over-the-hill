@@ -35,11 +35,13 @@ function summariseGuest(guest: Guest): string[] {
 
 /** Non-blocking by design: callers should catch/ignore failures so a bad
  * email address or a Resend outage never stops the RSVP itself from saving. */
-export async function sendRsvpConfirmationEmail(guest: Guest): Promise<void> {
+export async function sendRsvpConfirmationEmail(guest: Guest, extraLines: string[] = []): Promise<void> {
   if (!guest.email) return;
 
   const ticketUrl = new URL(`/ticket/${guest.token}`, SITE_URL).toString();
-  const summaryLines = summariseGuest(guest);
+  // extraLines: e.g. "Deposit paid: £20" when paying the deposit is what
+  // completed their registration.
+  const summaryLines = [...summariseGuest(guest), ...extraLines];
 
   const textBody = [
     `Hi ${guest.name},`,
@@ -148,6 +150,37 @@ export async function sendPaymentReceivedEmail(
     from: FROM_ADDRESS,
     to: guest.email,
     subject: "Payment received: Over the Hill",
+    text: textBody,
+  });
+
+  if (error) {
+    throw new Error(`Resend rejected the email: ${error.name} — ${error.message}`);
+  }
+}
+
+/** Sent when an attending guest's details are saved but their registration
+ * still needs the deposit (they may have closed the payment page). Links to
+ * their ticket page, which has the Pay deposit button. */
+export async function sendDepositDueEmail(guest: Guest, depositPence: number): Promise<void> {
+  if (!guest.email) return;
+
+  const ticketUrl = new URL(`/ticket/${guest.token}`, SITE_URL).toString();
+  const textBody = [
+    `Hi ${guest.name},`,
+    "",
+    "Thanks! We've saved your RSVP details for Over the Hill.",
+    "",
+    `To complete your registration, please pay your ${formatPence(depositPence)} deposit here:`,
+    ticketUrl,
+    "",
+    "Your place isn't confirmed until the deposit is paid. You can also update your answers from the same link.",
+  ].join("\n");
+
+  const resend = getResendClient();
+  const { error } = await resend.emails.send({
+    from: FROM_ADDRESS,
+    to: guest.email,
+    subject: "Complete your Over the Hill registration",
     text: textBody,
   });
 

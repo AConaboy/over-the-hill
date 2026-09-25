@@ -49,6 +49,7 @@ for (const g of attending) {
   if (price === null) unpriced++;
   else toCollect += Math.max(0, price - (g.amount_paid_pence ?? 0));
 }
+const awaitingDeposit = attending.filter((g) => !g.registered_at).length;
 const counts = {
   unpaid: attending.filter((g) => g.payment_status === "unpaid").length,
   deposit_paid: attending.filter((g) => g.payment_status === "deposit_paid").length,
@@ -136,6 +137,7 @@ const owed = guests
           <li>Received: {formatPence(received)}</li>
           <li>Still to collect: {formatPence(toCollect)}{unpriced > 0 && ` (plus ${unpriced} ${unpriced === 1 ? "guest" : "guests"} with no price set yet)`}</li>
           <li>Attending: {attending.length} ({counts.paid_full} paid in full, {counts.deposit_paid} deposit paid, {counts.unpaid} not paid)</li>
+          {awaitingDeposit > 0 && <li>Details saved but deposit not paid (not yet registered): {awaitingDeposit}</li>}
         </ul>
       </article>
 

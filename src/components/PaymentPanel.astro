@@ -10,9 +10,12 @@ export interface Props {
   guest: Guest;
   settings: PaymentSettings;
   stripeConfigured: boolean;
+  /** Just back from Stripe: the payment is being confirmed, so don't offer
+   * to pay again in the meantime. */
+  paymentPending?: boolean;
 }
 
-const { guest, settings, stripeConfigured } = Astro.props;
+const { guest, settings, stripeConfigured, paymentPending = false } = Astro.props;
 const next = nextPayment(guest, settings, stripeConfigured);
 const price = ticketPrice(guest, settings);
 const paid = guest.amount_paid_pence ?? 0;
@@ -35,7 +38,9 @@ const remaining = price === null ? null : Math.max(0, price - paid);
         {paid > 0 && remaining !== null && remaining > 0 && <li>Left to pay: {formatPence(remaining)}</li>}
       </ul>
 
-      {(next.kind === "deposit" || next.kind === "balance") && (
+      {paymentPending && <p>Your payment is being confirmed.</p>}
+
+      {!paymentPending && (next.kind === "deposit" || next.kind === "balance") && (
         <form method="POST" action={`/api/pay/${guest.token}`}>
           <button class="button" type="submit">
             {next.kind === "deposit" ? "Pay deposit" : "Pay balance"} ({formatPence(next.amountPence)})
@@ -43,7 +48,7 @@ const remaining = price === null ? null : Math.max(0, price - paid);
         </form>
       )}
 
-      {next.kind === "deposit" && (
+      {!paymentPending && next.kind === "deposit" && (
         <p class="form-field-help payment-note">
           The deposit secures your place. You'll pay the rest once the final
           price is confirmed.

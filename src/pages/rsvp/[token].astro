@@ -7,6 +7,10 @@ import ContentBlockView from "../../components/ContentBlockView.astro";
 import { getGuestByToken, hasNothingToPay, isLinkExpired, markViewed } from "../../lib/guests";
 import { REMEMBER_COOKIE_NAME, REMEMBER_COOKIE_OPTIONS } from "../../lib/rememberCookie";
 import { findBlock, getPageContent } from "../../lib/content";
+import { getPaymentSettings } from "../../lib/settings";
+import { isAwaitingDeposit, isRegistered, nextPayment } from "../../lib/payments";
+import { isStripeConfigured } from "../../lib/stripe";
+import { formatPence } from "../../lib/money";
 
 const { token } = Astro.params;
 const guest = token ? await getGuestByToken(token) : null;
@@ -33,6 +37,13 @@ const submitted = Astro.url.searchParams.get("submitted") === "1";
 // Only set when a confirmation email actually went out. Repeat submissions
 // inside the email cooldown still save, but don't send another email.
 const emailed = Astro.url.searchParams.get("emailed") === "1";
+const payError = Astro.url.searchParams.get("payerror") === "1";
+
+// Attending but the deposit isn't paid yet: their answers are saved, but
+// registration (ticket, QR code) only completes once it's paid.
+const awaitingDeposit = guest ? isAwaitingDeposit(guest) : false;
+const registered = guest ? isRegistered(guest) : false;
+const deposit = guest && awaitingDeposit ? nextPayment(guest, await getPaymentSettings(), isStripeConfigured()) : null;
 ---
 
 <Layout
@@ -53,29 +64,49 @@ const emailed = Astro.url.searchParams.get("emailed") === "1";
         />
 
         <section class="page-content">
-          {submitted && (
+          {awaitingDeposit && (
+            <article class="content-block notice">
+              <p class="eyebrow">Almost there{submitted && `, ${guest.name}`}!</p>
+              <h2>Pay your deposit to complete your registration</h2>
+              <p>
+                We've saved your answers, but your place isn't confirmed until
+                your deposit is paid.
+                {submitted && emailed && " We've also emailed you a link so you can finish later."}
+              </p>
+              {payError && <p>We couldn't start the payment just then. Nothing was charged; please try again.</p>}
+              {deposit?.kind === "deposit" ? (
+                <form method="POST" action={`/api/pay/${guest.token}`}>
+                  <button class="button" type="submit">Pay deposit ({formatPence(deposit.amountPence)})</button>
+                </form>
+              ) : (
+                <p>Payments aren't open right now. We'll email you when they are.</p>
+              )}
+            </article>
+          )}
+
+          {submitted && !awaitingDeposit && (
             <article class="content-block notice">
               <p class="eyebrow">Thanks, {guest.name}!</p>
               <h2>
-                {guest.attendance === "yes" ? "See you there!" : "Sorry to miss you"}
+                {registered ? "You're registered. See you there!" : "Sorry to miss you"}
               </h2>
               <p>
-                {guest.attendance === "yes"
+                {registered
                   ? emailed
                     ? "We've got your answers. A confirmation email is on its way to you too."
                     : "We've got your answers."
                   : "Thanks for letting us know — we'll miss you."}
               </p>
 
-              {guest.attendance === "yes" && guest.ticket_ref && (
-                <TicketQr ticketRef={guest.ticket_ref} />
-              )}
+              {registered && guest.ticket_ref && <TicketQr ticketRef={guest.ticket_ref} />}
 
-              <p>
-                <a class="text-link" href={`/ticket/${guest.token}`}>
-                  View your ticket any time →
-                </a>
-              </p>
+              {registered && (
+                <p>
+                  <a class="text-link" href={`/ticket/${guest.token}`}>
+                    View your ticket any time →
+                  </a>
+                </p>
+              )}
             </article>
           )}
 
