@@ -2,11 +2,16 @@
 import Layout from "../../layouts/Layout.astro";
 import LinkProblemNotice from "../../components/LinkProblemNotice.astro";
 import TicketQr from "../../components/TicketQr.astro";
+import PageHero from "../../components/PageHero.astro";
+import ContentBlockView from "../../components/ContentBlockView.astro";
 import { getGuestByToken, isLinkExpired, markViewed } from "../../lib/guests";
 import { REMEMBER_COOKIE_NAME, REMEMBER_COOKIE_OPTIONS } from "../../lib/rememberCookie";
+import { getPageContent } from "../../lib/content";
 
 const { token } = Astro.params;
 const guest = token ? await getGuestByToken(token) : null;
+const { fields, blocks } = await getPageContent("rsvp-form");
+const [deadlineBlock, changingBlock, payingBlock, questionsBlock, privacyBlock] = blocks;
 
 const expired = guest ? isLinkExpired(guest) : false;
 
@@ -31,17 +36,11 @@ const submitted = Astro.url.searchParams.get("submitted") === "1";
 
     {guest && !expired && (
       <>
-        <section class="page-hero">
-          <div class="page-hero-content">
-            <p class="eyebrow">Be there or be square 🟦</p>
-            <h1>RSVP</h1>
-            <p class="page-introduction">
-              Please complete the form so that we know who is coming,
-              who is camping and whether you have any dietary or
-              accessibility requirements.
-            </p>
-          </div>
-        </section>
+        <PageHero
+          eyebrow={fields.hero_eyebrow}
+          heading={fields.hero_heading}
+          introduction={fields.hero_introduction}
+        />
 
         <section class="page-content">
           {submitted && (
@@ -68,19 +67,7 @@ const submitted = Astro.url.searchParams.get("submitted") === "1";
             </article>
           )}
 
-          <article class="content-block rsvp-introduction">
-            <h2>Please RSVP by 1 May 2027</h2>
-
-            <p>
-              We're collecting attendance, camping arrangements,
-              dietary requirements and accessibility needs so we can plan
-              the weekend properly.
-            </p>
-
-            <p>
-              A wee statement on the data collection is at the end for the very privacy-conscious 🙂
-            </p>
-          </article>
+          {deadlineBlock && <ContentBlockView block={deadlineBlock} />}
 
           <form class="rsvp-form" method="POST" action="/api/rsvp">
             <input type="hidden" name="token" value={guest.token} />
@@ -200,76 +187,10 @@ const submitted = Astro.url.searchParams.get("submitted") === "1";
             </button>
           </form>
 
-          <article class="content-block">
-            <h2>Changing your response</h2>
-
-            <p>
-              If your plans change after submitting the form, complete
-              it again or contact one of the hosts. We'll use your most recent response to plan the event.
-            </p>
-          </article>
-
-          <article class="content-block">
-            <h2>Paying</h2>
-
-            <p>
-              No payment is needed at this stage — RSVPs are free. If we introduce
-              a deposit or ticket price later, we'll let you know on your
-              <a href={`/ticket/${guest.token}`}>ticket page</a>.
-            </p>
-          </article>
-
-          <article class="content-block">
-            <h2>Questions?</h2>
-
-            <p>
-              Contact one of the hosts if you are unsure
-              about camping, food, travel or anything else before
-              submitting your response.
-            </p>
-          </article>
-
-          <article class="content-block">
-            <h2>Data protection notice</h2>
-
-            <p>
-              We collect your name, email address, and the information
-              you provide about attendance, camping, dietary needs,
-              accessibility requirements, and activities so that we can
-              plan the event and make appropriate arrangements for you.
-            </p>
-
-            <p>
-              We will process this information for the purpose of
-              organising the event, fulfilling your RSVP, and making
-              reasonable adjustments where needed. We will only keep
-              it for as long as necessary to manage the event and will
-              then delete it unless we are required to retain it for a
-              lawful reason.
-            </p>
-
-            <p>
-              The information may be shared only with the event hosts and
-              any service providers necessary to organise the event, such
-              as our database and email providers. We will not use your
-              data for marketing or any unrelated purpose.
-            </p>
-
-            <p>
-              You have the right to ask for access to, correction of, or
-              deletion of your personal data, and to withdraw your
-              consent at any time by contacting Andrew or another host.
-              By submitting this form, you confirm that you understand
-              how your information will be used and that you consent to
-              this processing.
-            </p>
-
-            <p>
-              The data in this form is stored in our own database, hosted on
-              Cloudflare, and confirmation emails are sent via Resend, our
-              email provider.
-            </p>
-          </article>
+          {changingBlock && <ContentBlockView block={changingBlock} />}
+          {payingBlock && <ContentBlockView block={payingBlock} />}
+          {questionsBlock && <ContentBlockView block={questionsBlock} />}
+          {privacyBlock && <ContentBlockView block={privacyBlock} />}
 
           <div class="page-actions">
             <a class="button" href="/">

@@ -61,6 +61,16 @@ export const CONTENT_PAGES: ContentPageDef[] = [
     ],
   },
   {
+    slug: "rsvp-form",
+    label: "RSVP form (surrounding text)",
+    routed: true,
+    fieldKeys: [
+      { key: "hero_eyebrow", label: "Eyebrow" },
+      { key: "hero_heading", label: "Heading" },
+      { key: "hero_introduction", label: "Introduction", multiline: true },
+    ],
+  },
+  {
     slug: "about",
     label: "About",
     routed: false,
