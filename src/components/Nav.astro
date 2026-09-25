@@ -15,7 +15,12 @@ const navItems = [
   <div class="nav-container">
     <div class="brand-group">
       <a class="site-logo" href="/" aria-label="Go to the homepage">
-        <img src="/images/poster-illustration.webp" alt="" width="720" height="983">
+        <!-- Spinning disco ball; a still frame for anyone who prefers reduced
+             motion. alt is empty because the link has its own label. -->
+        <picture>
+          <source srcset="/images/logo-static.webp" media="(prefers-reduced-motion: reduce)" />
+          <img src="/images/logo-animated.webp" alt="" width="54" height="54" />
+        </picture>
       </a>
       <a class="site-name" href="/">Over the Hill</a>
     </div>
