@@ -4,7 +4,9 @@
 // and dates (the wandering butterfly comes from the layout, and makes the
 // poster its home when there is one). Used on the homepage and at the
 // top of each guest's invite (RSVP) page. Put it inside the page's <main>.
-import { asset } from "../lib/assets";
+// Inline (not a separate file): it places the rays, which would otherwise
+// wait off-screen until a deferred script ran, after the first paint.
+import sunriseScript from "../../public/js/sunrise.js?raw";
 
 export interface Props {
   /** On an invite, a smaller line arcing above the title, e.g. "Sam, you
@@ -105,4 +107,4 @@ const { inviteLine } = Astro.props;
     try { if (ball && sessionStorage.getItem('oth-ball-spinning') === '1') ball.src = ball.dataset.spin; } catch (e) {}
   })();
 </script>
-<script is:inline src={asset("/js/sunrise.js")} defer></script>
+<script is:inline set:html={sunriseScript}></script>
