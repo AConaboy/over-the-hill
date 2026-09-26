@@ -221,13 +221,16 @@
     onTop('.hero-description', 0.05, 0.95, 'text'); onTop('.event-details', 0.1, 0.9, 'text');
     onTop('.home-text .button', 0.2, 0.8, 'box'); onTop('.home-text .text-link', 0.2, 0.8, 'text'); onTop('.credit-line', 0.1, 0.9, 'text');
     // invite (RSVP) page text
-    onTop('.invite-heading', 0.1, 0.9, 'text'); onTop('.invite-text .page-introduction', 0.1, 0.9, 'text');
+    onTop('.invite-text .page-introduction', 0.1, 0.9, 'text');
     // footer
     onTop('.footer-title', 0.05, 0.95, 'text'); onTop('.footer-inner > div > p:nth-child(2)', 0.1, 0.9, 'text');
     onTop('.footer-credit', 0.2, 0.8, 'text'); onTop('.footer-contact', 0.1, 0.9, 'text');
     // on the tops of the arcing title and dates: only the flatter middle of
     // each arc, where the letters stand nearly upright
-    [['#poster-arc-top', 1, 0.3, 0.7, '.poster-arc-title'], ['#poster-arc-bottom', -1, 0.3, 0.7, '.poster-arc-date']].forEach(function (a) {
+    // (on an invite, the top of the invite line above the title instead)
+    var invite = document.querySelector('.poster-arc-invite');
+    [invite ? ['#poster-arc-invite', 1, 0.3, 0.7, '.poster-arc-invite'] : ['#poster-arc-top', 1, 0.3, 0.7, '.poster-arc-title'],
+     ['#poster-arc-bottom', -1, 0.3, 0.7, '.poster-arc-date']].forEach(function (a) {
       var path = document.querySelector(a[0]), text = document.querySelector(a[4]); if (!path || !text) return;
       var svg = path.ownerSVGElement;
       add(function (r) {

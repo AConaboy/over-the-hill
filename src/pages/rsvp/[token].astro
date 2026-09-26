@@ -45,10 +45,14 @@ const awaitingDeposit = guest ? isAwaitingDeposit(guest) : false;
 const registered = guest ? isRegistered(guest) : false;
 const deposit = guest && awaitingDeposit ? nextPayment(guest, await getPaymentSettings(), isStripeConfigured()) : null;
 
-// "You're invited, Sam!": editable in admin, with {name} standing for the
-// guest's name as the hosts entered it.
-const inviteHeading = guest
-  ? (fields.invite_heading?.trim() || "You're invited, {name}!").replaceAll("{name}", guest.name)
+// "Sam, you are invited to", arcing above the poster's title. Editable in
+// admin: {first_name} is the first word of the guest's name as the hosts
+// entered it, {name} the whole of it.
+const firstName = guest?.name.trim().split(/\s+/)[0] ?? "";
+const inviteLine = guest
+  ? (fields.invite_line?.trim() || "{first_name}, you are invited to")
+      .replaceAll("{first_name}", firstName)
+      .replaceAll("{name}", guest.name)
   : "";
 ---
 
@@ -64,13 +68,17 @@ const inviteHeading = guest
     {guest && !expired && !cancelled && (
       <>
         {/* The poster, animated, as the first thing an invited guest sees,
-            with their invitation under it. */}
+            with their invitation arcing above its title. */}
         <section class="invite-hero">
           <div class="poster-hero">
-            <Poster />
+            <h1 class="visually-hidden">{inviteLine} Over the Hill Festival, August 13th to 15th 2027 at Out to Grass</h1>
+            <Poster inviteLine={inviteLine} />
+            {/* Down to the form; starts to pulse after a few seconds. Sticky,
+                so it's on screen from the start even where the poster fills
+                the screen (see .invite-jump). */}
+            <a class="button invite-jump" href="#rsvp-form">RSVP now ↓</a>
             <div class="invite-text">
               {fields.hero_eyebrow && <p class="eyebrow">{fields.hero_eyebrow}</p>}
-              <h1 class="invite-heading">{inviteHeading}</h1>
               {fields.hero_introduction && <p class="page-introduction">{fields.hero_introduction}</p>}
             </div>
           </div>
@@ -128,7 +136,7 @@ const inviteHeading = guest
 
             {deadlineBlock && <ContentBlockView block={deadlineBlock} />}
 
-            <form class="rsvp-form" method="POST" action="/api/rsvp">
+            <form class="rsvp-form" id="rsvp-form" method="POST" action="/api/rsvp">
               <input type="hidden" name="token" value={guest.token} />
 
               <div class="form-field">

@@ -4,6 +4,14 @@
 // and dates, and the wandering butterfly. Used on the homepage and at the
 // top of each guest's invite (RSVP) page. Put it inside the page's <main>.
 import { asset } from "../lib/assets";
+
+export interface Props {
+  /** On an invite, a smaller line arcing above the title, e.g. "Sam, you
+   * are invited to". The poster sits a little lower to make room for it. */
+  inviteLine?: string;
+}
+
+const { inviteLine } = Astro.props;
 ---
 
 <!-- Sun rays turning behind the whole page, centred on the disco ball
@@ -40,7 +48,7 @@ import { asset } from "../lib/assets";
   </g>
 </svg>
 
-<div class="poster-hero-art">
+<div class:list={["poster-hero-art", { "has-invite": inviteLine }]}>
   <!-- Jess Porter's illustration with its sky, rays and ball cut out,
        over a spinning disco ball that rises behind the hills. -->
   <div class="poster-illustration">
@@ -61,8 +69,14 @@ import { asset } from "../lib/assets";
   <svg aria-hidden="true" viewBox="0 0 900 980">
     <defs>
       <path id="poster-arc-top" d="M 30 490 A 420 450 0 0 1 870 490" />
+      {inviteLine && <path id="poster-arc-invite" d="M -60 490 A 510 540 0 0 1 960 490" />}
       <path id="poster-arc-bottom" d="M 20 490 A 430 460 0 0 0 880 490" />
     </defs>
+    {inviteLine && (
+      <text class="poster-arc-invite">
+        <textPath href="#poster-arc-invite" startOffset="50%" text-anchor="middle">{inviteLine}</textPath>
+      </text>
+    )}
     <text class="poster-arc-title">
       <textPath href="#poster-arc-top" startOffset="50%" text-anchor="middle">
         OVER THE HILL FESTIVAL

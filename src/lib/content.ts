@@ -67,7 +67,7 @@ export const CONTENT_PAGES: ContentPageDef[] = [
     routed: true,
     fieldKeys: [
       { key: "hero_eyebrow", label: "Eyebrow" },
-      { key: "invite_heading", label: "Invite heading ({name} is the guest's name; blank: \"You're invited, {name}!\")" },
+      { key: "invite_line", label: "Invite line, arcing above the poster title ({first_name} or {name}; blank: \"{first_name}, you are invited to\")" },
       { key: "hero_introduction", label: "Introduction", multiline: true },
     ],
   },

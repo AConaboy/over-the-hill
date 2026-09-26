@@ -385,16 +385,28 @@ h2 {
    title above and dates below included) is visible without scrolling. Its
    width is the smallest of: the page width, 900px, and whatever height is
    left under the header (~87px), the hero's top padding and a little
-   breathing room (156px in all, or --poster-reserve where more has to fit
-   on the first screen), turned into a width by the 900:980 box.
+   breathing room (156px in all), turned into a width by the 900:980 box.
    The arc text overhangs the box by ~5%, which the padding covers. 300px is
    the floor for very short windows. svh ignores mobile browser toolbars;
    the vh line is the fallback for browsers without it. */
 .poster-hero-art {
   position: relative;
-  width: min(100%, 900px, max(300px, calc((100vh - var(--poster-reserve, 156px)) * 900 / 980)));
-  width: min(100%, 900px, max(300px, calc((100svh - var(--poster-reserve, 156px)) * 900 / 980)));
+  --poster-width: min(100%, 900px, max(300px, calc((100vh - 156px) * 900 / 980)));
+  width: var(--poster-width);
   aspect-ratio: 900 / 980;
+}
+
+@supports (height: 100svh) {
+  .poster-hero-art {
+    --poster-width: min(100%, 900px, max(300px, calc((100svh - 156px) * 900 / 980)));
+  }
+}
+
+/* Room above for the invite line's arc, which reaches further up than the
+   title's. (Both percentages here are of the same width, the column the
+   poster sits in.) */
+.poster-hero-art.has-invite {
+  margin-top: calc(var(--poster-width) * 0.05);
 }
 
 .poster-hero-art img {
@@ -413,7 +425,8 @@ h2 {
 }
 
 .poster-arc-title,
-.poster-arc-date {
+.poster-arc-date,
+.poster-arc-invite {
   font-family: var(--display-font);
   fill: var(--ink);
 }
@@ -426,6 +439,12 @@ h2 {
 .poster-arc-date {
   font-size: 50px;
   letter-spacing: 4px;
+}
+
+/* "Sam, you are invited to", on an arc just outside the title (invites) */
+.poster-arc-invite {
+  font-size: 42px;
+  letter-spacing: 3px;
 }
 
 .home-text {
@@ -630,17 +649,17 @@ main:has(> .page-hero) {
   bottom: -2px;
 }
 
-/* A guest's invite (RSVP) page: the poster, animated, then "You're invited,
-   Sam!" and the form on the hill below. The top is see-through (unlike
-   .page-hero) so the rays behind the page show, as on the homepage. The
-   poster is a little smaller here so the heading fits on the first screen. */
+/* A guest's invite (RSVP) page: the poster, animated, with "Sam, you are
+   invited to" arcing above its title, then the form on the hill below. The
+   top is see-through (unlike .page-hero) so the rays behind the page show,
+   as on the homepage, and the poster is the same size as there. */
 .invite-hero {
   position: relative;
   padding-bottom: clamp(64px, 12vw, 190px);
-  --poster-reserve: calc(156px + 10rem);
 }
 
 .invite-hero .poster-hero {
+  padding-top: 2.75rem;         /* a little less: the invite arc has its own room */
   padding-bottom: 0;
   gap: 1rem;
 }
@@ -651,13 +670,60 @@ main:has(> .page-hero) {
 }
 
 .invite-text .eyebrow {
-  margin-bottom: 0.5rem;
+  margin-bottom: 1rem;
 }
 
-.invite-heading {
-  margin-bottom: 1rem;
-  font-size: clamp(2.8rem, 7vw, 5rem);
-  line-height: 1;
+/* Sticky: while its place under the poster is below the screen (the
+   poster fills the screen on laptops), it waits at the bottom of the
+   screen, then scrolls on with the page once you're past the poster. On
+   wide screens it keeps to the right there, clear of the poster's dates. */
+.invite-jump {
+  position: sticky;
+  bottom: 1.25rem;
+  z-index: 2;
+}
+
+@media (min-width: 900px) {
+  .invite-jump {
+    align-self: flex-end;
+  }
+}
+
+/* After a few seconds, a gentle pulse (and a ring spreading out from it)
+   to draw the eye down to the form. Scale and opacity only, so it's cheap
+   to animate; none for reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .invite-jump {
+    animation: invite-pulse 2.4s ease-in-out 3s infinite;
+  }
+
+  .invite-jump::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border: 3px solid var(--orange);
+    border-radius: inherit;
+    opacity: 0;
+    pointer-events: none;
+    animation: invite-ring 2.4s ease-out 3s infinite;
+  }
+}
+
+@keyframes invite-pulse {
+  0%, 40%, 100% { scale: 1; }
+  20% { scale: 1.07; }
+}
+
+@keyframes invite-ring {
+  0% { opacity: 0.9; scale: 1; }
+  60%, 100% { opacity: 0; scale: 1.35; }
+}
+
+/* Smooth scroll down to the form (and the notices) on invite pages. */
+@media (prefers-reduced-motion: no-preference) {
+  html:has(.invite-main) {
+    scroll-behavior: smooth;
+  }
 }
 
 .invite-body {
@@ -665,8 +731,10 @@ main:has(> .page-hero) {
   background: var(--hill);
 }
 
-/* Opened at #rsvp-status after sending the form: clear the sticky header. */
-#rsvp-status {
+/* Opened at #rsvp-status after sending the form, or scrolled to the form:
+   clear the sticky header. */
+#rsvp-status,
+#rsvp-form {
   scroll-margin-top: 110px;
 }
 
