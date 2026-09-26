@@ -273,9 +273,10 @@
     onTop('.invite-text .page-introduction', 0.1, 0.9, 'text');
     onTop('.page-content .content-block', 0.15, 0.85, 'box', true); onTop('.page-content .rsvp-form', 0.15, 0.85, 'box', true);
     onTop('.page-content .content-block h2', 0.1, 0.9, 'text', true); onTop('.rsvp-form label', 0.2, 0.9, 'text', true);
-    // all the way down the form: the right-hand end of each field's top
-    // edge, where there's room (the labels above are short, on the left)
-    onTop('.rsvp-form input:not([type="hidden"]), .rsvp-form select, .rsvp-form textarea', 0.72, 0.95, 'box', true);
+    // all the way down the form: anywhere along each field's top edge that
+    // isn't under its label (the label's on the left; coversText rules
+    // out spots over it, so on the left it lands just past the words)
+    onTop('.rsvp-form input:not([type="hidden"]), .rsvp-form select, .rsvp-form textarea', 0.05, 0.95, 'box', true);
     onTop('.page-content .button', 0.2, 0.8, 'box', true); onTop('.page-actions .text-link', 0.2, 0.8, 'text');
     // other pages: the page heading, its introduction, the location photo and map
     onTop('.page-hero h1', 0.1, 0.9, 'text'); onTop('.page-hero .page-introduction', 0.1, 0.9, 'text');
