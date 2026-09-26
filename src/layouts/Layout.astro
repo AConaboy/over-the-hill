@@ -1,5 +1,6 @@
 ---
 import Nav from "../components/Nav.astro";
+import { asset } from "../lib/assets";
 
 export interface Props {
   title: string;
@@ -26,11 +27,12 @@ const currentPath = Astro.url.pathname.replace(/\/$/, "") || "/";
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <!-- Spins the disco-ball tab icon in Chrome, Edge and Firefox (others keep
        the static icon). Self-contained, and off for reduced-motion users. -->
-  <script is:inline src="/favicon-animate.js" defer></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand+SC&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/css/style.css" />
+  <script is:inline src={asset("/favicon-animate.js")} defer></script>
+  <!-- Our own copies of the fonts (see the top of style.css). Preloaded so
+       they download alongside the stylesheet rather than after it. -->
+  <link rel="preload" href="/fonts/quicksand-v37-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/fonts/patrick-hand-sc-v17-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href={asset("/css/style.css")} />
 </head>
 
 <body>

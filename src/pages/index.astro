@@ -1,6 +1,7 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import { getPageContent } from "../lib/content";
+import { asset } from "../lib/assets";
 
 const { fields } = await getPageContent("index");
 const hosts = (fields.credits ?? "")
@@ -102,6 +103,6 @@ const hosts = (fields.credits ?? "")
     </section>
   </main>
 
-  <script is:inline src="/js/sunrise.js" defer></script>
-  <script is:inline src="/js/butterfly.js" defer></script>
+  <script is:inline src={asset("/js/sunrise.js")} defer></script>
+  <script is:inline src={asset("/js/butterfly.js")} defer></script>
 </Layout>

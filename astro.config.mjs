@@ -1,10 +1,23 @@
 // @ts-check
 import { defineConfig, envField } from 'astro/config';
 import cloudflare from '@astrojs/cloudflare';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+
+// Short content hashes for the hand-written CSS and JS in public/, added to
+// their URLs (see src/lib/assets.ts) so browsers can cache them for a year
+// and still pick up every change.
+const VERSIONED_ASSETS = ['/css/style.css', '/js/sunrise.js', '/js/butterfly.js', '/favicon-animate.js'];
+const assetHashes = Object.fromEntries(
+  VERSIONED_ASSETS.map((path) => [path, createHash('sha256').update(readFileSync(`public${path}`)).digest('hex').slice(0, 10)]),
+);
 
 // https://astro.build/config
 export default defineConfig({
   output: 'server',
+  vite: {
+    define: { __ASSET_HASHES__: JSON.stringify(assetHashes) },
+  },
   adapter: cloudflare({
     imageService: 'compile',
   }),
