@@ -21,8 +21,11 @@
     clickable at home on the poster.
   - Resting on page content it tucks under the sticky header; resting on the
     header (or flying) it's above it.
-  - It's kept inside the page width, so its loops can't add a sideways
-    scrollbar on phones.
+  - Its routes stay on the page (loops scale to the screen), so it neither
+    adds a sideways scrollbar on phones nor sits pinned to an edge flapping.
+  - On text and buttons it stands with its feet on the tops of the letters
+    rather than over them, and doesn't flap there, so it never covers what's
+    written; header stops that would cut off its head are skipped.
 */
 (function () {
   var FRAMES = ['/images/butterfly-frame-1.webp', '/images/butterfly-frame-3.webp', '/images/butterfly-frame-2.webp']; // up, middle, down
@@ -67,6 +70,59 @@
   // All three frames share a 221 x 304 box; the wings-up butterfly (194px
   // wide) is centred at (110.3, 95.3) in it, which is the point we position.
   var BOX_W = 221, BOX_H = 304, DRAWN_W = 194, AX = 110.3 / BOX_W, AY = 95.3 / BOX_H;
+  // Its feet: the lowest drawn pixel of the resting (wings-up) frame.
+  var FEET = 186 / BOX_H;
+  function spriteH() { return size() * BOX_W / DRAWN_W * BOX_H / BOX_W; }
+  function feetBelowAnchor() { return (FEET - AY) * spriteH(); }
+  function headAboveAnchor() { return AY * spriteH(); }
+
+  // The drawn part of the resting frame (columns 9–211, rows 3–186 of the
+  // 221 x 304 box), relative to its anchor, for checking it won't cover text.
+  function restingBox(p) {
+    var w = size() * BOX_W / DRAWN_W, h = spriteH();
+    return { left: p.x + (9 / BOX_W - AX) * w, right: p.x + (211 / BOX_W - AX) * w, top: p.y + (3 / BOX_H - AY) * h, bottom: p.y + (FEET - AY) * h - 1 };
+  }
+  var TEXT = '.site-name, .main-navigation a, .hero-description, .event-details, .home-text .button, .home-text .text-link, .credit-line, .site-footer p';
+  function textLines() {                                       // every line of the page's text, in page coordinates
+    var rects = [];
+    document.querySelectorAll(TEXT).forEach(function (e) {
+      var range = document.createRange(); range.selectNodeContents(e);
+      Array.prototype.forEach.call(range.getClientRects(), function (r) {
+        if (r.width > 0) rects.push({ el: e, left: r.left + scrollX, right: r.right + scrollX, top: r.top + scrollY, bottom: r.bottom + scrollY });
+      });
+    });
+    return rects;
+  }
+  function coversText(p, own) {                                // would it sit over any text but its own perch?
+    var b = restingBox(p);
+    return textLines().some(function (r) {
+      if (own && (r.el === own || r.el.contains(own) || own.contains(r.el))) return false;
+      return r.left < b.right && r.right > b.left && r.top < b.bottom && r.bottom > b.top;
+    });
+  }
+
+  // Where the tops of the capital letters are, below the top of a text's
+  // box: font metrics from a canvas, measured once per font.
+  var measure = document.createElement('canvas').getContext('2d'), capGaps = {};
+  function capMetrics(e) {
+    var cs = getComputedStyle(e), font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+    if (!capGaps[font]) {
+      measure.font = font;
+      var m = measure.measureText('H');
+      capGaps[font] = { gap: (m.fontBoundingBoxAscent || 0) - m.actualBoundingBoxAscent, cap: m.actualBoundingBoxAscent / parseFloat(cs.fontSize) };
+    }
+    return capGaps[font];
+  }
+  // The first line of an element's text, and the top of its letters on it.
+  function firstLine(e) {
+    var range = document.createRange(); range.selectNodeContents(e);
+    var rects = Array.prototype.filter.call(range.getClientRects(), function (r) { return r.width > 0; });
+    if (!rects.length) return null;
+    var top = rects[0].top, line = rects.filter(function (r) { return Math.abs(r.top - top) < 2; });
+    var left = Math.min.apply(null, line.map(function (r) { return r.left; }));
+    var right = Math.max.apply(null, line.map(function (r) { return r.right; }));
+    return { x: left + scrollX, w: right - left, top: top + scrollY + capMetrics(e).gap };
+  }
   el.style.transformOrigin = (AX * 100) + '% ' + (AY * 100) + '%';
 
   // How far the sprite reaches left, right and down from its anchor once
@@ -108,40 +164,50 @@
   }
 
   // ---- perches: 3–4 stops anywhere on the page ------------------------------
+  // On text and buttons it stands with its feet on the top of the letters
+  // (or the button's edge), so it never covers what's written. On the
+  // illustration it sits on things, as drawn.
   function perches() {
     var list = [];
-    function onTop(sel, from, to, all) {                       // somewhere along the top edge of an element
+    function add(fn, onHeader, onTop, own) { fn.onHeader = !!onHeader; fn.onTop = !!onTop; fn.own = own || null; list.push(fn); }
+    function onTop(sel, from, to, kind, all) {                // along the top of an element: "text" or its "box"
       (all ? Array.prototype.slice.call(document.querySelectorAll(sel)) : [document.querySelector(sel)]).forEach(function (e) {
         if (!e) return;
-        var fn = function (r) { var q = page(e); return { x: q.x + q.w * (from + (to - from) * r), y: q.y + 4, visible: q.w > 0 && q.h > 0 }; };
-        fn.onHeader = !!(header && header.contains(e));
-        list.push(fn);
+        add(function (r) {
+          var q = page(e), visible = q.w > 0 && q.h > 0, line = kind === 'text' && visible ? firstLine(e) : null;
+          var x = line ? line.x + line.w * (from + (to - from) * r) : q.x + q.w * (from + (to - from) * r);
+          var top = line ? line.top : q.y;
+          return { x: x, y: top - feetBelowAnchor(), visible: visible };
+        }, header && header.contains(e), true, e);
       });
     }
     // header
-    onTop('.site-logo', 0.3, 0.7); onTop('.site-name', 0.2, 0.9);
-    onTop('.main-navigation a:not(.nav-rsvp)', 0.2, 0.8, true); onTop('.nav-rsvp', 0.3, 0.7);
+    onTop('.site-logo', 0.3, 0.7, 'box'); onTop('.site-name', 0.2, 0.9, 'text');
+    onTop('.main-navigation a:not(.nav-rsvp)', 0.2, 0.8, 'text', true); onTop('.nav-rsvp', 0.3, 0.7, 'box');
     // homepage text
-    onTop('.hero-description', 0.05, 0.95); onTop('.event-details', 0.1, 0.9);
-    onTop('.home-text .button', 0.2, 0.8); onTop('.home-text .text-link', 0.2, 0.8); onTop('.credit-line', 0.1, 0.9);
+    onTop('.hero-description', 0.05, 0.95, 'text'); onTop('.event-details', 0.1, 0.9, 'text');
+    onTop('.home-text .button', 0.2, 0.8, 'box'); onTop('.home-text .text-link', 0.2, 0.8, 'text'); onTop('.credit-line', 0.1, 0.9, 'text');
     // footer
-    onTop('.footer-title', 0.05, 0.95); onTop('.footer-inner > div > p:nth-child(2)', 0.1, 0.9);
-    onTop('.footer-credit', 0.2, 0.8); onTop('.footer-contact', 0.1, 0.9);
-    // on top of the arcing title and dates (points along the SVG arcs)
-    [['#poster-arc-top', 1, 0.08, 0.92, 72], ['#poster-arc-bottom', -1, 0.1, 0.9, 50]].forEach(function (a) {
-      var path = document.querySelector(a[0]); if (!path) return;
+    onTop('.footer-title', 0.05, 0.95, 'text'); onTop('.footer-inner > div > p:nth-child(2)', 0.1, 0.9, 'text');
+    onTop('.footer-credit', 0.2, 0.8, 'text'); onTop('.footer-contact', 0.1, 0.9, 'text');
+    // on the tops of the arcing title and dates: only the flatter middle of
+    // each arc, where the letters stand nearly upright
+    [['#poster-arc-top', 1, 0.3, 0.7, '.poster-arc-title'], ['#poster-arc-bottom', -1, 0.3, 0.7, '.poster-arc-date']].forEach(function (a) {
+      var path = document.querySelector(a[0]), text = document.querySelector(a[4]); if (!path || !text) return;
       var svg = path.ownerSVGElement;
-      list.push(function (r) {
+      add(function (r) {
         var len = path.getTotalLength(), t = a[2] + (a[3] - a[2]) * r, p = path.getPointAtLength(len * t);
+        // letter height in the SVG's units, plus a little clearance for the tilted letters' corners
+        var capUnits = parseFloat(getComputedStyle(text).fontSize) * capMetrics(text).cap + 6;
         var dx = p.x - 450, dy = p.y - 490, n = Math.hypot(dx, dy) || 1;       // out from the arcs' centre
-        var pt = svg.createSVGPoint(); pt.x = p.x + dx / n * a[4] * a[1]; pt.y = p.y + dy / n * a[4] * a[1];
+        var pt = svg.createSVGPoint(); pt.x = p.x + dx / n * capUnits * a[1]; pt.y = p.y + dy / n * capUnits * a[1];
         var q = pt.matrixTransform(svg.getScreenCTM());
-        return { x: q.x + scrollX, y: q.y + scrollY, visible: true };
-      });
+        return { x: q.x + scrollX, y: q.y + scrollY - feetBelowAnchor(), visible: true };
+      }, false, true);
     });
     // the illustration: treetop, branches, disco ball, flowers, hills, mushroom caps, tulips
     [[0.52, 0.03], [0.30, 0.10], [0.82, 0.14], [0.71, 0.43], [0.20, 0.60], [0.73, 0.83], [0.60, 0.80], [0.45, 0.55], [0.40, 0.90]].forEach(function (f) {
-      list.push(function () { var a = page(art); return { x: a.x + a.w * f[0], y: a.y + a.h * f[1], visible: true }; });
+      add(function () { var a = page(art); return { x: a.x + a.w * f[0], y: a.y + a.h * f[1], visible: true }; });
     });
     return list;
   }
@@ -150,13 +216,17 @@
     var width = document.documentElement.clientWidth;
     var cands = perches().map(function (fn, i) {
       var r = Math.random(), bound = function () { return fn(r); };
-      bound.onHeader = fn.onHeader;
+      bound.onHeader = fn.onHeader; bound.onTop = fn.onTop; bound.own = fn.own;
       return { i: i, fn: bound };
     }).filter(function (c) {
       var p = c.fn();
       // hidden elements (e.g. the nav links behind the phone menu) report a
       // zero-size box at the top-left of the page: skip them
-      return p.visible && recent.indexOf(c.i) < 0 && p.x > 30 && p.x < width - 30 && Math.hypot(p.x - from.x, p.y - from.y) > 260;
+      // a header stop too near the top of the screen would cut off its head
+      if (c.fn.onHeader && p.y - scrollY - headAboveAnchor() < 0) return false;
+      if (!(p.visible && recent.indexOf(c.i) < 0 && p.x > 30 && p.x < width - 30 && Math.hypot(p.x - from.x, p.y - from.y) > 260)) return false;
+      // no room above this text (another line close above it): skip it
+      return !(c.fn.onTop && coversText(p, c.fn.own));
     });
     if (!cands.length) return null;
     // favour far-away perches so it really explores
@@ -177,18 +247,33 @@
     var dx = to.x - from.x, dy = to.y - from.y, dist = Math.hypot(dx, dy) || 1;
     var legs = Math.max(2, Math.min(5, Math.round(dist / 260))), bends = [];
     for (var i = 1; i < legs; i++) {                           // a meandering route, a loop or two
-      bends.push({ t: i / legs, swing: (Math.random() - .5) * Math.min(dist * 0.6, 320) });
+      // loops scale down on narrow screens so they fit
+      bends.push({ t: i / legs, swing: (Math.random() - .5) * Math.min(dist * 0.6, 320, document.documentElement.clientWidth * 0.5) });
     }
-    flight = { from: from, bends: bends, target: target, start: performance.now(), dur: Math.min(1400 + dist * 2.6, 9000), then: then };
+    // Flights to the sticky header are worked out relative to the screen
+    // (where the header stays) rather than the page, so scrolling mid-flight
+    // doesn't carry it off and back.
+    var screen = !!target.onHeader;
+    if (screen) from.y -= scrollY;
+    flight = { from: from, bends: bends, target: target, screen: screen, t: 0, start: performance.now(), dur: Math.min(1400 + dist * 2.6, 9000), then: then };
     setState('flying');
   }
   function flightPoint(t) {
-    var from = flight.from, to = flight.target();
+    var from = flight.from, to = flight.target(), sy = flight.screen ? scrollY : 0;
+    to = { x: to.x, y: to.y - sy };
     var dx = to.x - from.x, dy = to.y - from.y, dist = Math.hypot(dx, dy) || 1, nx = -dy / dist, ny = dx / dist;
+    // keep the route's bends on the page, so its loops don't run off the
+    // side (where it would sit pinned to the edge, flapping)
+    var margin = size() * 1.2, maxX = document.documentElement.clientWidth - margin;
+    var maxY = flight.screen ? innerHeight - margin : document.documentElement.scrollHeight - margin;
     var pts = [from].concat(flight.bends.map(function (b) {
-      return { x: from.x + dx * b.t + nx * b.swing, y: from.y + dy * b.t + ny * b.swing - 40 };
+      return {
+        x: Math.min(Math.max(from.x + dx * b.t + nx * b.swing, margin), maxX),
+        y: Math.min(Math.max(from.y + dy * b.t + ny * b.swing - 40, margin), maxY)
+      };
     }), [to]);
-    return along(pts, ease(t));
+    var p = along(pts, ease(t));
+    return { x: p.x, y: p.y + sy };
   }
 
   // ---- the tour -------------------------------------------------------------
@@ -239,7 +324,7 @@
     if (!tour) tour = { left: 0, perch: home, until: now + 3000, recent: [] };
 
     if (flight) {
-      var t = Math.min((now - flight.start) / flight.dur, 1);
+      var t = flight.t = Math.min((now - flight.start) / flight.dur, 1);
       var p = flightPoint(t);
       moveTo(p.x, p.y + Math.sin(t * Math.PI * 10) * 6);    // a little bob
       fly.wing = CYCLE[tick % 4];                              // one flap every 4 steps
@@ -255,7 +340,9 @@
     }
 
     // resting: a lazy single flap now and then (middle, down, middle, up)
-    if (!flight) {
+    if (!flight && tour.perch.onTop) {
+      fly.wing = 0;                                            // stands still on text and buttons
+    } else if (!flight) {
       if (fly.restFlap > 0) { fly.wing = CYCLE[fly.restFlap]; fly.restFlap = (fly.restFlap + 1) % 4; }
       else if (now > restFlapAt) { fly.restFlap = 2; fly.wing = 1; restFlapAt = now + 2200 + Math.random() * 2500; }
       else fly.wing = 0;
@@ -286,13 +373,24 @@
 
   // Reduced motion: rest at home, kept in place on resize; follow the
   // setting if it changes while the page is open.
-  function onResize() { if (!running) restAtHome(); }
+  function onResize() {
+    if (!running) { restAtHome(); return; }
+    // redraw straight away: waiting for the next step would leave it where
+    // the old, wider page's edge was for a moment
+    if (!flight && tour) { var pp = tour.perch(); fly.x = pp.x; fly.y = pp.y; }
+    draw();
+  }
 
-  // While resting, follow the perch on every scroll rather than on the next
-  // 12 fps step: a perch on the sticky header would otherwise be carried off
-  // with the page for a moment and snap back.
+  // While resting (or flying to the header), follow on every scroll rather
+  // than on the next 12 fps step: anything on the sticky header would
+  // otherwise be carried off with the page for a moment and snap back.
   addEventListener('scroll', function () {
-    if (!running || flight || !tour) return;
+    if (!running || !tour) return;
+    if (flight) {
+      if (!flight.screen) return;                              // page flights don't move with the screen
+      var p = flightPoint(flight.t); fly.x = p.x; fly.y = p.y + Math.sin(flight.t * Math.PI * 10) * 6; draw();
+      return;
+    }
     var pp = tour.perch(); fly.x = pp.x; fly.y = pp.y; draw();
   }, { passive: true });
   addEventListener('resize', onResize);
