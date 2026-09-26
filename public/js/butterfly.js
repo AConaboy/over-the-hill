@@ -114,9 +114,9 @@
     });
     return rects;
   }
-  function coversText(p, own) {                                // would it sit over any text but its own perch?
+  function coversText(p, own, lines) {                         // would it sit over any text but its own perch?
     var b = restingBox(p);
-    return textLines().some(function (r) {
+    return (lines || textLines()).some(function (r) {
       if (own && (r.el === own || r.el.contains(own) || own.contains(r.el))) return false;
       return r.left < b.right && r.right > b.left && r.top < b.bottom && r.bottom > b.top;
     });
@@ -250,7 +250,7 @@
     // Resting tucked under the header (on page content scrolled beneath it),
     // it can't fly up onto the header without popping out in front of it,
     // so it picks somewhere else this time.
-    var hb = header && header.getBoundingClientRect(), box = restingBox(from);
+    var hb = header && header.getBoundingClientRect(), box = restingBox(from), lines = null;   // text lines, measured once
     var underHeader = !!(hb && leaving && !leaving.onHeader && box.top - scrollY < hb.bottom && box.bottom - scrollY > hb.top);
     var cands = perches().map(function (fn, i) {
       var r = Math.random(), bound = function () { return fn(r); };
@@ -270,7 +270,7 @@
       }
       if (!(p.visible && recent.indexOf(c.i) < 0 && p.x > 30 && p.x < width - 30 && Math.hypot(p.x - from.x, p.y - from.y) > 260)) return false;
       // no room above this text (another line close above it): skip it
-      return !(c.fn.onTop && coversText(p, c.fn.own));
+      return !(c.fn.onTop && coversText(p, c.fn.own, lines || (lines = textLines())));
     });
     if (!cands.length) return null;
     // favour far-away perches so it really explores
@@ -358,11 +358,25 @@
 
   // click it while it rests at home to send it off early
   el.addEventListener('click', function () {
-    if (!flight && tour && tour.perch === home) tour.until = 0;
+    if (running && !flight && tour && tour.perch === home) { tour.until = 0; schedule(0); }
   });
 
   // ---- main loop (stepped at 12 fps) ---------------------------------------
-  var tick = 0, lastStep = 0, restFlapAt = 0, running = false, hiddenAt = 0;
+  // Steps are scheduled only when something's due (every step while flying
+  // or flapping; otherwise at the next flap or take-off, and at least once a
+  // second), not on every animation frame: a 60 fps loop kept the browser
+  // redrawing the page, rays and all, every frame even while it sat still.
+  var tick = 0, restFlapAt = 0, running = false, hiddenAt = 0, timer = 0;
+  function schedule(ms) {
+    clearTimeout(timer);
+    timer = setTimeout(function () { requestAnimationFrame(frame); }, ms);
+  }
+  function nextStepIn(now) {
+    if (flight || fly.restFlap > 0) return STEP;
+    var due = tour.until;
+    if (!tour.perch.onTop) due = Math.min(due, restFlapAt);
+    return Math.min(Math.max(due - now, STEP), 1000);
+  }
 
   // Back to resting at home, the tour starting over: the way out of anything
   // unexpected, so it can never stay stuck.
@@ -382,13 +396,12 @@
 
   function frame(now) {
     if (!running) return;
-    requestAnimationFrame(frame);
-    if (now - lastStep < STEP) return;
-    lastStep = now; tick++;
+    tick++;
     try { step(now); } catch (err) {
       console.error('butterfly:', err);
       settleHome(); draw();
     }
+    schedule(nextStepIn(now));
   }
 
   function step(now) {
@@ -438,10 +451,10 @@
     if (running) return;
     restAtHome();
     running = true;
-    requestAnimationFrame(frame);
+    schedule(0);
   }
   function stop() {
-    running = false;
+    running = false; clearTimeout(timer);
     restAtHome();
   }
 

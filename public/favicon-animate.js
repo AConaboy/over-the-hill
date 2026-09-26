@@ -12,13 +12,17 @@
     document.head.appendChild(link);
     var sprite = new Image();
     sprite.onload = function () {
+      // Encode each frame once, up front, rather than ten times a second.
       var c = document.createElement('canvas'); c.width = c.height = SIZE;
-      var ctx = c.getContext('2d'), f = 0;
+      var ctx = c.getContext('2d'), urls = [], f = 0;
+      for (var i = 0; i < FRAMES; i++) {
+        ctx.clearRect(0, 0, SIZE, SIZE);
+        ctx.drawImage(sprite, i * SIZE, 0, SIZE, SIZE, 0, 0, SIZE, SIZE);
+        urls.push(c.toDataURL('image/png'));
+      }
       function tick() {
         if (!document.hidden) {
-          ctx.clearRect(0, 0, SIZE, SIZE);
-          ctx.drawImage(sprite, f * SIZE, 0, SIZE, SIZE, 0, 0, SIZE, SIZE);
-          link.href = c.toDataURL('image/png');
+          link.href = urls[f];
           f = (f + 1) % FRAMES;
         }
       }

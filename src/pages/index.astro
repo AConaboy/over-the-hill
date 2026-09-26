@@ -57,11 +57,12 @@ const hosts = (fields.credits ?? "")
         <!-- Jess Porter's illustration with its sky, rays and ball cut out,
              over a spinning disco ball that rises behind the hills. -->
         <div class="poster-illustration">
-          <picture>
-            <source srcset="/images/disco-ball-still.webp" media="(prefers-reduced-motion: reduce)" />
-            <img class="poster-ball" src="/images/disco-ball.webp" alt="" width="360" height="360" />
-          </picture>
+          <!-- Starts as the still ball (28 KB, the animation's first frame);
+               /js/sunrise.js swaps in the spinning one (750 KB) once the
+               page has loaded, unless motion is reduced. -->
+          <img class="poster-ball" src="/images/disco-ball-still.webp" data-spin="/images/disco-ball.webp" alt="" width="360" height="360" />
           <img
+            fetchpriority="high"
             src="/images/poster-illustration-open-sky.webp"
             srcset="/images/poster-illustration-open-sky-700.webp 700w, /images/poster-illustration-open-sky.webp 1099w"
             sizes="(max-width: 932px) 58vw, 520px"
