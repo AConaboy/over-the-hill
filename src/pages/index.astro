@@ -1,7 +1,7 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import { getPageContent } from "../lib/content";
-import { asset } from "../lib/assets";
+import Poster from "../components/Poster.astro";
 
 const { fields } = await getPageContent("index");
 const hosts = (fields.credits ?? "")
@@ -15,80 +15,13 @@ const hosts = (fields.credits ?? "")
   description="Information about our party, including camping, food, activities and travel."
 >
   <main class="homepage-main">
-    <!-- Sun rays turning behind the whole page, centred on the disco ball
-         by /js/sunrise.js. Decorative; still for reduced motion. -->
-    <svg class="sunrise-rays" aria-hidden="true">
-      <defs>
-        <radialGradient id="sunrise-fade" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1">
-          <!-- strong round the ball, fading out quickly towards the edges -->
-          <stop offset="0" stop-opacity="1" />
-          <stop offset="0.12" stop-opacity="0.9" />
-          <stop offset="0.3" stop-opacity="0.45" />
-          <stop offset="0.5" stop-opacity="0.15" />
-          <stop offset="0.7" stop-opacity="0.04" />
-          <stop offset="1" stop-opacity="0" />
-        </radialGradient>
-      </defs>
-      <g class="pos" transform="translate(-9999 -9999)">
-        <g class="scale">
-          <g class="spin">
-            <polygon points="0,0 -0.1305,-0.9914 0.1305,-0.9914" />
-            <polygon points="0,0 0.3827,-0.9239 0.6088,-0.7934" />
-            <polygon points="0,0 0.7934,-0.6088 0.9239,-0.3827" />
-            <polygon points="0,0 0.9914,-0.1305 0.9914,0.1305" />
-            <polygon points="0,0 0.9239,0.3827 0.7934,0.6088" />
-            <polygon points="0,0 0.6088,0.7934 0.3827,0.9239" />
-            <polygon points="0,0 0.1305,0.9914 -0.1305,0.9914" />
-            <polygon points="0,0 -0.3827,0.9239 -0.6088,0.7934" />
-            <polygon points="0,0 -0.7934,0.6088 -0.9239,0.3827" />
-            <polygon points="0,0 -0.9914,0.1305 -0.9914,-0.1305" />
-            <polygon points="0,0 -0.9239,-0.3827 -0.7934,-0.6088" />
-            <polygon points="0,0 -0.6088,-0.7934 -0.3827,-0.9239" />
-          </g>
-        </g>
-      </g>
-    </svg>
 
     <section class="poster-hero">
       <h1 class="visually-hidden">
         Over the Hill Festival – August 13th to 15th 2027 at Out to Grass
       </h1>
 
-      <div class="poster-hero-art">
-        <!-- Jess Porter's illustration with its sky, rays and ball cut out,
-             over a spinning disco ball that rises behind the hills. -->
-        <div class="poster-illustration">
-          <!-- Starts as the still ball (28 KB, the animation's first frame);
-               /js/sunrise.js swaps in the spinning one (18 frames at 12 fps,
-               375 KB) once the page has loaded, unless motion is reduced. -->
-          <img class="poster-ball" src="/images/disco-ball-still.webp" data-spin="/images/disco-ball-12fps.webp" alt="" width="360" height="360" />
-          <img
-            fetchpriority="high"
-            src="/images/poster-illustration-open-sky.webp"
-            srcset="/images/poster-illustration-open-sky-700.webp 700w, /images/poster-illustration-open-sky.webp 1099w"
-            sizes="(max-width: 932px) 58vw, 520px"
-            alt="A twisting tree over rolling green hills, a disco-ball sun rising behind them, wild flowers and mushrooms"
-            width="1099"
-            height="1490"
-          />
-        </div>
-        <svg aria-hidden="true" viewBox="0 0 900 980">
-          <defs>
-            <path id="poster-arc-top" d="M 30 490 A 420 450 0 0 1 870 490" />
-            <path id="poster-arc-bottom" d="M 20 490 A 430 460 0 0 0 880 490" />
-          </defs>
-          <text class="poster-arc-title">
-            <textPath href="#poster-arc-top" startOffset="50%" text-anchor="middle">
-              OVER THE HILL FESTIVAL
-            </textPath>
-          </text>
-          <text class="poster-arc-date">
-            <textPath href="#poster-arc-bottom" startOffset="50%" text-anchor="middle">
-              AUGUST 13TH – 15TH 2027 @ OUT TO GRASS
-            </textPath>
-          </text>
-        </svg>
-      </div>
+      <Poster />
 
       <div class="home-text">
         <p class="hero-description">{fields.tagline}</p>
@@ -102,7 +35,4 @@ const hosts = (fields.credits ?? "")
       </div>
     </section>
   </main>
-
-  <script is:inline src={asset("/js/sunrise.js")} defer></script>
-  <script is:inline src={asset("/js/butterfly.js")} defer></script>
 </Layout>

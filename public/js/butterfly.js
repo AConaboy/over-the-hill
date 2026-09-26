@@ -103,7 +103,7 @@
     var w = size() * BOX_W / DRAWN_W, h = spriteH();
     return { left: p.x + (9 / BOX_W - AX) * w, right: p.x + (211 / BOX_W - AX) * w, top: p.y + (3 / BOX_H - AY) * h, bottom: p.y + (FEET - AY) * h - 1 };
   }
-  var TEXT = '.site-name, .main-navigation a, .hero-description, .event-details, .home-text .button, .home-text .text-link, .credit-line, .site-footer p';
+  var TEXT = '.site-name, .main-navigation a, .hero-description, .event-details, .home-text .button, .home-text .text-link, .credit-line, .site-footer p, .invite-text > *';
   function textLines() {                                       // every line of the page's text, in page coordinates
     var rects = [];
     document.querySelectorAll(TEXT).forEach(function (e) {
@@ -220,6 +220,8 @@
     // homepage text
     onTop('.hero-description', 0.05, 0.95, 'text'); onTop('.event-details', 0.1, 0.9, 'text');
     onTop('.home-text .button', 0.2, 0.8, 'box'); onTop('.home-text .text-link', 0.2, 0.8, 'text'); onTop('.credit-line', 0.1, 0.9, 'text');
+    // invite (RSVP) page text
+    onTop('.invite-heading', 0.1, 0.9, 'text'); onTop('.invite-text .page-introduction', 0.1, 0.9, 'text');
     // footer
     onTop('.footer-title', 0.05, 0.95, 'text'); onTop('.footer-inner > div > p:nth-child(2)', 0.1, 0.9, 'text');
     onTop('.footer-credit', 0.2, 0.8, 'text'); onTop('.footer-contact', 0.1, 0.9, 'text');

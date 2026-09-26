@@ -67,7 +67,7 @@ export const CONTENT_PAGES: ContentPageDef[] = [
     routed: true,
     fieldKeys: [
       { key: "hero_eyebrow", label: "Eyebrow" },
-      { key: "hero_heading", label: "Heading" },
+      { key: "invite_heading", label: "Invite heading ({name} is the guest's name; blank: \"You're invited, {name}!\")" },
       { key: "hero_introduction", label: "Introduction", multiline: true },
     ],
   },

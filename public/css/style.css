@@ -374,7 +374,7 @@ h2 {
 .poster-hero {
   width: min(100% - 2rem, var(--maximum-width));
   margin-inline: auto;
-  padding: 2.5rem 0 4rem;
+  padding: 3.5rem 0 4rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -385,14 +385,15 @@ h2 {
    title above and dates below included) is visible without scrolling. Its
    width is the smallest of: the page width, 900px, and whatever height is
    left under the header (~87px), the hero's top padding and a little
-   breathing room (140px in all), turned into a width by the 900:980 box.
-   The arc text overhangs the box by ~4%, which the margin covers. 300px is
+   breathing room (156px in all, or --poster-reserve where more has to fit
+   on the first screen), turned into a width by the 900:980 box.
+   The arc text overhangs the box by ~5%, which the padding covers. 300px is
    the floor for very short windows. svh ignores mobile browser toolbars;
    the vh line is the fallback for browsers without it. */
 .poster-hero-art {
   position: relative;
-  width: min(100%, 900px, max(300px, calc((100vh - 140px) * 900 / 980)));
-  width: min(100%, 900px, max(300px, calc((100svh - 140px) * 900 / 980)));
+  width: min(100%, 900px, max(300px, calc((100vh - var(--poster-reserve, 156px)) * 900 / 980)));
+  width: min(100%, 900px, max(300px, calc((100svh - var(--poster-reserve, 156px)) * 900 / 980)));
   aspect-ratio: 900 / 980;
 }
 
@@ -418,8 +419,8 @@ h2 {
 }
 
 .poster-arc-title {
-  font-size: 76px;
-  letter-spacing: 7px;
+  font-size: 88px;
+  letter-spacing: 8px;
 }
 
 .poster-arc-date {
@@ -468,7 +469,8 @@ h2 {
 }
 
 .hill-section::before,
-main:has(> .page-hero) > .page-hero::after {
+main:has(> .page-hero) > .page-hero::after,
+.invite-hero::after {
   content: "";
   position: absolute;
   left: 0;
@@ -623,8 +625,49 @@ main:has(> .page-hero) {
   background: var(--cream);
 }
 
-.page-hero::after {
+.page-hero::after,
+.invite-hero::after {
   bottom: -2px;
+}
+
+/* A guest's invite (RSVP) page: the poster, animated, then "You're invited,
+   Sam!" and the form on the hill below. The top is see-through (unlike
+   .page-hero) so the rays behind the page show, as on the homepage. The
+   poster is a little smaller here so the heading fits on the first screen. */
+.invite-hero {
+  position: relative;
+  padding-bottom: clamp(64px, 12vw, 190px);
+  --poster-reserve: calc(156px + 10rem);
+}
+
+.invite-hero .poster-hero {
+  padding-bottom: 0;
+  gap: 1rem;
+}
+
+.invite-text {
+  max-width: 850px;
+  text-align: center;
+}
+
+.invite-text .eyebrow {
+  margin-bottom: 0.5rem;
+}
+
+.invite-heading {
+  margin-bottom: 1rem;
+  font-size: clamp(2.8rem, 7vw, 5rem);
+  line-height: 1;
+}
+
+.invite-body {
+  padding-bottom: 1px;          /* keeps the last margin inside the green */
+  background: var(--hill);
+}
+
+/* Opened at #rsvp-status after sending the form: clear the sticky header. */
+#rsvp-status {
+  scroll-margin-top: 110px;
 }
 
 .page-hero-content {
@@ -1013,7 +1056,7 @@ main:has(> .page-hero) {
   }
 
   .poster-hero {
-    padding-top: 1.5rem;
+    padding-top: 2.25rem;
   }
 
   .button-row .button {

@@ -86,7 +86,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     if (checkout.ok) return redirect(checkout.url, 303);
     // Couldn't reach Stripe: their answers are saved, and the page offers
     // the Pay deposit button to try again.
-    return redirect(`${submittedUrl}${checkout.reason === "error" ? "&payerror=1" : ""}`, 303);
+    return redirect(`${submittedUrl}${checkout.reason === "error" ? "&payerror=1" : ""}#rsvp-status`, 303);
   }
-  return redirect(submittedUrl, 303);
+  return redirect(`${submittedUrl}#rsvp-status`, 303);
 };
