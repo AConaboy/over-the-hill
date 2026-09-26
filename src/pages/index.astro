@@ -19,10 +19,12 @@ const hosts = (fields.credits ?? "")
     <svg class="sunrise-rays" aria-hidden="true">
       <defs>
         <radialGradient id="sunrise-fade" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1">
+          <!-- strong round the ball, fading out quickly towards the edges -->
           <stop offset="0" stop-opacity="1" />
-          <stop offset="0.22" stop-opacity="0.95" />
-          <stop offset="0.55" stop-opacity="0.45" />
-          <stop offset="0.85" stop-opacity="0.1" />
+          <stop offset="0.12" stop-opacity="0.9" />
+          <stop offset="0.3" stop-opacity="0.45" />
+          <stop offset="0.5" stop-opacity="0.15" />
+          <stop offset="0.7" stop-opacity="0.04" />
           <stop offset="1" stop-opacity="0" />
         </radialGradient>
       </defs>
