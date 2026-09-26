@@ -24,6 +24,9 @@
     header and then pops underneath.
   - Its routes stay on the page (loops scale to the screen), so it neither
     adds a sideways scrollbar on phones nor sits pinned to an edge flapping.
+  - It can't get stuck flapping in one place: short hops are quick, flights
+    never crawl at their ends, a watchdog ends any flight that stops moving
+    or overruns, and any bad position or error sends it back home to rest.
   - On text and buttons it stands with its feet on the tops of the letters
     rather than over them, and doesn't flap there, so it never covers what's
     written; header stops that would cut off its head are skipped.
@@ -62,11 +65,28 @@
     function f(a, b, c, d) { return 0.5 * ((2 * b) + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3); }
     return { x: f(p0.x, p1.x, p2.x, p3.x), y: f(p0.y, p1.y, p2.y, p3.y) };
   }
-  function along(pts, t) {                                     // t 0..1 along a smooth path through pts
-    var n = pts.length - 1, s = Math.min(t * n, n - 1e-6), i = Math.floor(s);
-    return catmull(pts[Math.max(i - 1, 0)], pts[i], pts[i + 1], pts[Math.min(i + 2, n)], s - i);
+  // t 0..1 along a smooth path through pts, by distance: each stretch gets
+  // time in proportion to its length. (Split evenly, a short stretch, e.g.
+  // where bends were clamped onto the same spot at the edge of the screen,
+  // took as long as a long one: flapping on the spot for a second or two.)
+  // Points almost on top of the one before are dropped for the same reason.
+  function along(pts, t) {
+    var kept = [pts[0]];
+    for (var k = 1; k < pts.length; k++) {
+      var last = k === pts.length - 1;
+      if (Math.hypot(pts[k].x - kept[kept.length - 1].x, pts[k].y - kept[kept.length - 1].y) >= 30) kept.push(pts[k]);
+      else if (last) { if (kept.length > 1) kept[kept.length - 1] = pts[k]; else kept.push(pts[k]); }
+    }
+    var n = kept.length - 1, lens = [], total = 0;
+    for (var j = 0; j < n; j++) { var l = Math.hypot(kept[j + 1].x - kept[j].x, kept[j + 1].y - kept[j].y) || 1e-6; lens.push(l); total += l; }
+    var d = Math.min(Math.max(t, 0), 1) * total, i = 0;
+    while (i < n - 1 && d > lens[i]) { d -= lens[i]; i++; }
+    return catmull(kept[Math.max(i - 1, 0)], kept[i], kept[i + 1], kept[Math.min(i + 2, n)], Math.min(d / lens[i], 1));
   }
-  function ease(t) { return t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+  // Eases in and out, but part linear, so a flight never crawls almost to a
+  // stop at either end (which looks like flapping in place).
+  function ease(t) { var e = t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; return 0.35 * t + 0.65 * e; }
+  function finite(p) { return !!p && isFinite(p.x) && isFinite(p.y); }
 
   // All three frames share a 221 x 304 box; the wings-up butterfly (194px
   // wide) is centred at (110.3, 95.3) in it, which is the point we position.
@@ -139,6 +159,7 @@
   }
 
   function draw() {
+    if (!finite(fly)) { var hh = home(); fly.x = hh.x; fly.y = hh.y; }
     var w = size() * BOX_W / DRAWN_W, h = w * BOX_H / BOX_W, r = reach(w, h);
     // Keep the whole sprite inside the page width (no sideways scrollbar on
     // phones) and above the bottom of the page.
@@ -168,8 +189,8 @@
   function layerForFlight() {
     var above = !!flight.target.onHeader;
     if (!above && flight.fromHeader && header) {
-      var headTop = fly.y - scrollY - headAboveAnchor();
-      if (headTop < header.getBoundingClientRect().bottom) above = true;
+      // the whole (tilted) sprite, not just its head, must be clear
+      if (el.getBoundingClientRect().top < header.getBoundingClientRect().bottom) above = true;
       else flight.fromHeader = false;                          // clear of the header now: stay under it
     }
     layer.classList.toggle('on-header', above);
@@ -241,6 +262,12 @@
       // zero-size box at the top-left of the page: skip them
       // a header stop too near the top of the screen would cut off its head
       if (c.fn.onHeader && (underHeader || p.y - scrollY - headAboveAnchor() < 0)) return false;
+      // likewise, leaving the header (so flying above it) it can't land on
+      // page content that's under the header just now
+      if (!c.fn.onHeader && leaving && leaving.onHeader && hb) {
+        var pb = restingBox(p);
+        if (pb.top - scrollY < hb.bottom && pb.bottom - scrollY > hb.top) return false;
+      }
       if (!(p.visible && recent.indexOf(c.i) < 0 && p.x > 30 && p.x < width - 30 && Math.hypot(p.x - from.x, p.y - from.y) > 260)) return false;
       // no room above this text (another line close above it): skip it
       return !(c.fn.onTop && coversText(p, c.fn.own));
@@ -261,6 +288,10 @@
 
   function flyTo(target, then, fromHeader) {
     var from = { x: fly.x, y: fly.y }, to = target();
+    if (!finite(to) || !finite(from)) { settleHome(); return; }
+    if (Math.hypot(to.x - from.x, to.y - from.y) < 12) {       // already there: just settle
+      fly.x = to.x; fly.y = to.y; if (then) then(); return;
+    }
     var dx = to.x - from.x, dy = to.y - from.y, dist = Math.hypot(dx, dy) || 1;
     var legs = Math.max(2, Math.min(5, Math.round(dist / 260))), bends = [];
     for (var i = 1; i < legs; i++) {                           // a meandering route, a loop or two
@@ -272,7 +303,10 @@
     // doesn't carry it off and back.
     var screen = !!target.onHeader;
     if (screen) from.y -= scrollY;
-    flight = { from: from, bends: bends, target: target, screen: screen, fromHeader: !!fromHeader, t: 0, start: performance.now(), dur: Math.min(1400 + dist * 2.6, 9000), then: then };
+    // long flights take their time; short hops are quick rather than crawling
+    var dur = Math.min(1400 + dist * 2.6, 400 + dist * 6, 9000);
+    flight = { from: from, bends: bends, target: target, screen: screen, fromHeader: !!fromHeader, t: 0, start: performance.now(), dur: dur, then: then,
+      check: { at: performance.now(), x: fly.x, y: fly.y } };
     setState('flying');
     layerForFlight();
   }
@@ -303,7 +337,11 @@
     if (tour.left === 0 && tour.perch === home) tour.left = 3 + Math.floor(Math.random() * 2);   // set off
     if (tour.left > 0) {
       var next = pickPerch({ x: fly.x, y: fly.y }, tour.recent, leaving);
-      if (!next) { tour.left = 0; tour.perch = home; stay = 9000; }
+      if (!next) {                                             // nowhere suitable right now: rest a while
+        tour.left = 0; tour.perch = home; tour.until = now + 9000;
+        if (leaving === home) return;
+        stay = 9000;
+      }
       else {
         tour.left--; tour.perch = next.fn;
         tour.recent.push(next.i); if (tour.recent.length > 5) tour.recent.shift();
@@ -311,11 +349,11 @@
       }
     } else { tour.perch = home; stay = 8000 + Math.random() * 5000; }
     var perch = tour.perch;
+    tour.until = Infinity;                                     // set properly once it lands (which can be straight away)
     flyTo(perch, function () {
       tour.until = performance.now() + stay;
       setState(perch === home ? 'home' : 'perched', perch);
     }, leaving.onHeader);
-    tour.until = Infinity;                                     // set properly once it lands
   }
 
   // click it while it rests at home to send it off early
@@ -325,6 +363,15 @@
 
   // ---- main loop (stepped at 12 fps) ---------------------------------------
   var tick = 0, lastStep = 0, restFlapAt = 0, running = false, hiddenAt = 0;
+
+  // Back to resting at home, the tour starting over: the way out of anything
+  // unexpected, so it can never stay stuck.
+  function settleHome() {
+    flight = null;
+    var h = home(); fly.x = h.x; fly.y = h.y; fly.tilt = 0; fly.wing = 0; fly.face = 1;
+    tour = { left: 0, perch: home, until: performance.now() + 4000, recent: [] };
+    setState('home');
+  }
 
   function restAtHome() {
     flight = null; tour = null;
@@ -338,13 +385,29 @@
     requestAnimationFrame(frame);
     if (now - lastStep < STEP) return;
     lastStep = now; tick++;
+    try { step(now); } catch (err) {
+      console.error('butterfly:', err);
+      settleHome(); draw();
+    }
+  }
 
+  function step(now) {
     if (!tour) tour = { left: 0, perch: home, until: now + 3000, recent: [] };
 
     if (flight) {
-      var t = flight.t = Math.min((now - flight.start) / flight.dur, 1);
+      var t = flight.t = Math.min(Math.max((now - flight.start) / flight.dur, 0), 1);
       var p = flightPoint(t);
+      if (!finite(p)) { settleHome(); draw(); return; }        // never let a bad position freeze it
       moveTo(p.x, p.y + Math.sin(t * Math.PI * 10) * 6);    // a little bob
+      // Watchdog: a flight that's overrun, or hasn't really moved for 1.5s,
+      // ends at its destination rather than flapping on the spot.
+      if (now - flight.check.at > 1500) {
+        var moved = Math.hypot(fly.x - flight.check.x, fly.y - flight.check.y);
+        if (moved < 8 && t < 1) t = 1;
+        flight.check = { at: now, x: fly.x, y: fly.y };
+      }
+      if (now - flight.start > flight.dur + 1500) t = 1;
+      if (t >= 1) { var end = flight.target(); if (finite(end)) { fly.x = end.x; fly.y = end.y; } }
       fly.wing = CYCLE[tick % 4];                              // one flap every 4 steps
       layerForFlight();
       if (t >= 1) {
@@ -354,7 +417,9 @@
         if (then) then();
       }
     } else {
-      var pp = tour.perch(); fly.x = pp.x; fly.y = pp.y;       // sit on the perch as the page scrolls or resizes
+      var pp = tour.perch();                                   // sit on the perch as the page scrolls or resizes
+      if (!finite(pp)) { settleHome(); draw(); return; }
+      fly.x = pp.x; fly.y = pp.y;
       wanderStep(now);
     }
 
@@ -396,7 +461,7 @@
     if (!running) { restAtHome(); return; }
     // redraw straight away: waiting for the next step would leave it where
     // the old, wider page's edge was for a moment
-    if (!flight && tour) { var pp = tour.perch(); fly.x = pp.x; fly.y = pp.y; }
+    if (!flight && tour) { var pp = tour.perch(); if (finite(pp)) { fly.x = pp.x; fly.y = pp.y; } }
     draw();
   }
 
@@ -410,7 +475,7 @@
       var p = flightPoint(flight.t); fly.x = p.x; fly.y = p.y + Math.sin(flight.t * Math.PI * 10) * 6; layerForFlight(); draw();
       return;
     }
-    var pp = tour.perch(); fly.x = pp.x; fly.y = pp.y; draw();
+    var pp = tour.perch(); if (finite(pp)) { fly.x = pp.x; fly.y = pp.y; draw(); }
   }, { passive: true });
   addEventListener('resize', onResize);
   addEventListener('load', onResize);            // fonts and images can shift the poster
