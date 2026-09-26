@@ -36,7 +36,7 @@
     or overruns, and any bad position or error sends it back home to rest.
   - On text and buttons it stands with its feet on the tops of the letters
     rather than over them, so it doesn't cover what's written (bar a
-    flap every 4–8 seconds, so it never looks frozen); header stops that
+    flap every few seconds, so it never looks frozen); header stops that
     would cut off its head are skipped.
 */
 (function () {
@@ -102,7 +102,7 @@
     return tries[0] || { el: homeEl, kind: 'box', f: 0.5 };
   }
   home.onHeader = !!(homeEl && header && header.contains(homeEl));
-  home.onTop = !art;                                           // standing on a heading or the logo (flaps less often)
+  home.onTop = !art;                                           // standing on a heading or the logo
   home.own = homeEl;
 
   function catmull(p0, p1, p2, p3, t) {
@@ -552,14 +552,14 @@
       wanderStep(now);
     }
 
-    // resting: a lazy single flap now and then (middle, down, middle, up),
-    // so it never looks frozen. Standing on text or a button, less often:
-    // its wings dip over the letters for the moment they're down.
+    // resting: a lazy single flap every few seconds (middle, down, middle,
+    // up), so it never looks frozen. On text or a button its wings dip over
+    // the letters for the moment they're down.
     if (!flight) {
       if (fly.restFlap > 0) { fly.wing = CYCLE[fly.restFlap]; fly.restFlap = (fly.restFlap + 1) % 4; }
       else if (now > restFlapAt) {
         fly.restFlap = 2; fly.wing = 1;
-        restFlapAt = now + (tour.perch.onTop ? 4000 + Math.random() * 4000 : 2200 + Math.random() * 2500);
+        restFlapAt = now + 2000 + Math.random() * 1500;
       }
       else fly.wing = 0;
     }
