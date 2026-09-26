@@ -1239,3 +1239,71 @@ main:has(> .page-hero) {
   justify-content: flex-end;
   margin-top: 0.5rem;
 }
+
+/* Homepage sunrise (from the design in Claude Design) */
+
+/*
+  Sunrise: the poster's disco-ball sun, spinning, with its rays turning
+  behind the whole page. Add after style.css.
+
+  Layers, back to front:
+    1. .sunrise-rays  – fixed SVG behind everything; script keeps its centre on the ball
+    2. .poster-ball   – the spinning disco ball, where the drawn ball was
+    3. .poster-hero-art img – Jess Porter's illustration with the drawn rays,
+                        sky and ball cut out, so the hills sit in front of the ball
+    4. the arcing title and dates (SVG text, unchanged)
+*/
+
+:root {
+  --ray-speed: 36s;          /* one full turn of the rays; anticlockwise, with the ball */
+  --ray-strength-page: .35;  /* how strong the rays are once you scroll past the poster */
+}
+
+.sunrise-rays {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.sunrise-rays .spin {
+  animation: sunrise-spin var(--ray-speed) linear infinite;
+}
+
+.sunrise-rays polygon { fill: url(#sunrise-fade); }
+.sunrise-rays stop { stop-color: var(--orange); }
+
+@keyframes sunrise-spin {
+  to { transform: rotate(-360deg); }
+}
+
+/* The illustration and the ball share one box, placed exactly where the
+   original poster-illustration image sat in .poster-hero-art. */
+.poster-hero-art .poster-illustration {
+  position: absolute;
+  left: 21.11%;
+  top: 13.88%;
+  width: 57.78%;
+  aspect-ratio: 1099 / 1490;
+}
+
+.poster-hero-art .poster-illustration img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: auto;
+}
+
+/* the spinning ball sits behind the hills, where the drawn ball was */
+.poster-hero-art .poster-illustration .poster-ball {
+  left: 55.172%;
+  top: 44.490%;
+  width: 31.308%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sunrise-rays .spin { animation: none; }
+}

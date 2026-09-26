@@ -14,18 +14,60 @@ const hosts = (fields.credits ?? "")
   description="Information about our party, including camping, food, activities and travel."
 >
   <main class="homepage-main">
+    <!-- Sun rays turning behind the whole page, centred on the disco ball
+         by /js/sunrise.js. Decorative; still for reduced motion. -->
+    <svg class="sunrise-rays" aria-hidden="true">
+      <defs>
+        <radialGradient id="sunrise-fade" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1">
+          <stop offset="0" stop-opacity="1" />
+          <stop offset="0.22" stop-opacity="0.95" />
+          <stop offset="0.55" stop-opacity="0.45" />
+          <stop offset="0.85" stop-opacity="0.1" />
+          <stop offset="1" stop-opacity="0" />
+        </radialGradient>
+      </defs>
+      <g class="pos" transform="translate(-9999 -9999)">
+        <g class="scale">
+          <g class="spin">
+            <polygon points="0,0 -0.1305,-0.9914 0.1305,-0.9914" />
+            <polygon points="0,0 0.3827,-0.9239 0.6088,-0.7934" />
+            <polygon points="0,0 0.7934,-0.6088 0.9239,-0.3827" />
+            <polygon points="0,0 0.9914,-0.1305 0.9914,0.1305" />
+            <polygon points="0,0 0.9239,0.3827 0.7934,0.6088" />
+            <polygon points="0,0 0.6088,0.7934 0.3827,0.9239" />
+            <polygon points="0,0 0.1305,0.9914 -0.1305,0.9914" />
+            <polygon points="0,0 -0.3827,0.9239 -0.6088,0.7934" />
+            <polygon points="0,0 -0.7934,0.6088 -0.9239,0.3827" />
+            <polygon points="0,0 -0.9914,0.1305 -0.9914,-0.1305" />
+            <polygon points="0,0 -0.9239,-0.3827 -0.7934,-0.6088" />
+            <polygon points="0,0 -0.6088,-0.7934 -0.3827,-0.9239" />
+          </g>
+        </g>
+      </g>
+    </svg>
+
     <section class="poster-hero">
       <h1 class="visually-hidden">
         Over the Hill Festival – August 13th to 15th 2027 at Out to Grass
       </h1>
 
       <div class="poster-hero-art">
-        <img
-          src="/images/poster-illustration.webp"
-          alt="A twisting tree over rolling green hills, a disco-ball sun with orange rays, wild flowers and mushrooms"
-          width="720"
-          height="983"
-        />
+        <!-- Jess Porter's illustration with its sky, rays and ball cut out,
+             over a spinning disco ball that rises behind the hills. -->
+        <div class="poster-illustration">
+          <picture>
+            <source srcset="/images/disco-ball-still.webp" media="(prefers-reduced-motion: reduce)" />
+            <img class="poster-ball" src="/images/disco-ball.webp" alt="" width="360" height="360" />
+          </picture>
+          <img
+            src="/images/poster-illustration-open-sky.webp"
+            srcset="/images/poster-illustration-open-sky-700.webp 700w, /images/poster-illustration-open-sky.webp 1099w"
+            sizes="(max-width: 932px) 58vw, 520px"
+            alt="A twisting tree over rolling green hills, a disco-ball sun rising behind them, wild flowers and mushrooms"
+            width="1099"
+            height="1490"
+          />
+        </div>
         <svg aria-hidden="true" viewBox="0 0 900 980">
           <defs>
             <path id="poster-arc-top" d="M 30 490 A 420 450 0 0 1 870 490" />
@@ -56,4 +98,6 @@ const hosts = (fields.credits ?? "")
       </div>
     </section>
   </main>
+
+  <script is:inline src="/js/sunrise.js" defer></script>
 </Layout>
