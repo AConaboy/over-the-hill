@@ -19,8 +19,9 @@
     a flight (or rush off) when you come back.
   - It never blocks a click on a link or button it's resting on; it's only
     clickable at home on the poster.
-  - Resting on page content it tucks under the sticky header; resting on the
-    header (or flying) it's above it.
+  - It sits under the sticky header on page content (and flying to it), and
+    above it on the header (and flying to it), so it never crosses over the
+    header and then pops underneath.
   - Its routes stay on the page (loops scale to the screen), so it neither
     adds a sideways scrollbar on phones nor sits pinned to an edge flapping.
   - On text and buttons it stands with its feet on the tops of the letters
@@ -155,12 +156,23 @@
     fly.x = x; fly.y = y;
   }
 
-  // Where it sits relative to the sticky header: above it while flying or
-  // perched on the header, tucked under it while perched on page content,
-  // and clickable only when resting at home.
+  // Where it sits relative to the sticky header: above it on the header, or
+  // flying to it; under it on page content, or flying to it (so it passes
+  // behind the header rather than over it and then popping underneath when
+  // it lands). Taking off from the header, it stays above until it's clear
+  // of it. Clickable only when resting at home.
   function setState(state, perch) {
     layer.dataset.state = state;                               // "flying" | "home" | "perched"
-    layer.classList.toggle('on-header', state === 'flying' || !!(perch && perch.onHeader));
+    if (state !== 'flying') layer.classList.toggle('on-header', !!(perch && perch.onHeader));
+  }
+  function layerForFlight() {
+    var above = !!flight.target.onHeader;
+    if (!above && flight.fromHeader && header) {
+      var headTop = fly.y - scrollY - headAboveAnchor();
+      if (headTop < header.getBoundingClientRect().bottom) above = true;
+      else flight.fromHeader = false;                          // clear of the header now: stay under it
+    }
+    layer.classList.toggle('on-header', above);
   }
 
   // ---- perches: 3–4 stops anywhere on the page ------------------------------
@@ -212,8 +224,13 @@
     return list;
   }
 
-  function pickPerch(from, recent) {
+  function pickPerch(from, recent, leaving) {
     var width = document.documentElement.clientWidth;
+    // Resting tucked under the header (on page content scrolled beneath it),
+    // it can't fly up onto the header without popping out in front of it,
+    // so it picks somewhere else this time.
+    var hb = header && header.getBoundingClientRect(), box = restingBox(from);
+    var underHeader = !!(hb && leaving && !leaving.onHeader && box.top - scrollY < hb.bottom && box.bottom - scrollY > hb.top);
     var cands = perches().map(function (fn, i) {
       var r = Math.random(), bound = function () { return fn(r); };
       bound.onHeader = fn.onHeader; bound.onTop = fn.onTop; bound.own = fn.own;
@@ -223,7 +240,7 @@
       // hidden elements (e.g. the nav links behind the phone menu) report a
       // zero-size box at the top-left of the page: skip them
       // a header stop too near the top of the screen would cut off its head
-      if (c.fn.onHeader && p.y - scrollY - headAboveAnchor() < 0) return false;
+      if (c.fn.onHeader && (underHeader || p.y - scrollY - headAboveAnchor() < 0)) return false;
       if (!(p.visible && recent.indexOf(c.i) < 0 && p.x > 30 && p.x < width - 30 && Math.hypot(p.x - from.x, p.y - from.y) > 260)) return false;
       // no room above this text (another line close above it): skip it
       return !(c.fn.onTop && coversText(p, c.fn.own));
@@ -242,7 +259,7 @@
   // instead of arriving somewhere stale.
   var flight = null;                                           // { from, bends, target, start, dur, then }
 
-  function flyTo(target, then) {
+  function flyTo(target, then, fromHeader) {
     var from = { x: fly.x, y: fly.y }, to = target();
     var dx = to.x - from.x, dy = to.y - from.y, dist = Math.hypot(dx, dy) || 1;
     var legs = Math.max(2, Math.min(5, Math.round(dist / 260))), bends = [];
@@ -255,8 +272,9 @@
     // doesn't carry it off and back.
     var screen = !!target.onHeader;
     if (screen) from.y -= scrollY;
-    flight = { from: from, bends: bends, target: target, screen: screen, t: 0, start: performance.now(), dur: Math.min(1400 + dist * 2.6, 9000), then: then };
+    flight = { from: from, bends: bends, target: target, screen: screen, fromHeader: !!fromHeader, t: 0, start: performance.now(), dur: Math.min(1400 + dist * 2.6, 9000), then: then };
     setState('flying');
+    layerForFlight();
   }
   function flightPoint(t) {
     var from = flight.from, to = flight.target(), sy = flight.screen ? scrollY : 0;
@@ -281,10 +299,10 @@
 
   function wanderStep(now) {
     if (now < tour.until) return;
-    var stay;
+    var stay, leaving = tour.perch;
     if (tour.left === 0 && tour.perch === home) tour.left = 3 + Math.floor(Math.random() * 2);   // set off
     if (tour.left > 0) {
-      var next = pickPerch({ x: fly.x, y: fly.y }, tour.recent);
+      var next = pickPerch({ x: fly.x, y: fly.y }, tour.recent, leaving);
       if (!next) { tour.left = 0; tour.perch = home; stay = 9000; }
       else {
         tour.left--; tour.perch = next.fn;
@@ -296,7 +314,7 @@
     flyTo(perch, function () {
       tour.until = performance.now() + stay;
       setState(perch === home ? 'home' : 'perched', perch);
-    });
+    }, leaving.onHeader);
     tour.until = Infinity;                                     // set properly once it lands
   }
 
@@ -328,6 +346,7 @@
       var p = flightPoint(t);
       moveTo(p.x, p.y + Math.sin(t * Math.PI * 10) * 6);    // a little bob
       fly.wing = CYCLE[tick % 4];                              // one flap every 4 steps
+      layerForFlight();
       if (t >= 1) {
         var then = flight.then, landedHome = flight.target === home;
         flight = null; fly.tilt = 0; fly.wing = 0;
@@ -388,7 +407,7 @@
     if (!running || !tour) return;
     if (flight) {
       if (!flight.screen) return;                              // page flights don't move with the screen
-      var p = flightPoint(flight.t); fly.x = p.x; fly.y = p.y + Math.sin(flight.t * Math.PI * 10) * 6; draw();
+      var p = flightPoint(flight.t); fly.x = p.x; fly.y = p.y + Math.sin(flight.t * Math.PI * 10) * 6; layerForFlight(); draw();
       return;
     }
     var pp = tour.perch(); fly.x = pp.x; fly.y = pp.y; draw();

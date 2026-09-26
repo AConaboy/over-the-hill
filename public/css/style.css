@@ -1336,7 +1336,7 @@ html:has(.sunrise-rays) {
   pointer-events: none;     /* never blocks the links and buttons it lands on */
 }
 
-/* flying, or resting on the header itself */
+/* resting on the header itself, or flying to or from it */
 .butterfly-layer.on-header {
   z-index: 11;
 }
