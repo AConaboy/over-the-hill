@@ -1,7 +1,8 @@
 ---
 // The festival poster, animated: Jess Porter's illustration with a spinning
 // disco-ball sun, sun rays turning behind the whole page, the arcing title
-// and dates, and the wandering butterfly. Used on the homepage and at the
+// and dates (the wandering butterfly comes from the layout, and makes the
+// poster its home when there is one). Used on the homepage and at the
 // top of each guest's invite (RSVP) page. Put it inside the page's <main>.
 import { asset } from "../lib/assets";
 
@@ -55,7 +56,7 @@ const { inviteLine } = Astro.props;
     <!-- Starts as the still ball (28 KB, the animation's first frame);
          /js/sunrise.js swaps in the spinning one (18 frames at 12 fps,
          375 KB) once the page has loaded, unless motion is reduced. -->
-    <img class="poster-ball" src="/images/disco-ball-still.webp" data-spin="/images/disco-ball-12fps.webp" alt="" width="360" height="360" />
+    <img class="poster-ball" src="/images/disco-ball-still.webp" data-still="/images/disco-ball-still.webp" data-spin="/images/disco-ball-12fps.webp" alt="" width="360" height="360" />
     <img
       fetchpriority="high"
       src="/images/poster-illustration-open-sky.webp"
@@ -66,11 +67,11 @@ const { inviteLine } = Astro.props;
       height="1490"
     />
   </div>
-  <svg aria-hidden="true" viewBox="0 0 900 980">
+  <svg aria-hidden="true" viewBox="0 25 900 875">
     <defs>
-      <path id="poster-arc-top" d="M 30 490 A 420 450 0 0 1 870 490" />
-      {inviteLine && <path id="poster-arc-invite" d="M -60 490 A 510 540 0 0 1 960 490" />}
-      <path id="poster-arc-bottom" d="M 20 490 A 430 460 0 0 0 880 490" />
+      <path id="poster-arc-top" d="M 60 490 A 390 395 0 0 1 840 490" />
+      {inviteLine && <path id="poster-arc-invite" d="M -35 490 A 485 487 0 0 1 935 490" />}
+      <path id="poster-arc-bottom" d="M 40 490 A 410 400 0 0 0 860 490" />
     </defs>
     {inviteLine && (
       <text class="poster-arc-invite">
@@ -90,5 +91,18 @@ const { inviteLine } = Astro.props;
   </svg>
 </div>
 
+<!-- Carry on from the last page rather than starting over: the rays at
+     the angle the clock gives (so they keep turning across pages), and the
+     ball spinning straight away if it already has this visit (it's cached
+     by then). Inline, so it's done before the first paint. -->
+<script is:inline>
+  (function () {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var spin = document.querySelector('.sunrise-rays .spin');
+    var turn = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ray-speed')) * 1000 || 36000;
+    if (spin) spin.style.animationDelay = -(Date.now() % turn) + 'ms';
+    var ball = document.querySelector('.poster-ball');
+    try { if (ball && sessionStorage.getItem('oth-ball-spinning') === '1') ball.src = ball.dataset.spin; } catch (e) {}
+  })();
+</script>
 <script is:inline src={asset("/js/sunrise.js")} defer></script>
-<script is:inline src={asset("/js/butterfly.js")} defer></script>

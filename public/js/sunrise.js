@@ -33,14 +33,20 @@
 
   // The ball starts still and small to download; start it spinning once
   // everything else has loaded, so the big animation doesn't hold up the
-  // page. Kept still for reduced motion.
-  var still = ball.getAttribute('src'), spin = ball.dataset.spin;
+  // page. After that, this visit's later pages start it spinning straight
+  // away (see the inline script in Poster.astro). Still for reduced motion.
+  var still = ball.dataset.still || ball.getAttribute('src'), spin = ball.dataset.spin;
   var motion = matchMedia('(prefers-reduced-motion: reduce)');
   function setBall() {
     if (!spin) return;
     if (motion.matches) { ball.src = still; return; }
+    if (ball.getAttribute('src') === spin) return;
     var img = new Image();
-    img.onload = function () { if (!motion.matches) ball.src = spin; };
+    img.onload = function () {
+      if (motion.matches) return;
+      ball.src = spin;
+      try { sessionStorage.setItem('oth-ball-spinning', '1'); } catch (e) {}
+    };
     img.src = spin;
   }
   if (document.readyState === 'complete') setBall(); else addEventListener('load', setBall);

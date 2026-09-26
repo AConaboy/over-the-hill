@@ -1,13 +1,20 @@
 /*
-  The poster butterfly, wandering about the homepage ("Wander", from the
-  prototype made in Claude Design).
+  The poster butterfly, wandering about every page ("Wander", from the
+  prototype made in Claude Design). Loaded on every page by the layout
+  (not admin). A new page gets it automatically; give it somewhere to land
+  there by adding stops to perches() below.
 
-  It rests where it's drawn on the poster, then makes 3–4 stops anywhere on
-  the page (the header, the arcing lettering, the tagline, the RSVP button,
-  the footer, bits of the illustration) on meandering routes, and flies home.
-  It favours far-off stops. Clicking it while it rests at home hurries it
-  along. Three drawn frames (wings up / middle / down) are swapped by hand and
-  it moves in stepped 12 fps jumps, so it feels hand-animated.
+  Its home is where it's drawn on the poster, or, on pages without the
+  poster, standing on the page's big heading (or the header's logo if
+  there isn't one). It makes 3–4 stops (the header, the arcing lettering,
+  headings, the tops of cards, form labels, buttons, the footer, bits of the
+  illustration) on meandering routes, and flies home. It keeps to what's on
+  screen: it only stops where you can see it, re-routes if its stop scrolls
+  away, comes back into view if you scroll away from where it's resting, and
+  only goes home when home's on screen. It favours far-off stops. Clicking it
+  while it rests at home hurries it along. Three drawn frames (wings up /
+  middle / down) are swapped by hand and it moves in stepped 12 fps jumps,
+  so it feels hand-animated.
 
   Reduced motion: it rests on the poster and never flies.
 
@@ -39,7 +46,10 @@
 
   var art = document.querySelector('.poster-illustration');
   var header = document.querySelector('.site-header');
-  if (!art) return;
+  // Without the poster, home is standing on the page's heading, or on the
+  // logo in the header if there's no heading.
+  var homeEl = art ? null : document.querySelector('.page-hero h1') || document.querySelector('.site-logo');
+  if (!art && !homeEl) return;
 
   // ---- the sprite -------------------------------------------------------
   var layer = document.createElement('div');
@@ -57,8 +67,40 @@
 
   // ---- geometry ---------------------------------------------------------
   function page(e) { var r = e.getBoundingClientRect(); return { x: r.left + scrollX, y: r.top + scrollY, w: r.width, h: r.height }; }
-  function size() { return page(art).w * 0.0965; }            // same size as in the drawing
-  function home() { var a = page(art); return { x: a.x + a.w * 0.740, y: a.y + a.h * 0.697 }; }
+  function size() {                                           // same size as in the drawing
+    if (art) return page(art).w * 0.0965;
+    // no poster here: the size it would be on the poster on this screen
+    return Math.min(document.documentElement.clientWidth - 32, 900, Math.max(300, (innerHeight - 205) / 1.0282)) * 0.0965;
+  }
+  function home() {
+    if (art) { var a = page(art); return { x: a.x + a.w * 0.740, y: a.y + a.h * 0.697 }; }
+    var h = homeSpot || (homeSpot = chooseHome());
+    return spotOn(h.el, h.kind, h.f);
+  }
+  // A place along the top of an element's first line of text ("text") or
+  // of its box ("box"), a fraction f of the way across.
+  function spotOn(e, kind, f) {
+    var line = kind === 'text' ? firstLine(e) : null, q = page(e);
+    return line ? { x: line.x + line.w * f, y: line.top - feetBelowAnchor() } : { x: q.x + q.w * f, y: q.y - feetBelowAnchor() };
+  }
+  // Without the poster: somewhere along the heading that doesn't cover
+  // any text (e.g. a wide line above a short heading), else along the
+  // smaller line above it, which has room above; the logo if neither.
+  // Chosen once, and again when the window's resized.
+  var homeSpot = null;
+  function chooseHome() {
+    var hero = document.querySelector('.page-hero'), tries = [];
+    var h1 = hero && hero.querySelector('h1'), eyebrow = hero && hero.querySelector('.eyebrow');
+    if (h1) [0.85, 0.7, 0.95, 0.15, 0.3, 0.05].forEach(function (f) { tries.push({ el: h1, kind: 'text', f: f }); });
+    if (eyebrow) [0.12, 0.85, 0.5].forEach(function (f) { tries.push({ el: eyebrow, kind: 'text', f: f }); });
+    for (var i = 0; i < tries.length; i++) {
+      if (!coversText(spotOn(tries[i].el, tries[i].kind, tries[i].f), tries[i].el)) return tries[i];
+    }
+    return tries[0] || { el: homeEl, kind: 'box', f: 0.5 };
+  }
+  home.onHeader = !!(homeEl && header && header.contains(homeEl));
+  home.onTop = !art;                                           // standing on a heading or the logo: stands still
+  home.own = homeEl;
 
   function catmull(p0, p1, p2, p3, t) {
     var t2 = t * t, t3 = t2 * t;
@@ -103,15 +145,18 @@
     var w = size() * BOX_W / DRAWN_W, h = spriteH();
     return { left: p.x + (9 / BOX_W - AX) * w, right: p.x + (211 / BOX_W - AX) * w, top: p.y + (3 / BOX_H - AY) * h, bottom: p.y + (FEET - AY) * h - 1 };
   }
-  var TEXT = '.site-name, .main-navigation a, .hero-description, .event-details, .home-text .button, .home-text .text-link, .credit-line, .site-footer p, .invite-text > *';
-  function textLines() {                                       // every line of the page's text, in page coordinates
+  var TEXT = '.site-name, .main-navigation a, .hero-description, .event-details, .home-text .button, .home-text .text-link, .credit-line, .site-footer p, .invite-text > *, ' +
+    '.page-content h2, .page-content h3, .page-content p, .page-content li, .page-content label, .page-content .button, .page-hero-content > *';
+  // form fields, the location photo and map: never sat on or over
+  var FIELDS = '.page-content input, .page-content select, .page-content textarea, .location-photo img, .location-map iframe';
+  function textLines() {                                       // every line of the page's text (and every form field), in page coordinates
     var rects = [];
+    function push(e, r) { if (r.width > 0) rects.push({ el: e, left: r.left + scrollX, right: r.right + scrollX, top: r.top + scrollY, bottom: r.bottom + scrollY }); }
     document.querySelectorAll(TEXT).forEach(function (e) {
       var range = document.createRange(); range.selectNodeContents(e);
-      Array.prototype.forEach.call(range.getClientRects(), function (r) {
-        if (r.width > 0) rects.push({ el: e, left: r.left + scrollX, right: r.right + scrollX, top: r.top + scrollY, bottom: r.bottom + scrollY });
-      });
+      Array.prototype.forEach.call(range.getClientRects(), function (r) { push(e, r); });
     });
+    document.querySelectorAll(FIELDS).forEach(function (e) { push(e, e.getBoundingClientRect()); });
     return rects;
   }
   function coversText(p, own, lines) {                         // would it sit over any text but its own perch?
@@ -220,8 +265,15 @@
     // homepage text
     onTop('.hero-description', 0.05, 0.95, 'text'); onTop('.event-details', 0.1, 0.9, 'text');
     onTop('.home-text .button', 0.2, 0.8, 'box'); onTop('.home-text .text-link', 0.2, 0.8, 'text'); onTop('.credit-line', 0.1, 0.9, 'text');
-    // invite (RSVP) page text
+    // invite (RSVP) page: its text, then down the form: the tops of the
+    // cards, their headings, the field labels and the buttons
     onTop('.invite-text .page-introduction', 0.1, 0.9, 'text');
+    onTop('.page-content .content-block', 0.15, 0.85, 'box', true); onTop('.page-content .rsvp-form', 0.15, 0.85, 'box', true);
+    onTop('.page-content .content-block h2', 0.1, 0.9, 'text', true); onTop('.rsvp-form label', 0.2, 0.9, 'text', true);
+    onTop('.page-content .button', 0.2, 0.8, 'box', true); onTop('.page-actions .text-link', 0.2, 0.8, 'text');
+    // other pages: the page heading, its introduction, the location photo and map
+    onTop('.page-hero h1', 0.1, 0.9, 'text'); onTop('.page-hero .page-introduction', 0.1, 0.9, 'text');
+    onTop('.location-photo img', 0.15, 0.85, 'box'); onTop('.location-map iframe', 0.15, 0.85, 'box');
     // footer
     onTop('.footer-title', 0.05, 0.95, 'text'); onTop('.footer-inner > div > p:nth-child(2)', 0.1, 0.9, 'text');
     onTop('.footer-credit', 0.2, 0.8, 'text'); onTop('.footer-contact', 0.1, 0.9, 'text');
@@ -244,14 +296,23 @@
       }, false, true);
     });
     // the illustration: treetop, branches, disco ball, flowers, hills, mushroom caps, tulips
-    [[0.52, 0.03], [0.30, 0.10], [0.82, 0.14], [0.71, 0.43], [0.20, 0.60], [0.73, 0.83], [0.60, 0.80], [0.45, 0.55], [0.40, 0.90]].forEach(function (f) {
+    if (art) [[0.52, 0.03], [0.30, 0.10], [0.82, 0.14], [0.71, 0.43], [0.20, 0.60], [0.73, 0.83], [0.60, 0.80], [0.45, 0.55], [0.40, 0.90]].forEach(function (f) {
       add(function () { var a = page(art); return { x: a.x + a.w * f[0], y: a.y + a.h * f[1], visible: true }; });
     });
     return list;
   }
 
+  // Is a resting spot (page coordinates) wholly on screen? Below the
+  // header, unless it's on the header itself.
+  function onScreen(p, onHeader) {
+    var b = restingBox(p), hb = header && !onHeader ? header.getBoundingClientRect().bottom : 0;
+    return b.top - scrollY >= hb && b.bottom - scrollY <= innerHeight && b.left >= 0 && b.right <= document.documentElement.clientWidth;
+  }
+
   function pickPerch(from, recent, leaving) {
     var width = document.documentElement.clientWidth;
+    // a real hop, not a shuffle; less far on small screens, where less is on screen
+    var near = Math.min(260, innerHeight * 0.3, width * 0.4);
     // Resting tucked under the header (on page content scrolled beneath it),
     // it can't fly up onto the header without popping out in front of it,
     // so it picks somewhere else this time.
@@ -273,7 +334,9 @@
         var pb = restingBox(p);
         if (pb.top - scrollY < hb.bottom && pb.bottom - scrollY > hb.top) return false;
       }
-      if (!(p.visible && recent.indexOf(c.i) < 0 && p.x > 30 && p.x < width - 30 && Math.hypot(p.x - from.x, p.y - from.y) > 260)) return false;
+      if (!(p.visible && recent.indexOf(c.i) < 0 && p.x > 30 && p.x < width - 30 && Math.hypot(p.x - from.x, p.y - from.y) > near)) return false;
+      // only where it'll be seen: on screen, and not under the header
+      if (!onScreen(p, c.fn.onHeader)) return false;
       // no room above this text (another line close above it): skip it
       return !(c.fn.onTop && coversText(p, c.fn.own, lines || (lines = textLines())));
     });
@@ -292,6 +355,15 @@
   var flight = null;                                           // { from, bends, target, start, dur, then }
 
   function flyTo(target, then, fromHeader) {
+    // Setting off from somewhere you've scrolled away from: start from just
+    // past the edge of the screen instead (it can't be seen making the
+    // jump), so it's straight back in view rather than flying the length
+    // of the page out of sight. From above, it comes out from behind the
+    // header, or, heading for the header itself (so flying in front of
+    // it), in over the top of the screen.
+    var box = restingBox(fly), hb = header && !target.onHeader ? header.getBoundingClientRect().bottom : 0;
+    if (box.bottom < scrollY + hb) fly.y = scrollY + hb - (box.bottom - fly.y) - 4;
+    else if (box.top > scrollY + innerHeight) fly.y = scrollY + innerHeight + (fly.y - box.top) + 4;
     var from = { x: fly.x, y: fly.y }, to = target();
     if (!finite(to) || !finite(from)) { settleHome(); return; }
     if (Math.hypot(to.x - from.x, to.y - from.y) < 12) {       // already there: just settle
@@ -319,14 +391,16 @@
     var from = flight.from, to = flight.target(), sy = flight.screen ? scrollY : 0;
     to = { x: to.x, y: to.y - sy };
     var dx = to.x - from.x, dy = to.y - from.y, dist = Math.hypot(dx, dy) || 1, nx = -dy / dist, ny = dx / dist;
-    // keep the route's bends on the page, so its loops don't run off the
-    // side (where it would sit pinned to the edge, flapping)
+    // keep the route's bends on screen, so its loops don't take it out of
+    // sight (or off the side, where it would sit pinned to the edge,
+    // flapping); taking off from somewhere scrolled away, this brings it
+    // straight back into view
     var margin = size() * 1.2, maxX = document.documentElement.clientWidth - margin;
-    var maxY = flight.screen ? innerHeight - margin : document.documentElement.scrollHeight - margin;
+    var top = (flight.screen ? 0 : scrollY) + margin, bottom = (flight.screen ? 0 : scrollY) + innerHeight - margin;
     var pts = [from].concat(flight.bends.map(function (b) {
       return {
         x: Math.min(Math.max(from.x + dx * b.t + nx * b.swing, margin), maxX),
-        y: Math.min(Math.max(from.y + dy * b.t + ny * b.swing - 40, margin), maxY)
+        y: Math.min(Math.max(from.y + dy * b.t + ny * b.swing - 40, top), Math.max(top, bottom))
       };
     }), [to]);
     var p = along(pts, ease(t));
@@ -339,16 +413,23 @@
   function wanderStep(now) {
     if (now < tour.until) return;
     var stay, leaving = tour.perch;
+    // It only goes home when home's on screen; scrolled away from the
+    // poster, it keeps to the spots you can see.
+    var homeInView = onScreen(home(), home.onHeader);
     if (tour.left === 0 && tour.perch === home) tour.left = 3 + Math.floor(Math.random() * 2);   // set off
-    if (tour.left > 0) {
-      var next = pickPerch({ x: fly.x, y: fly.y }, tour.recent, leaving);
-      if (!next) {                                             // nowhere suitable right now: rest a while
-        tour.left = 0; tour.perch = home; tour.until = now + 9000;
-        if (leaving === home) return;
-        stay = 9000;
+    if (tour.left > 0 || !homeInView) {
+      // somewhere it hasn't been lately, or failing that (few stops in
+      // view) anywhere but the last one
+      var next = pickPerch({ x: fly.x, y: fly.y }, tour.recent, leaving) || pickPerch({ x: fly.x, y: fly.y }, tour.recent.slice(-1), leaving);
+      if (!next) {
+        // nowhere else on screen right now: home if it's in view,
+        // otherwise stay put and look again in a moment
+        if (!homeInView || leaving === home) { tour.until = now + 2500; return; }
+        tour.left = 0; tour.perch = home; stay = 9000;
       }
       else {
-        tour.left--; tour.perch = next.fn;
+        if (tour.left > 0) tour.left--;
+        tour.perch = next.fn;
         tour.recent.push(next.i); if (tour.recent.length > 5) tour.recent.shift();
         stay = 2500 + Math.random() * 3000;
       }
@@ -359,6 +440,20 @@
       tour.until = performance.now() + stay;
       setState(perch === home ? 'home' : 'perched', perch);
     }, leaving.onHeader);
+  }
+
+  // Its stop has scrolled out of view mid-flight: head somewhere on screen
+  // instead, carrying on from where it is. False if there's nowhere.
+  function retarget() {
+    var next = pickPerch({ x: fly.x, y: fly.y }, tour.recent, null) || pickPerch({ x: fly.x, y: fly.y }, tour.recent.slice(-1), null);
+    if (!next) return false;
+    var perch = next.fn, stay = 2500 + Math.random() * 3000;
+    tour.perch = perch; tour.recent.push(next.i); if (tour.recent.length > 5) tour.recent.shift();
+    flyTo(perch, function () {
+      tour.until = performance.now() + stay;
+      setState('perched', perch);
+    }, flight.fromHeader);
+    return true;
   }
 
   // click it while it rests at home to send it off early
@@ -419,6 +514,12 @@
       var p = flightPoint(t);
       if (!finite(p)) { settleHome(); draw(); return; }        // never let a bad position freeze it
       moveTo(p.x, p.y + Math.sin(t * Math.PI * 10) * 6);    // a little bob
+      // its stop has been out of view for half a second (you've scrolled):
+      // go somewhere you can see instead
+      if (!flight.screen && t < 0.9 && !onScreen(flight.target(), flight.target.onHeader)) {
+        flight.away = (flight.away || 0) + 1;
+        if (flight.away > 6 && retarget()) { draw(); return; }
+      } else flight.away = 0;
       // Watchdog: a flight that's overrun, or hasn't really moved for 1.5s,
       // ends at its destination rather than flapping on the spot.
       if (now - flight.check.at > 1500) {
@@ -440,6 +541,8 @@
       var pp = tour.perch();                                   // sit on the perch as the page scrolls or resizes
       if (!finite(pp)) { settleHome(); draw(); return; }
       fly.x = pp.x; fly.y = pp.y;
+      // scrolled away from where it's resting: come back into view soon
+      if (isFinite(tour.until) && tour.until > now + 1200 && !onScreen(pp, tour.perch.onHeader)) tour.until = now + 1200;
       wanderStep(now);
     }
 
@@ -478,6 +581,7 @@
   // Reduced motion: rest at home, kept in place on resize; follow the
   // setting if it changes while the page is open.
   function onResize() {
+    homeSpot = null;                             // somewhere else may suit better now
     if (!running) { restAtHome(); return; }
     // redraw straight away: waiting for the next step would leave it where
     // the old, wider page's edge was for a moment

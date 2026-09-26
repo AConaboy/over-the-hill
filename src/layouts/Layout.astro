@@ -9,6 +9,8 @@ export interface Props {
 
 const { title, description } = Astro.props;
 const currentPath = Astro.url.pathname.replace(/\/$/, "") || "/";
+// The butterfly wanders every page but the hosts' admin screens.
+const showButterfly = !currentPath.startsWith("/admin");
 ---
 
 <!DOCTYPE html>
@@ -50,5 +52,9 @@ const currentPath = Astro.url.pathname.replace(/\/$/, "") || "/";
       <p class="footer-contact">Questions? Contact us.</p>
     </div>
   </footer>
+
+  {/* On every page (see the top of public/js/butterfly.js to give a new
+      page places for it to land). */}
+  {showButterfly && <script is:inline src={asset("/js/butterfly.js")} defer></script>}
 </body>
 </html>

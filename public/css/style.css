@@ -374,45 +374,46 @@ h2 {
 .poster-hero {
   width: min(100% - 2rem, var(--maximum-width));
   margin-inline: auto;
-  padding: 3.5rem 0 4rem;
+  padding: 2rem 0 4rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1.5rem;
 }
 
-/* The poster is sized to fit the screen, so the whole thing (the arcing
-   title above and dates below included) is visible without scrolling. Its
-   width is the smallest of: the page width, 900px, and whatever height is
-   left under the header (~87px), the hero's top padding and a little
-   breathing room (156px in all), turned into a width by the 900:980 box.
-   The arc text overhangs the box by ~5%, which the padding covers. 300px is
-   the floor for very short windows. svh ignores mobile browser toolbars;
-   the vh line is the fallback for browsers without it. */
+/* The poster is sized to fit the screen, the same on the homepage and on
+   invites: the whole of it (arcing title above, dates below), with an
+   invite's line above the title and its RSVP button under the dates, is
+   visible without scrolling. Its width is the smallest of: the page width,
+   900px, and the height left under the header (~87px), the top padding,
+   the button and some breathing room (205px in all), turned into a width
+   by the 900:875 box plus the invite line's room (1.0282 in all). 300px
+   is the floor for very short windows. svh ignores mobile browser
+   toolbars; the vh line is the fallback for browsers without it. */
 .poster-hero-art {
   position: relative;
-  --poster-width: min(100%, 900px, max(300px, calc((100vh - 156px) * 900 / 980)));
+  --poster-width: min(100%, 900px, max(300px, calc((100vh - 205px) / 1.0282)));
   width: var(--poster-width);
-  aspect-ratio: 900 / 980;
+  aspect-ratio: 900 / 875;
 }
 
 @supports (height: 100svh) {
   .poster-hero-art {
-    --poster-width: min(100%, 900px, max(300px, calc((100svh - 156px) * 900 / 980)));
+    --poster-width: min(100%, 900px, max(300px, calc((100svh - 205px) / 1.0282)));
   }
 }
 
-/* Room above for the invite line's arc, which reaches further up than the
-   title's. (Both percentages here are of the same width, the column the
-   poster sits in.) */
+/* Room above for the invite line's arc, which reaches 50 units (of 900)
+   above the box. (Both percentages here are of the same width, the column
+   the poster sits in.) */
 .poster-hero-art.has-invite {
-  margin-top: calc(var(--poster-width) * 0.05);
+  margin-top: calc(var(--poster-width) * 0.056);
 }
 
 .poster-hero-art img {
   position: absolute;
   left: 21.11%;
-  top: 13.88%;
+  top: 12.688%;                /* 111 of the 875 units (see Poster.astro) */
   width: 57.78%;
 }
 
@@ -659,7 +660,6 @@ main:has(> .page-hero) {
 }
 
 .invite-hero .poster-hero {
-  padding-top: 2.75rem;         /* a little less: the invite arc has its own room */
   padding-bottom: 0;
   gap: 1rem;
 }
@@ -673,20 +673,11 @@ main:has(> .page-hero) {
   margin-bottom: 1rem;
 }
 
-/* Sticky: while its place under the poster is below the screen (the
-   poster fills the screen on laptops), it waits at the bottom of the
-   screen, then scrolls on with the page once you're past the poster. On
-   wide screens it keeps to the right there, clear of the poster's dates. */
+/* Centred under the dates; the poster's sized to leave room for it on the
+   first screen. */
 .invite-jump {
-  position: sticky;
-  bottom: 1.25rem;
-  z-index: 2;
-}
-
-@media (min-width: 900px) {
-  .invite-jump {
-    align-self: flex-end;
-  }
+  position: relative;
+  margin-bottom: 1.5rem;
 }
 
 /* After a few seconds, a gentle pulse (and a ring spreading out from it)
@@ -1124,7 +1115,7 @@ main:has(> .page-hero) {
   }
 
   .poster-hero {
-    padding-top: 2.25rem;
+    padding-top: 1.5rem;
   }
 
   .button-row .button {
@@ -1465,7 +1456,7 @@ html:has(.sunrise-rays) {
 .poster-hero-art .poster-illustration {
   position: absolute;
   left: 21.11%;
-  top: 13.88%;
+  top: 12.688%;                /* 111 of the 875 units (see Poster.astro) */
   width: 57.78%;
   aspect-ratio: 1099 / 1490;
 }
@@ -1488,6 +1479,19 @@ html:has(.sunrise-rays) {
 @media (prefers-reduced-motion: reduce) {
   .sunrise-rays .spin { animation: none; }
 }
+
+/* Moving between pages (in browsers that support it): the header and the
+   poster stay put, and the rest cross-fades, rather than the whole page
+   blinking and starting over. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+}
+
+.site-header { view-transition-name: site-header; }
+.sunrise-rays { view-transition-name: sunrise-rays; }
+.poster-hero-art { view-transition-name: poster; }
 
 /* The wandering butterfly (homepage). /js/butterfly.js positions it. */
 
