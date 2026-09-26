@@ -60,7 +60,11 @@ const editing = !replied || params.get("edit") === "1";
 const awaitingDeposit = guest ? isAwaitingDeposit(guest) : false;
 const registered = guest ? isRegistered(guest) : false;
 const paymentSettings = await getPaymentSettings();
-const deposit = guest && awaitingDeposit ? nextPayment(guest, paymentSettings, isStripeConfigured()) : null;
+const deposit = guest && (awaitingDeposit || registered) ? nextPayment(guest, paymentSettings, isStripeConfigured()) : null;
+// Registered before deposits opened (so on the list without paying), and
+// the deposit is now due: say so on their "on the list" card, not just in
+// the Paying card further down.
+const depositNowDue = registered && deposit?.kind === "deposit";
 const { qrCodes } = await getTicketSettings();
 // Back from Stripe. The webhook, not this redirect, records the payment,
 // and clears the guest's open checkout when it does, so an open one means
@@ -187,6 +191,14 @@ const pageUrl = guest ? `/rsvp/${guest.token}` : "";
                   ? <TicketQr ticketRef={guest.ticket_ref} />
                   : <p class="ticket-ref">Your reference: <strong>{guest.ticket_ref}</strong></p>)}
                 {guest.payment_status === "paid_full" && <p class="paid-badge">Paid in full</p>}
+                {depositNowDue && deposit?.kind === "deposit" && !paymentPending && (
+                  <>
+                    <p>Your {formatPence(deposit.amountPence)} deposit is now due.</p>
+                    <form method="POST" action={`/api/pay/${guest.token}`}>
+                      <button class="button" type="submit">Pay deposit ({formatPence(deposit.amountPence)})</button>
+                    </form>
+                  </>
+                )}
               </article>
             )}
 
@@ -201,7 +213,7 @@ const pageUrl = guest ? `/rsvp/${guest.token}` : "";
               </article>
             )}
 
-            {registered && !hasNothingToPay(guest) && (
+            {registered && !hasNothingToPay(guest) && !depositNowDue && (
               <PaymentPanel
                 guest={guest}
                 settings={paymentSettings}
