@@ -35,8 +35,9 @@
     never crawl at their ends, a watchdog ends any flight that stops moving
     or overruns, and any bad position or error sends it back home to rest.
   - On text and buttons it stands with its feet on the tops of the letters
-    rather than over them, and doesn't flap there, so it never covers what's
-    written; header stops that would cut off its head are skipped.
+    rather than over them, so it doesn't cover what's written (bar a
+    flap every 4–8 seconds, so it never looks frozen); header stops that
+    would cut off its head are skipped.
 */
 (function () {
   var FRAMES = ['/images/butterfly-frame-1.webp', '/images/butterfly-frame-3.webp', '/images/butterfly-frame-2.webp']; // up, middle, down
@@ -70,7 +71,9 @@
   function size() {                                           // same size as in the drawing
     if (art) return page(art).w * 0.0965;
     // no poster here: the size it would be on the poster on this screen
-    return Math.min(document.documentElement.clientWidth - 32, 900, Math.max(300, (innerHeight - 205) / 1.0282)) * 0.0965;
+    // (the poster's width, as its CSS works it out, then the illustration's
+    // 57.78% of that)
+    return Math.min(document.documentElement.clientWidth - 32, 900, Math.max(300, (innerHeight - 205) / 1.0282)) * 0.5778 * 0.0965;
   }
   function home() {
     if (art) { var a = page(art); return { x: a.x + a.w * 0.740, y: a.y + a.h * 0.697 }; }
@@ -99,7 +102,7 @@
     return tries[0] || { el: homeEl, kind: 'box', f: 0.5 };
   }
   home.onHeader = !!(homeEl && header && header.contains(homeEl));
-  home.onTop = !art;                                           // standing on a heading or the logo: stands still
+  home.onTop = !art;                                           // standing on a heading or the logo (flaps less often)
   home.own = homeEl;
 
   function catmull(p0, p1, p2, p3, t) {
@@ -270,6 +273,9 @@
     onTop('.invite-text .page-introduction', 0.1, 0.9, 'text');
     onTop('.page-content .content-block', 0.15, 0.85, 'box', true); onTop('.page-content .rsvp-form', 0.15, 0.85, 'box', true);
     onTop('.page-content .content-block h2', 0.1, 0.9, 'text', true); onTop('.rsvp-form label', 0.2, 0.9, 'text', true);
+    // all the way down the form: the right-hand end of each field's top
+    // edge, where there's room (the labels above are short, on the left)
+    onTop('.rsvp-form input:not([type="hidden"]), .rsvp-form select, .rsvp-form textarea', 0.72, 0.95, 'box', true);
     onTop('.page-content .button', 0.2, 0.8, 'box', true); onTop('.page-actions .text-link', 0.2, 0.8, 'text');
     // other pages: the page heading, its introduction, the location photo and map
     onTop('.page-hero h1', 0.1, 0.9, 'text'); onTop('.page-hero .page-introduction', 0.1, 0.9, 'text');
@@ -476,7 +482,7 @@
     // would sit with its wings down until the next flap
     if (flight || fly.restFlap > 0 || fly.wing !== 0) return STEP;
     var due = tour.until;
-    if (!tour.perch.onTop) due = Math.min(due, restFlapAt);
+    due = Math.min(due, restFlapAt);
     return Math.min(Math.max(due - now, STEP), 1000);
   }
 
@@ -546,12 +552,15 @@
       wanderStep(now);
     }
 
-    // resting: a lazy single flap now and then (middle, down, middle, up)
-    if (!flight && tour.perch.onTop) {
-      fly.wing = 0;                                            // stands still on text and buttons
-    } else if (!flight) {
+    // resting: a lazy single flap now and then (middle, down, middle, up),
+    // so it never looks frozen. Standing on text or a button, less often:
+    // its wings dip over the letters for the moment they're down.
+    if (!flight) {
       if (fly.restFlap > 0) { fly.wing = CYCLE[fly.restFlap]; fly.restFlap = (fly.restFlap + 1) % 4; }
-      else if (now > restFlapAt) { fly.restFlap = 2; fly.wing = 1; restFlapAt = now + 2200 + Math.random() * 2500; }
+      else if (now > restFlapAt) {
+        fly.restFlap = 2; fly.wing = 1;
+        restFlapAt = now + (tour.perch.onTop ? 4000 + Math.random() * 4000 : 2200 + Math.random() * 2500);
+      }
       else fly.wing = 0;
     }
     draw();

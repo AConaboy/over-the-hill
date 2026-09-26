@@ -1480,9 +1480,9 @@ html:has(.sunrise-rays) {
   .sunrise-rays .spin { animation: none; }
 }
 
-/* Moving between pages (in browsers that support it): the header and the
-   poster stay put, and the rest cross-fades, rather than the whole page
-   blinking and starting over. */
+/* Moving between pages (in browsers that support it): the header, the
+   poster, the rays and the butterfly carry straight on, and only the rest
+   cross-fades, rather than the whole page blinking and starting over. */
 @media (prefers-reduced-motion: no-preference) {
   @view-transition {
     navigation: auto;
@@ -1492,6 +1492,43 @@ html:has(.sunrise-rays) {
 .site-header { view-transition-name: site-header; }
 .sunrise-rays { view-transition-name: sunrise-rays; }
 .poster-hero-art { view-transition-name: poster; }
+.butterfly { view-transition-name: butterfly; }
+
+/* These look the same on both pages, so the new one takes over straight
+   away instead of the old fading out as the new fades in (which washed
+   them out, and looked like the poster loading again). The poster slides
+   if it sits a little lower on the new page; the butterfly glides to where
+   it starts there. Going to or from a page without the poster, there's
+   only one of it (:only-child), so that one still fades.
+   (Not :not(:only-child): Chrome accepts it here but never matches it.) */
+::view-transition-old(site-header),
+::view-transition-old(poster),
+::view-transition-old(sunrise-rays),
+::view-transition-old(butterfly) {
+  display: none;
+  animation: none;
+}
+
+::view-transition-new(site-header),
+::view-transition-new(poster),
+::view-transition-new(sunrise-rays),
+::view-transition-new(butterfly) {
+  animation: none;
+}
+
+::view-transition-old(poster):only-child,
+::view-transition-old(sunrise-rays):only-child {
+  display: block;
+  animation: vt-fade-out 0.25s both;
+}
+
+::view-transition-new(poster):only-child,
+::view-transition-new(sunrise-rays):only-child {
+  animation: vt-fade-in 0.25s both;
+}
+
+@keyframes vt-fade-out { to { opacity: 0; } }
+@keyframes vt-fade-in { from { opacity: 0; } }
 
 /* The wandering butterfly (homepage). /js/butterfly.js positions it. */
 
