@@ -1316,3 +1316,49 @@ main:has(> .page-hero) {
 @media (prefers-reduced-motion: reduce) {
   .sunrise-rays .spin { animation: none; }
 }
+
+/* The wandering butterfly (homepage). /js/butterfly.js positions it. */
+
+.butterfly-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  z-index: 9;               /* over the page, under the sticky header (z-index 10) */
+  pointer-events: none;     /* never blocks the links and buttons it lands on */
+}
+
+/* flying, or resting on the header itself */
+.butterfly-layer.on-header {
+  z-index: 11;
+}
+
+.butterfly {
+  position: absolute;
+  left: 0;
+  top: 0;
+  aspect-ratio: 221 / 304;
+  will-change: transform;
+}
+
+/* clickable only while it rests at home on the poster */
+.butterfly-layer[data-state="home"] .butterfly {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.butterfly img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: auto;
+  visibility: hidden;
+  user-select: none;
+}
+
+.butterfly[data-wing="0"] .up,
+.butterfly[data-wing="1"] .mid,
+.butterfly[data-wing="2"] .down {
+  visibility: visible;
+}
