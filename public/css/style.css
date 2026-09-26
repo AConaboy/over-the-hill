@@ -327,9 +327,18 @@ h2 {
   gap: 1.5rem;
 }
 
+/* The poster is sized to fit the screen, so the whole thing (the arcing
+   title above and dates below included) is visible without scrolling. Its
+   width is the smallest of: the page width, 900px, and whatever height is
+   left under the header (~87px), the hero's top padding and a little
+   breathing room (140px in all), turned into a width by the 900:980 box.
+   The arc text overhangs the box by ~4%, which the margin covers. 300px is
+   the floor for very short windows. svh ignores mobile browser toolbars;
+   the vh line is the fallback for browsers without it. */
 .poster-hero-art {
   position: relative;
-  width: min(100%, 900px);
+  width: min(100%, 900px, max(300px, calc((100vh - 140px) * 900 / 980)));
+  width: min(100%, 900px, max(300px, calc((100svh - 140px) * 900 / 980)));
   aspect-ratio: 900 / 980;
 }
 
