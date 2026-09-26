@@ -68,7 +68,9 @@ export const CONTENT_PAGES: ContentPageDef[] = [
     fieldKeys: [
       { key: "hero_eyebrow", label: "Eyebrow" },
       { key: "invite_line", label: "Invite line, arcing above the poster title ({first_name} or {name}; blank: \"{first_name}, you are invited to\")" },
-      { key: "hero_introduction", label: "Introduction", multiline: true },
+      { key: "attending_line", label: "That line once they've said yes (blank: \"{first_name}, see you at\")" },
+      { key: "hero_introduction", label: "Introduction, before they've replied", multiline: true },
+      { key: "responded_introduction", label: "Introduction once they've replied (blank: \"Thanks for replying. Your answers are below, and you can change them any time.\")", multiline: true },
     ],
   },
   {

@@ -80,7 +80,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     }
   }
 
-  const submittedUrl = `${rsvpUrl}?submitted=1${emailed ? "&emailed=1" : ""}`;
+  const submittedUrl = `${rsvpUrl}?submitted=1${result.wasReplied ? "&updated=1" : ""}${emailed ? "&emailed=1" : ""}`;
   if (depositDue !== null) {
     const checkout = await startCheckout(guest);
     if (checkout.ok) return redirect(checkout.url, 303);

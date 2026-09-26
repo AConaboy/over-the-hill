@@ -16,3 +16,8 @@ export const REMEMBER_COOKIE_OPTIONS = {
   sameSite: "lax" as const,
   maxAge: REMEMBER_COOKIE_MAX_AGE_SECONDS,
 };
+
+// Set (with the same options) once the remembered guest has replied, so the
+// header and homepage can say "Your RSVP" instead of "RSVP" without looking
+// the guest up on every page. Only ever changes a label.
+export const RSVPED_COOKIE_NAME = "oth_rsvped";

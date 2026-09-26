@@ -1,13 +1,15 @@
 ---
 export interface Props {
   currentPath: string;
+  /** "Your RSVP" once this browser's guest has replied (see Layout). */
+  rsvpLabel?: string;
 }
 
-const { currentPath } = Astro.props;
+const { currentPath, rsvpLabel = "RSVP" } = Astro.props;
 
 const navItems = [
   { href: "/location", label: "Location" },
-  { href: "/rsvp", label: "RSVP", className: "nav-rsvp" },
+  { href: "/rsvp", label: rsvpLabel, className: "nav-rsvp" },
 ];
 ---
 

@@ -16,9 +16,11 @@ Right now, RSVP is a public form on the website that anyone with the link can fi
 1. We send each guest their own personal link (by email or WhatsApp, same as now — nothing is automated on our end).
 2. They open it and see a form pre-filled with their name, already addressed to them.
 3. They fill in the details below and submit.
-4. If they're attending, they see a confirmation on screen with a small QR code — a lightweight "you're on the list" ticket. No payment involved at this stage.
-5. They also automatically get a confirmation email straight away, summarising what they submitted with a link back to their personal ticket page — this part is sent by the system itself, not something we do manually.
-6. They can come back to the same link any time to see their answers or change their mind (e.g. plans change, dietary needs update). Resubmitting just updates their existing record and sends them a fresh confirmation email — it doesn't create a duplicate.
+4. Their page then shows where they stand ("You're on the list", "Pay your deposit to complete your registration", or "You've told us you can't make it"), what they told us, and an **Edit your response** button. If a deposit is due, they go straight on to pay it.
+5. They also automatically get a confirmation email straight away, summarising what they submitted with a link back to their page — this part is sent by the system itself, not something we do manually.
+6. They can come back any time, through the same link or (on the same device) the site's RSVP button, which then says "Your RSVP". They see their answers rather than being asked to RSVP again, and press Edit to change them (e.g. plans change, dietary needs update). Saving just updates their existing record — it doesn't create a duplicate.
+
+Each guest has one page (their link): the invitation, where they stand, paying, and their answers. (Older "ticket" links go to the same page.)
 
 Because the link is personal to them, nobody else can see or edit their answers, and they can't see anyone else's.
 
@@ -51,7 +53,7 @@ Note: guests don't get to bring uninvited plus-ones — one invite is one person
 
 ## The "ticket" (QR code)
 
-Once someone confirms they're attending, they get a QR code on screen. For now it's just a friendly confirmation they can screenshot — it doesn't do anything functional yet. Later, this is the same code we'd use to check people in at the gate, and the same code that would show "paid" once ticket payments are added — so nobody gets a second, different code when that happens.
+Once someone's registered, their page shows their ticket reference. A QR code can be shown instead, but it's **switched off** (admin Payments page → Tickets) until we build check-in at the gate, since for now scanning it wouldn't do anything. When we do, it's the same code throughout, so nobody gets a second, different one.
 
 ## How we (the hosts) manage the list
 
@@ -66,10 +68,10 @@ Once someone confirms they're attending, they get a QR code on screen. For now i
 
 ## Payments
 
-- **Opening deposits:** when we're ready, we set a deposit amount on the admin Payments page and open deposits. Everyone who's attending sees a "Pay deposit" button on their ticket page and pays by card (via Stripe).
+- **Opening deposits:** when we're ready, we set a deposit amount on the admin Payments page and open deposits. Everyone who's attending sees a "Pay deposit" button on their page and pays by card (via Stripe).
 - **The final price can come later.** Once we've decided it, we enter it and open balance payments, and guests see "Pay balance" for whatever's left. We can change the price at any time: balances are always worked out from the current price.
 - **Performers:** they pay their own price if we've set one, or nothing at all if they're free.
-- **Guests' links don't change:** nobody gets a new link or QR code, their ticket just updates to "deposit paid" or "paid in full", and they get an email receipt.
+- **Guests' links don't change:** nobody gets a new link, their page just updates to "deposit paid" or "paid in full", and they get an email receipt.
 - **Refunds and cancellations:** we refund in Stripe ourselves, then press "Record refund" (and "Cancel place" if they're not coming) on their admin page. The Payments page lists anyone who's owed money back.
 
 ## What this doesn't change

@@ -54,7 +54,7 @@ export async function startCheckout(guest: Guest): Promise<StartCheckoutResult> 
     await clearCheckout(guest.id, guest.checkout_session_id!);
   }
 
-  const ticketPath = `/ticket/${encodeURIComponent(guest.token)}`;
+  const guestPath = `/rsvp/${encodeURIComponent(guest.token)}`;
   let session;
   try {
     session = await getStripe().checkout.sessions.create({
@@ -76,8 +76,8 @@ export async function startCheckout(guest: Guest): Promise<StartCheckoutResult> 
       payment_intent_data: { metadata: { guest_id: guest.id, kind: next.kind } },
       customer_email: guest.email ?? undefined,
       expires_at: Math.floor(Date.now() / 1000) + CHECKOUT_LIFETIME_SECONDS,
-      success_url: new URL(`${ticketPath}?paid=1`, SITE_URL).toString(),
-      cancel_url: new URL(ticketPath, SITE_URL).toString(),
+      success_url: new URL(`${guestPath}?paid=1#rsvp-status`, SITE_URL).toString(),
+      cancel_url: new URL(`${guestPath}#rsvp-status`, SITE_URL).toString(),
       integration_identifier: CHECKOUT_INTEGRATION_ID,
     });
   } catch (err) {

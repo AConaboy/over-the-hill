@@ -1,5 +1,5 @@
 // Payment rules for v2 (deposit, then balance). Pure functions only, so they
-// can be unit-tested and shared by the ticket page, the pay route and admin.
+// can be unit-tested and shared by the guest's page, the pay route and admin.
 // All amounts are integer pence.
 //
 // The final ticket price is often not known when deposits open, so a price

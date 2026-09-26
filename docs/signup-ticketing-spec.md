@@ -81,9 +81,9 @@ create table guest_inviters (
 ## Security model for unique links
 
 - Token = a random UUID per row (`crypto.randomUUID()`) — unguessable, no separate shared password needed. A shared passphrase would add friction without real protection in a friend group (people forward passphrases as casually as links), while the per-guest token already fully isolates one guest's data from another's.
-- Guest-facing routes never expose a "list all guests" capability. `/rsvp/[token]` and `/ticket/[token]` each do a single lookup by token server-side. There's also no network path to the database at all except through our own server-side code, since D1 is only reachable via the Worker's binding — an even stronger guarantee than "RLS plus a service-role key," since there's nothing resembling a key that could leak in the first place.
+- Guest-facing routes never expose a "list all guests" capability. `/rsvp/[token]` (the guest's one page; `/ticket/[token]` now just redirects to it) does a single lookup by token server-side. There's also no network path to the database at all except through our own server-side code, since D1 is only reachable via the Worker's binding — an even stronger guarantee than "RLS plus a service-role key," since there's nothing resembling a key that could leak in the first place.
 - Invalid/unknown token → friendly "this link isn't valid, contact the hosts" page, not an error page.
-- Resubmitting the RSVP form is allowed (matches the existing site copy: "if your plans change, complete it again") — it updates the row in place and does not regenerate `ticket_ref`, so a guest's QR code stays stable across edits.
+- Changing an RSVP is allowed: once they've replied, their page shows their answers with an "Edit your response" button (`?edit=1`), and saving updates the row in place. It doesn't regenerate `ticket_ref`, so a guest's reference (and QR code) stays stable across edits.
 
 ## Link expiry
 
@@ -100,9 +100,9 @@ create table guest_inviters (
 3. **Distribute manually**: hosts copy each guest's personal link into email/WhatsApp themselves (no automated sending in v1).
 4. **Guest opens their link** → `/rsvp/[token]` fetches their row server-side, pre-fills any previously-submitted answers.
 5. **Guest submits** the form (attendance yes/no, dietary & allergies, contact email/phone, arrival/departure day, camping/accommodation) → an Astro API route validates the token again and writes the update.
-6. **On success with attendance = yes**: page shows a confirmation plus a QR code (see below). On attendance = no: simple acknowledgement, no QR.
-7. **Guest also receives a confirmation email** (see below) at the address they gave, summarising what they submitted and linking back to their personal ticket page.
-8. **Guest can revisit `/ticket/[token]`** any time to see their current status and QR again.
+6. **On success with attendance = yes**: their page shows "You're on the list" with their ticket reference (or a QR code, if switched on; see below), or first sends them to pay the deposit if one's due. On attendance = no: "You've told us you can't make it".
+7. **Guest also receives a confirmation email** (see below) at the address they gave, summarising what they submitted and linking back to their page.
+8. **Guest can revisit `/rsvp/[token]`** any time (or `/rsvp`, which the remember-me cookie sends there): once they've replied it shows where they stand, paying and their answers, with an Edit button, never the blank form again. The header and homepage say "Your RSVP" for them.
 9. **Hosts view, edit, and add guests** via the admin page (below) — in scope for v1.
 
 ## Admin page (v1 scope)
@@ -119,14 +119,14 @@ create table guest_inviters (
 
 - QR encodes a URL built from `ticket_ref` (a short code, distinct from the long-lived `token`), e.g. `https://overthehill.xyz/checkin/<ticket_ref>` — not the token itself, since the token is an edit credential and the QR may be shown to someone else at the gate.
 - Generated with the `qrcode` npm package inside a small Astro island component (client or server-rendered SVG — either works now that we have a build step).
-- v1 purpose: a lightweight "you're on the list" confirmation shown on screen (guest can also screenshot it) and included as a reference in their confirmation email.
+- **Off by default** (admin Payments page → Tickets, the `ticket_qr` setting): with no check-in page yet, scanning it does nothing, so registered guests see their ticket reference instead until check-in exists.
 - v2 purpose (no new QR issued): becomes the door check-in scan target (`checked_in_at` column already exists) and the same code a guest's ticket shows as "paid" once a deposit/payment lands — the guest's link and QR never change, only their status does.
 
 ## Email confirmation
 
 - **When it's sent**: immediately after a successful RSVP submission (attending or not), and again on any resubmission — so a guest's inbox always reflects their latest answers rather than only their first submission.
 - **Sent to**: the email address the guest entered in the form (not the inviter's).
-- **Contents**: a short thank-you, a plain-text summary of what they submitted (attendance, camping, dates, dietary/accessibility notes), and a link back to their personal `/ticket/[token]` page where the QR and full details live — the email itself doesn't need to embed the QR image.
+- **Contents**: a short thank-you, a plain-text summary of what they submitted (attendance, camping, dates, dietary/accessibility notes), and a link back to their page, `/rsvp/[token]`, where their full details live — the email itself doesn't need to embed the QR image.
 - **Non-blocking**: if the email fails to send (bad address, provider outage), the RSVP submission still succeeds and is saved — email delivery is a courtesy on top, not a requirement for the sign-up to count. `confirmation_email_sent_at` (added to the schema above) records the last successful send so the admin page can flag guests whose confirmation may not have arrived.
 - **v2 note**: the same mechanism is reused later to email a "payment received" confirmation once a deposit/payment lands, using the same Resend integration.
 
@@ -135,8 +135,8 @@ create table guest_inviters (
 - **Currency: GBP throughout,** stored as integer pence (e.g. £15.00 = `1500`) to avoid floating-point rounding.
 - **Deposit, then balance.** An attending guest first pays a deposit, then the balance. Performers with their own price follow the same pattern, with the deposit capped at their price, so a cheap performer pays everything in one step. Free performers (price `0`) never see a payment step.
 - **The price can be set after deposits are taken.** Hosts set the deposit, the standard ticket price and two switches ("Deposits open", "Balance payments open") on the admin **Payments** page (`/admin/payments`). Each environment has its own settings. The standard price may be left blank while deposits are open. The balance is always worked out live as *current price − amount paid*, so the price can be set or changed at any time. A guest's own price (`amount_due_pence`) overrides the standard one.
-- **Rules live in one place:** `src/lib/payments.ts` (`ticketPrice`, `depositFor`, `nextPayment`, `paymentStatusFor`, `overpaidBy`). The ticket page, the pay route and admin all use it. The amount charged is always computed on the server, never taken from the request.
-- **Mechanism: Stripe Checkout Sessions,** created server-side (not Payment Links, which have one fixed price each). The ticket page's "Pay deposit" / "Pay balance" button posts to `/api/pay/[token]`. That route creates a session with Stripe's dynamic payment methods, `client_reference_id=<ticket_ref>` and `metadata { guest_id, kind }`, then redirects to Stripe.
+- **Rules live in one place:** `src/lib/payments.ts` (`ticketPrice`, `depositFor`, `nextPayment`, `paymentStatusFor`, `overpaidBy`). The guest's page, the pay route and admin all use it. The amount charged is always computed on the server, never taken from the request.
+- **Mechanism: Stripe Checkout Sessions,** created server-side (not Payment Links, which have one fixed price each). The guest page's "Pay deposit" / "Pay balance" button posts to `/api/pay/[token]`. That route creates a session with Stripe's dynamic payment methods, `client_reference_id=<ticket_ref>` and `metadata { guest_id, kind }`, then redirects to Stripe.
 - **One payable checkout per guest.** The guest's open session is stored on their row (`checkout_*` columns). The pay route reuses it for the same amount. If the amount has changed, it expires the session and makes a new one. It only records a new session through an atomic "claim if none is live" update. The loser of a simultaneous double click expires its own session and is sent to the winner's, so two tabs can never both be paid.
 - **Ledger + webhook.** Every payment is a row in `payments`: deposit, balance, manual, or refund (negative). `guests.amount_paid_pence` is always recomputed as the sum of those rows, and `payment_status` (`unpaid` / `deposit_paid` / `paid_full`) is derived from it and the current price. `/api/webhooks/stripe` verifies the Stripe signature and records the session on `checkout.session.completed` (when `payment_status` is `paid`) or on `checkout.session.async_payment_succeeded`. The ledger row is keyed on the session ID, so repeated deliveries count once. `checkout.session.expired` / `async_payment_failed` clear the open checkout. A "payment received" email goes out once per new payment.
 - **Refunds and cancellations** are done by hand in the Stripe Dashboard, then recorded on the guest's admin page:
@@ -152,7 +152,7 @@ create table guest_inviters (
 
 - **Migrate all existing pages** (`index`, `about`, `camping`, `food`, `activities`, `travel`, `faq`, `line-up`, `birthday-game`) into Astro pages under `src/pages/`, reusing their current copy/markup almost as-is. Replace the current `js/navigation.js` innerHTML-injection nav hack with a real Astro `<Layout>` + `<Nav>` component — while doing this, fix the existing bug where the nav links to `game.html` but the actual file is `birthday-game.html`.
 - **`rsvp.html` → `src/pages/rsvp/[token].astro`**: server-loads the guest by token, renders the existing form fields (name read-only/prefilled, attendance, camping, vehicle, dietary, accessibility, arrival/departure day, contact email/phone, notes), posts to an Astro API route instead of Formspree, and swaps in a confirmation + QR on success. Update the existing "Data protection notice" copy to describe our own database instead of Formspree as the processor.
-- **`ticket.html` → `src/pages/ticket/[token].astro`**: becomes the durable "your ticket" view — current status, QR, and (in v2) a pay button (none for free performers), replacing the "TBC"/"Paying — TBD" placeholders.
+- **`ticket.html` → merged into `src/pages/rsvp/[token].astro`**: the guest's one page shows their status, ticket reference (or QR), pay button (none for free performers) and answers. `src/pages/ticket/[token].astro` only redirects there, for older links.
 - **v2**: `src/lib/payments.ts`, `src/lib/settings.ts`, `src/lib/stripe.ts`, `src/lib/stripeWebhook.ts`, `src/pages/api/pay/[token].ts`, `src/pages/api/webhooks/stripe.ts`, `src/pages/admin/payments.astro`, `src/components/PaymentPanel.astro`, migration `0008_payments.sql`.
 - **New**: `src/pages/api/rsvp.ts` (submit/update handler, triggers the confirmation email), `src/pages/admin/*` (guest list/edit/add/regenerate — no login page needed, Cloudflare Access handles that before the request arrives), `src/pages/api/admin/*` (guest CRUD), `src/pages/api/pay/[token].ts` and `src/pages/api/webhooks/stripe.ts` (v2), `src/lib/db.ts` (typed helpers over the D1 binding, accessed via `import { env } from "cloudflare:workers"`), `src/lib/email.ts` (Resend client + confirmation template), a small QR component.
 - **Cloudflare config (`wrangler.jsonc`, not application code)**: a D1 database created and declared as the `DB` binding, its migration SQL applied via `wrangler d1 migrations apply`; a Cloudflare Access application covering `/admin/*` configured separately in the dashboard, with a policy listing the hosts' email addresses.
@@ -162,8 +162,8 @@ create table guest_inviters (
 
 - Local dev: `astro dev` against a local D1 database (`wrangler d1` supports a local/emulated mode), with `.env` set for Resend; manually walk through: seed a couple of test guests → visit `/rsvp/<token>` → submit → confirm the row updates in D1 and QR renders on `/ticket/<token>` → confirm a confirmation email arrives (use a real inbox or Resend's test mode) with the correct summary and ticket link → resubmit and confirm `ticket_ref` stays stable and a fresh confirmation email is sent.
 - Confirm a submission still succeeds and saves correctly even if the email send is forced to fail (non-blocking check).
-- Confirm an unknown/garbage token shows the "invalid link" state on both `/rsvp/[token]` and `/ticket/[token]`.
-- Confirm a guest whose `token_expires_at` is in the past and who hasn't responded sees the "link expired" state on `/rsvp/[token]`; confirm a guest in the same state who *has* responded can still access `/rsvp/[token]` and `/ticket/[token]` normally.
+- Confirm an unknown/garbage token shows the "invalid link" state on `/rsvp/[token]` (and `/ticket/[token]` redirects there).
+- Confirm a guest whose `token_expires_at` is in the past and who hasn't responded sees the "link expired" state on `/rsvp/[token]`; confirm a guest in the same state who *has* responded can still access `/rsvp/[token]` normally.
 - Confirm "Regenerate link" on the admin page issues a new token/expiry and that the old token immediately stops working.
 - Confirm `/admin` is unreachable without a Cloudflare Access login (e.g. in an incognito window / signed out), and that a listed host's email successfully gets in via the one-time PIN flow.
 - Confirm the admin page's view/edit/add flows work against real guest rows, including a guest with multiple inviters.

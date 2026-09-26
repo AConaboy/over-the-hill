@@ -1,6 +1,7 @@
 ---
 import Nav from "../components/Nav.astro";
 import { asset } from "../lib/assets";
+import { RSVPED_COOKIE_NAME } from "../lib/rememberCookie";
 
 export interface Props {
   title: string;
@@ -9,6 +10,9 @@ export interface Props {
 
 const { title, description } = Astro.props;
 const currentPath = Astro.url.pathname.replace(/\/$/, "") || "/";
+// A guest who has already replied gets "Your RSVP" rather than being asked
+// to RSVP again (the cookie's set on their page; see rememberCookie.ts).
+const rsvpLabel = Astro.cookies.get(RSVPED_COOKIE_NAME)?.value === "1" ? "Your RSVP" : "RSVP";
 // The butterfly wanders every page but the hosts' admin screens.
 const showButterfly = !currentPath.startsWith("/admin");
 ---
@@ -38,7 +42,7 @@ const showButterfly = !currentPath.startsWith("/admin");
 </head>
 
 <body>
-  <Nav currentPath={currentPath} />
+  <Nav currentPath={currentPath} rsvpLabel={rsvpLabel} />
 
   <slot />
 

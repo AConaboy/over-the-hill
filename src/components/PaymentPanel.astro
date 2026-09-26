@@ -1,5 +1,5 @@
 ---
-// The "Paying" section of a guest's ticket page. What it offers comes from
+// The "Paying" section of a guest's page (/rsvp/<token>). What it offers comes from
 // nextPayment() in src/lib/payments.ts — the same rules the pay route
 // enforces — so the button shown always matches what can actually be paid.
 import type { Guest } from "../lib/guests";
@@ -58,7 +58,7 @@ const remaining = price === null ? null : Math.max(0, price - paid);
       {next.kind === "none" && next.reason === "deposits_closed" && (
         <p>
           No payment is needed yet. When payments open, a button to pay will
-          show up here, and this ticket will update to show it's been paid.
+          show up here, and this page will update to show it's been paid.
         </p>
       )}
       {next.kind === "none" && next.reason === "awaiting_price" && (

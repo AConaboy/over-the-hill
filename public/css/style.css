@@ -681,14 +681,15 @@ main:has(> .page-hero) {
 }
 
 /* After a few seconds, a gentle pulse (and a ring spreading out from it)
-   to draw the eye down to the form. Scale and opacity only, so it's cheap
-   to animate; none for reduced motion. */
+   to draw the eye down to the form. Not once they've replied
+   (.invite-jump-quiet: it's just a way down to where they stand). Scale
+   and opacity only, so it's cheap to animate; none for reduced motion. */
 @media (prefers-reduced-motion: no-preference) {
-  .invite-jump {
+  .invite-jump:not(.invite-jump-quiet) {
     animation: invite-pulse 2.4s ease-in-out 3s infinite;
   }
 
-  .invite-jump::after {
+  .invite-jump:not(.invite-jump-quiet)::after {
     content: "";
     position: absolute;
     inset: -3px;
@@ -698,6 +699,19 @@ main:has(> .page-hero) {
     pointer-events: none;
     animation: invite-ring 2.4s ease-out 3s infinite;
   }
+}
+
+/* The form's Send / Save changes button, and Cancel beside it when editing */
+.rsvp-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.5rem;
+}
+
+/* Their ticket reference, where the QR code would be while those are off */
+.ticket-ref {
+  font-weight: 600;
 }
 
 @keyframes invite-pulse {

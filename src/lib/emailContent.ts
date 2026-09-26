@@ -66,8 +66,9 @@ function summariseAnswers(guest: Guest): string[] {
   return lines;
 }
 
-function ticketUrl(guest: Guest, siteUrl: string): string {
-  return new URL(`/ticket/${guest.token}`, siteUrl).toString();
+/** Their one page: invitation, where they stand, paying, their answers. */
+function guestPageUrl(guest: Guest, siteUrl: string): string {
+  return new URL(`/rsvp/${guest.token}`, siteUrl).toString();
 }
 
 /** "You're registered" (or "sorry to miss you"), with their answers. When
@@ -91,12 +92,12 @@ export function rsvpConfirmationEmail(
   return render({
     subject: "Your Over the Hill RSVP",
     preheader: attending
-      ? "You're registered. Here's what we've got down for you, and a link to your ticket."
+      ? "You're registered. Here's what we've got down for you, and a link to your RSVP."
       : "Thanks for letting us know. Here's a link if your plans change.",
     guestName: guest.name,
     paragraphs,
     summary: { heading: "Here's what we've got down for you", lines },
-    button: { label: attending ? "View your ticket" : "View or update your RSVP", url: ticketUrl(guest, siteUrl) },
+    button: { label: attending ? "View your RSVP" : "View or update your RSVP", url: guestPageUrl(guest, siteUrl) },
     footnote: "Plans change? No problem. Just use the same link any time to update your answers, as often as you like.",
   });
 }
@@ -109,14 +110,14 @@ export function depositDueEmail(guest: Guest, siteUrl: string, depositPence: num
     guestName: guest.name,
     paragraphs: [
       "Thanks! We've saved your RSVP answers.",
-      `Your place isn't confirmed until you've paid your ${formatPence(depositPence)} deposit. You can pay it (and update your answers) from your ticket page.`,
+      `Your place isn't confirmed until you've paid your ${formatPence(depositPence)} deposit. You can pay it (and update your answers) from your RSVP page.`,
     ],
     summary: {
       heading: "Still to do",
       lines: [`Pay your deposit: ${formatPence(depositPence)}`],
     },
-    button: { label: "Pay your deposit", url: ticketUrl(guest, siteUrl) },
-    footnote: "Once it's paid you'll get your ticket and a confirmation email.",
+    button: { label: "Pay your deposit", url: guestPageUrl(guest, siteUrl) },
+    footnote: "Once it's paid, your place is confirmed and we'll email you to say so.",
   });
 }
 
@@ -146,7 +147,7 @@ export function paymentReceivedEmail(
     guestName: guest.name,
     paragraphs: [`Thanks! We've received your payment of ${formatPence(amountPence)} for Over the Hill.`],
     summary: { heading: "Your payments", lines },
-    button: { label: "View your ticket", url: ticketUrl(guest, siteUrl) },
+    button: { label: "View your RSVP", url: guestPageUrl(guest, siteUrl) },
     footnote,
   });
 }

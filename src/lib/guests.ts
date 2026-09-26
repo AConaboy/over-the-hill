@@ -167,7 +167,8 @@ export interface RsvpInput {
 }
 
 export type SubmitRsvpResult =
-  | { ok: true; guest: Guest }
+  /** `wasReplied`: they'd already answered, so this is a change. */
+  | { ok: true; guest: Guest; wasReplied: boolean }
   | { ok: false; reason: "not_found" | "expired" | "cancelled" };
 
 /** Normalises a list of inviter names: trimmed, blanks dropped, and
@@ -274,7 +275,7 @@ export async function submitRsvp(token: string, input: RsvpInput): Promise<Submi
 
   const db = getDb();
   await (await rsvpFieldsStatement(db, guest.id, guest.ticket_ref, input)).run();
-  return { ok: true, guest: await getGuestRowById(db, guest.id) };
+  return { ok: true, guest: await getGuestRowById(db, guest.id), wasReplied: guest.attendance !== "pending" };
 }
 
 export async function markConfirmationEmailSent(guestId: string): Promise<void> {

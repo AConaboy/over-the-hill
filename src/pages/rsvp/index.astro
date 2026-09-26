@@ -3,7 +3,7 @@ import Layout from "../../layouts/Layout.astro";
 import PageHero from "../../components/PageHero.astro";
 import ContentBlockView from "../../components/ContentBlockView.astro";
 import { getGuestByToken, isLinkExpired } from "../../lib/guests";
-import { REMEMBER_COOKIE_NAME } from "../../lib/rememberCookie";
+import { REMEMBER_COOKIE_NAME, RSVPED_COOKIE_NAME } from "../../lib/rememberCookie";
 import { findBlock, getPageContent, parseBody } from "../../lib/content";
 
 const remembered = Astro.cookies.get(REMEMBER_COOKIE_NAME)?.value;
@@ -16,6 +16,7 @@ if (remembered) {
   // Stale cookie (guest not found, or an unanswered link that's since
   // expired) — clear it rather than checking again on every future visit.
   Astro.cookies.delete(REMEMBER_COOKIE_NAME, { path: "/" });
+  Astro.cookies.delete(RSVPED_COOKIE_NAME, { path: "/" });
 }
 
 const sent = Astro.url.searchParams.get("sent") === "1";

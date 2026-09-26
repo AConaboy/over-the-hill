@@ -6,7 +6,7 @@ import type { PaymentSettings } from "./payments";
 // rows (migrations/0008_payments.sql). Each environment has its own
 // database, so staging and production keep separate settings.
 
-type SettingKey = "deposit_pence" | "standard_price_pence" | "deposits_open" | "balance_open";
+type SettingKey = "deposit_pence" | "standard_price_pence" | "deposits_open" | "balance_open" | "ticket_qr";
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -72,4 +72,28 @@ export function paymentSettingsProblem(settings: PaymentSettings, stripeConfigur
     return "The deposit can't be more than the ticket price.";
   }
   return null;
+}
+
+// --- Tickets ---
+
+export interface TicketSettings {
+  /** Show a QR code on a registered guest's page. Off (no row) until door
+   * check-in scanning exists: the code points to /checkin/<ref>, which
+   * isn't built yet. */
+  qrCodes: boolean;
+}
+
+export async function getTicketSettings(): Promise<TicketSettings> {
+  const row = await getDb().prepare("select value from settings where key = 'ticket_qr'").first<{ value: string }>();
+  return { qrCodes: row?.value === "1" };
+}
+
+export async function saveTicketSettings(settings: TicketSettings): Promise<void> {
+  await getDb()
+    .prepare(
+      `insert into settings (key, value, updated_at) values ('ticket_qr', ?, ?)
+       on conflict (key) do update set value = excluded.value, updated_at = excluded.updated_at`,
+    )
+    .bind(settings.qrCodes ? "1" : "0", nowIso())
+    .run();
 }

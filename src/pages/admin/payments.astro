@@ -1,7 +1,7 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import { listGuestsForPayments } from "../../lib/guests";
-import { getPaymentSettings, paymentSettingsProblem, savePaymentSettings } from "../../lib/settings";
+import { getPaymentSettings, getTicketSettings, paymentSettingsProblem, savePaymentSettings, saveTicketSettings } from "../../lib/settings";
 import { overpaidBy, ticketPrice } from "../../lib/payments";
 import { isStripeConfigured } from "../../lib/stripe";
 import { checkboxField, penceField } from "../../lib/forms";
@@ -14,8 +14,17 @@ const stripeConfigured = isStripeConfigured();
 let error: string | null = null;
 let settings = await getPaymentSettings();
 
-if (Astro.request.method === "POST") {
-  const form = await Astro.request.formData();
+let form: FormData | null = null;
+if (Astro.request.method === "POST") form = await Astro.request.formData();
+
+// The small Tickets form further down posts here too.
+if (form && form.get("form") === "tickets") {
+  await saveTicketSettings({ qrCodes: checkboxField(form, "qrCodes") });
+  return Astro.redirect("/admin/payments?saved=tickets#tickets", 303);
+}
+const ticketSettings = await getTicketSettings();
+
+if (form) {
   const depositPence = penceField(form, "deposit");
   const standardPricePence = penceField(form, "standardPrice");
   const submitted = {
@@ -35,7 +44,7 @@ if (Astro.request.method === "POST") {
   settings = submitted;
 }
 
-const saved = Astro.url.searchParams.get("saved") === "1";
+const saved = Astro.url.searchParams.get("saved");
 const amountValue = (pence: number | null) => (pence === null ? "" : formatPence(pence, { symbol: false }));
 
 // Totals over guests who are attending and not cancelled.
@@ -92,7 +101,7 @@ const owed = guests
           <p>{error}</p>
         </article>
       )}
-      {saved && !error && (
+      {saved === "1" && !error && (
         <article class="content-block notice">
           <p>Saved.</p>
         </article>
@@ -129,6 +138,22 @@ const owed = guests
         </p>
 
         <button class="button" type="submit">Save payment settings</button>
+      </form>
+
+      <form class="rsvp-form" method="POST" action="/admin/payments" id="tickets">
+        <input type="hidden" name="form" value="tickets" />
+        <h2>Tickets</h2>
+        {saved === "tickets" && <p>Saved.</p>}
+        <div class="form-field form-field-checkbox">
+          <input id="qrCodes" name="qrCodes" type="checkbox" checked={ticketSettings.qrCodes} />
+          <label for="qrCodes">Show QR codes on tickets</label>
+        </div>
+        <p class="form-field-help">
+          Leave this off until door check-in scanning exists: the codes point to
+          a check-in page that isn't built yet. While it's off, registered
+          guests see their ticket reference instead.
+        </p>
+        <button class="button" type="submit">Save ticket settings</button>
       </form>
 
       <article class="content-block">

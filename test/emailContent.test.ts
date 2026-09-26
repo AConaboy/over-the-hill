@@ -62,7 +62,7 @@ describe("emails", () => {
   const decoded = (html: string) => html.replaceAll("&#x2F;", "/").replaceAll("&#x3D;", "=");
 
   it("links each email to the right page", () => {
-    expect(decoded(emails["deposit-due"].html)).toContain(`href="${SITE}/ticket/tok-123"`);
+    expect(decoded(emails["deposit-due"].html)).toContain(`href="${SITE}/rsvp/tok-123"`);
     expect(decoded(emails["invite-link"].html)).toContain(`href="${SITE}/rsvp/tok-123"`);
     expect(emails["confirmation-deposit"].html).toContain("Deposit paid: £20");
     expect(emails["payment-price-tbc"].text).toContain("Ticket price: to be confirmed");
