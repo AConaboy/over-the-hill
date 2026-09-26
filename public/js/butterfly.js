@@ -374,7 +374,9 @@
     timer = setTimeout(function () { requestAnimationFrame(frame); }, ms);
   }
   function nextStepIn(now) {
-    if (flight || fly.restFlap > 0) return STEP;
+    // mid-flap, or not yet back to wings up after one: keep stepping, or it
+    // would sit with its wings down until the next flap
+    if (flight || fly.restFlap > 0 || fly.wing !== 0) return STEP;
     var due = tour.until;
     if (!tour.perch.onTop) due = Math.min(due, restFlapAt);
     return Math.min(Math.max(due - now, STEP), 1000);
