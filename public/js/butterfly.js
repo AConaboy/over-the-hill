@@ -213,7 +213,10 @@
     // phones) and above the bottom of the page.
     var maxX = document.documentElement.clientWidth - r.right;
     var maxY = document.documentElement.scrollHeight - r.down;
-    var x = Math.min(Math.max(fly.x, r.left), maxX), y = Math.min(fly.y, maxY);
+    // (flying in, it starts off the left of the screen: nothing off that
+    // side can add a scrollbar)
+    var minX = flight && flight.entering ? -Infinity : r.left;
+    var x = Math.min(Math.max(fly.x, minX), maxX), y = Math.min(fly.y, maxY);
     el.style.width = w + 'px';
     el.style.transform = 'translate(' + (x - w * AX).toFixed(0) + 'px,' + (y - h * AY).toFixed(0) + 'px) scaleX(' + fly.face + ') rotate(' + fly.tilt.toFixed(0) + 'deg)';
     el.dataset.wing = fly.wing;
@@ -571,7 +574,28 @@
     if (running) return;
     restAtHome();
     running = true;
+    flyIn();
     schedule(0);
+  }
+
+  // On page load it flies in from just off the left of the screen, at a
+  // height somewhere on screen, to its home, or, if home's not on screen
+  // (the page opened scrolled down), to somewhere that is.
+  function flyIn() {
+    var w = size() * BOX_W / DRAWN_W, hb = header ? header.getBoundingClientRect().bottom : 0;
+    var top = hb + w, bottom = innerHeight - w;
+    fly.x = scrollX - w; fly.face = 1;
+    fly.y = scrollY + top + Math.random() * Math.max(0, bottom - top);
+    var target = home, next = null;
+    if (!onScreen(home(), home.onHeader)) next = pickPerch({ x: fly.x, y: fly.y }, [], null);
+    if (next) target = next.fn;
+    tour = { left: 0, perch: target, until: Infinity, recent: next ? [next.i] : [] };
+    flyTo(target, function () {
+      tour.until = performance.now() + (target === home ? 4000 + Math.random() * 3000 : 2500 + Math.random() * 3000);
+      setState(target === home ? 'home' : 'perched', target);
+    });
+    if (flight) flight.entering = true;
+    draw();
   }
   function stop() {
     running = false; clearTimeout(timer);

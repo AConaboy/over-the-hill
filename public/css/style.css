@@ -1495,8 +1495,9 @@ html:has(.sunrise-rays) {
 }
 
 /* Moving between pages (in browsers that support it): the header, the
-   poster, the rays and the butterfly carry straight on, and only the rest
-   cross-fades, rather than the whole page blinking and starting over. */
+   poster and the rays carry straight on, and only the rest cross-fades,
+   rather than the whole page blinking and starting over. (The butterfly
+   fades out with the old page and flies in afresh on the new one.) */
 @media (prefers-reduced-motion: no-preference) {
   @view-transition {
     navigation: auto;
@@ -1506,27 +1507,24 @@ html:has(.sunrise-rays) {
 .site-header { view-transition-name: site-header; }
 .sunrise-rays { view-transition-name: sunrise-rays; }
 .poster-hero-art { view-transition-name: poster; }
-.butterfly { view-transition-name: butterfly; }
 
 /* These look the same on both pages, so the new one takes over straight
    away instead of the old fading out as the new fades in (which washed
    them out, and looked like the poster loading again). The poster slides
-   if it sits a little lower on the new page; the butterfly glides to where
-   it starts there. Going to or from a page without the poster, there's
-   only one of it (:only-child), so that one still fades.
+   if it sits a little lower on the new page. Going to or from a page
+   without the poster, there's only one of it (:only-child), so that one
+   still fades.
    (Not :not(:only-child): Chrome accepts it here but never matches it.) */
 ::view-transition-old(site-header),
 ::view-transition-old(poster),
-::view-transition-old(sunrise-rays),
-::view-transition-old(butterfly) {
+::view-transition-old(sunrise-rays) {
   display: none;
   animation: none;
 }
 
 ::view-transition-new(site-header),
 ::view-transition-new(poster),
-::view-transition-new(sunrise-rays),
-::view-transition-new(butterfly) {
+::view-transition-new(sunrise-rays) {
   animation: none;
 }
 
