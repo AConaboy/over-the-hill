@@ -1277,6 +1277,13 @@ main:has(> .page-hero) {
   pointer-events: none;
 }
 
+/* No rubber-band bounce on the homepage: pulling past the top (or bottom)
+   would open a gap showing the window-fixed rays above the header. The
+   clip in /js/sunrise.js covers browsers that ignore this. */
+html:has(.sunrise-rays) {
+  overscroll-behavior-y: none;
+}
+
 .sunrise-rays .spin {
   animation: sunrise-spin var(--ray-speed) linear infinite;
 }
