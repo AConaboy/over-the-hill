@@ -43,7 +43,7 @@ const navItems = [
         const isCurrent = currentPath === href || currentPath.startsWith(`${href}/`);
         const classes = [className, isCurrent ? "is-current" : ""].filter(Boolean).join(" ");
         return (
-          <a href={href} class={classes || undefined} aria-current={isCurrent ? "page" : undefined} data-shower={className === "nav-rsvp" || undefined}>
+          <a href={href} class={classes || undefined} aria-current={isCurrent ? "page" : undefined}>
             {label}
           </a>
         );

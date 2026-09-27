@@ -1492,7 +1492,7 @@ html:has(.sunrise-rays) {
   aspect-ratio: 1099 / 1490;
 }
 
-.poster-hero-art .poster-illustration img {
+.poster-hero-art .poster-illustration > img {
   position: absolute;
   left: 0;
   top: 0;
@@ -1608,54 +1608,43 @@ html:has(.sunrise-rays) {
 /* Jess Porter's flowers (from the flower ideas made in Claude Design).
    /js/flowers.js does the moving ones. */
 
-/* The poster's Mexican wave: copies of the drawn flowers, laid exactly
-   over them and hidden, shown only while they wave. */
-.poster-flowers {
+/* The poster's flowers and tulips, as separate pieces over the illustration
+   (which has them removed), so they can move (/js/flowers.js). Placed where
+   Jess drew them. Tulips sway from the base of their stems, which run down
+   behind her grass (the grass-front piece, in front of them). */
+.poster-pieces {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
 
-.poster-flower {
+.poster-piece {
   position: absolute;
   height: auto;
-  opacity: 0;
-  transform-origin: 50% 70%;
-}
-
-/* The shower: over everything, never in the way of a click. */
-.flower-shower {
-  position: fixed;
-  inset: 0;
-  z-index: 20;
-  overflow: hidden;
   pointer-events: none;
+  transform-origin: 50% 70%;       /* flower heads: about their middle */
 }
 
-.flower-shower img {
-  position: absolute;
-  left: 0;
-  top: 0;
-  height: auto;
-  will-change: transform;
+.poster-piece.tulip {
+  transform-origin: 50% 100%;      /* tulips: from the foot of the stem */
 }
+
+.poster-piece.grass-front { left: 37.030%; top: 83.491%; width: 42.286%; }
+.poster-piece.flower-01 { left: 22.218%; top: 46.127%; width: 9.465%; }
+.poster-piece.flower-02 { left: 27.196%; top: 45.674%; width: 10.695%; }
+.poster-piece.flower-03 { left: 29.040%; top: 53.328%; width: 10.203%; }
+.poster-piece.flower-04 { left: 22.156%; top: 53.781%; width: 9.527%; }
+.poster-piece.flower-05 { left: 16.317%; top: 58.174%; width: 11.678%; }
+.poster-piece.flower-06 { left: 6.790%; top: 60.031%; width: 11.616%; }
+.poster-piece.flower-07 { left: 10.663%; top: 65.058%; width: 11.739%; }
+.poster-piece.flower-small-08 { left: 76.305%; top: 86.842%; width: 7.007%; }
+.poster-piece.flower-small-09 { left: 78.333%; top: 84.080%; width: 7.929%; }
+.poster-piece.flower-small-10 { left: 82.328%; top: 83.582%; width: 7.191%; }
+.poster-piece.tulip-left { left: 41.333%; top: 87.703%; width: 10.879%; }
+.poster-piece.tulip-right { left: 50.306%; top: 85.710%; width: 12.170%; }
+.poster-piece.tulip-tall { left: 42.869%; top: 81.227%; width: 12.108%; }
 
 /* Still flowers */
-
-/* A flower tucked over the corner of a card, like a sticker on the poster */
-.has-corner-flower {
-  position: relative;
-}
-
-.corner-flower {
-  position: absolute;
-  top: -30px;
-  right: -20px;
-  width: 70px;
-  height: auto;
-  transform: rotate(25deg);
-  pointer-events: none;
-}
 
 /* Flowers as list bullets, a different one each line */
 .flower-list {
@@ -1700,34 +1689,3 @@ html:has(.sunrise-rays) {
   height: auto;
 }
 
-/* The footer: a band of Jess's flowers along its top, with the text on
-   plain green below it so the flowers never sit behind the words */
-.site-footer {
-  position: relative;
-  padding-top: calc(2rem + 64px);
-}
-
-.site-footer::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 110px;
-  background: url("/images/flower-pattern-tile.webp") 0 0 / 190px 190px repeat;
-  -webkit-mask-image: linear-gradient(#000 30%, transparent);
-  mask-image: linear-gradient(#000 30%, transparent);
-  pointer-events: none;
-}
-
-.site-footer .footer-inner {
-  position: relative;             /* above the flowers where they fade out */
-}
-
-@media (max-width: 600px) {
-  .corner-flower {
-    top: -26px;
-    right: -12px;
-    width: 56px;
-  }
-}

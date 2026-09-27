@@ -16,6 +16,15 @@ export interface Props {
 }
 
 const { inviteLine } = Astro.props;
+
+// The poster's separate pieces, back to front, with their image sizes.
+const PIECES: [string, number, number][] = [
+  ["tulip-tall", 197, 336], ["tulip-left", 177, 220], ["tulip-right", 198, 256],
+  ["grass-front", 688, 363],
+  ["flower-01", 154, 202], ["flower-02", 174, 218], ["flower-03", 166, 171], ["flower-04", 155, 172],
+  ["flower-05", 190, 202], ["flower-06", 189, 194], ["flower-07", 191, 190],
+  ["flower-small-08", 114, 127], ["flower-small-09", 129, 127], ["flower-small-10", 117, 137],
+];
 ---
 
 <!-- Sun rays turning behind the whole page, centred on the disco ball
@@ -62,13 +71,21 @@ const { inviteLine } = Astro.props;
     <img class="poster-ball" src="/images/disco-ball-still.webp" data-still="/images/disco-ball-still.webp" data-spin="/images/disco-ball-12fps.webp" alt="" width="360" height="360" />
     <img
       fetchpriority="high"
-      src="/images/poster-illustration-open-sky.webp"
-      srcset="/images/poster-illustration-open-sky-700.webp 700w, /images/poster-illustration-open-sky.webp 1099w"
+      src="/images/poster-illustration-bare.webp"
+      srcset="/images/poster-illustration-bare-700.webp 700w, /images/poster-illustration-bare.webp 1099w"
       sizes="(max-width: 932px) 58vw, 520px"
-      alt="A twisting tree over rolling green hills, a disco-ball sun rising behind them, wild flowers and mushrooms"
+      alt="A twisting tree over rolling green hills, a disco-ball sun rising behind them, wild flowers, tulips and mushrooms"
       width="1099"
       height="1490"
     />
+    <!-- Jess's flowers and tulips, cut out of the illustration above so they
+         can move (/js/flowers.js); at rest they sit exactly as drawn. The
+         tulips' stems run down behind her grass (grass-front). -->
+    <div class="poster-pieces" data-poster-pieces aria-hidden="true">
+      {PIECES.map(([name, w, h]) => (
+        <img class:list={["poster-piece", name, { tulip: name.startsWith("tulip") }]} src={`/images/flowers/${name}.webp`} alt="" width={w} height={h} decoding="async" />
+      ))}
+    </div>
   </div>
   <svg aria-hidden="true" viewBox="0 25 900 875">
     <defs>
