@@ -26,6 +26,7 @@ Consult these guides before working on related tasks:
 - In `astro dev`, admin has no login (the Access check in `src/middleware.ts` is skipped in dev). Keep the dev server on localhost: never run it with `--host`.
 - Real secrets for local testing go in `.dev.vars` (gitignored; this repo is public), never in `.env.development` or any tracked file.
 - GitHub Actions are pinned to commit SHAs; to update one, look up the new release's commit and keep the version in the comment.
+- The built site sends a strict Content Security Policy (built in `astro.config.mjs`, sent by `src/middleware.ts`; not in `astro dev`, so test with `build` + `preview`). Scripts must be files under `public/js/` loaded with `src={asset(...)}`; an inline `<script>` only runs if it's copied from a file listed in `INLINE_SCRIPTS`, and inline `onclick`/`onsubmit`/`style="…"` attributes are blocked (admin uses `data-confirm`, `data-autosubmit`, `data-select-on-click` via `/js/admin.js`).
 
 ## New pages
 
