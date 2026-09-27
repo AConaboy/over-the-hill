@@ -12,6 +12,7 @@ import { getPaymentSettings, getTicketSettings } from "../../lib/settings";
 import { isAwaitingDeposit, isRegistered, nextPayment } from "../../lib/payments";
 import { isStripeConfigured } from "../../lib/stripe";
 import { formatPence } from "../../lib/money";
+import { CAMPING_LABELS, VEHICLE_LABELS } from "../../lib/answerLabels";
 
 // A guest's one page: their invitation, and once they've replied, where
 // they stand (registered, deposit to pay, declined), paying, and their
@@ -86,8 +87,6 @@ const introduction = replied
   : fields.hero_introduction;
 
 // Their answers, as they'd read them (the form's own wording).
-const CAMPING: Record<string, string> = { camping: "Camping", not_camping: "Not camping", undecided: "Undecided" };
-const VEHICLE: Record<string, string> = { none: "Nope", campervan: "Bringing a campervan", car: "Bringing a car", undecided: "Undecided" };
 const answers: [string, string | null][] = guest
   ? [
       ["Attendance", guest.attendance === "yes" ? "Attending" : guest.attendance === "no" ? "Regretfully declining" : null],
@@ -95,8 +94,8 @@ const answers: [string, string | null][] = guest
       ["Phone number", guest.phone],
       ["Arrival day", guest.arrival_day],
       ["Departure day", guest.departure_day],
-      ["Camping arrangements", guest.camping ? CAMPING[guest.camping] ?? guest.camping : null],
-      ["Bringing a vehicle", guest.vehicle ? VEHICLE[guest.vehicle] ?? guest.vehicle : null],
+      ["Camping arrangements", guest.camping ? CAMPING_LABELS[guest.camping] ?? guest.camping : null],
+      ["Bringing a vehicle", guest.vehicle ? VEHICLE_LABELS[guest.vehicle] ?? guest.vehicle : null],
       ["Dietary requirements or allergies", guest.dietary],
       ["Accessibility requirements", guest.accessibility],
       ["Anything else", guest.notes],

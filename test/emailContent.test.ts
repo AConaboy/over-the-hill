@@ -46,7 +46,7 @@ if (previewDir) {
 describe("emails", () => {
   it.each(Object.entries(emails))("%s renders completely in the shared layout", (_name, email) => {
     expect(email.html).not.toMatch(/\{\{|\}\}/);
-    expect(email.html).toContain("OVER THE HILL FESTIVAL");
+    expect(email.html).toContain("Over the Hill Festival");
     expect(email.html).toContain("<title>" + email.subject + "</title>");
     expect(email.text).toContain("Hi Ada");
   });
@@ -64,7 +64,8 @@ describe("emails", () => {
   it("links each email to the right page", () => {
     expect(decoded(emails["deposit-due"].html)).toContain(`href="${SITE}/rsvp/tok-123"`);
     expect(decoded(emails["invite-link"].html)).toContain(`href="${SITE}/rsvp/tok-123"`);
-    expect(emails["confirmation-deposit"].html).toContain("Deposit paid: £20");
+    expect(emails["confirmation-deposit"].html).toMatch(/>Deposit paid<\/td>\s*<td[^>]*>£20</);
+    expect(emails["confirmation-deposit"].text).toContain("Deposit paid: £20");
     expect(emails["payment-price-tbc"].text).toContain("Ticket price: to be confirmed");
     expect(emails["payment-balance"].html).toContain("(paid in full)");
   });

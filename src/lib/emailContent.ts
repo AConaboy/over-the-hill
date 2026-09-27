@@ -7,6 +7,7 @@ import Mustache from "mustache";
 import layoutTemplate from "./emails/layout.html?raw";
 import type { Guest } from "./guests";
 import { formatPence } from "./money";
+import { CAMPING_LABELS, VEHICLE_LABELS } from "./answerLabels";
 
 export interface RenderedEmail {
   subject: string;
@@ -30,7 +31,17 @@ const DEFAULT_FOOTER_REASON = "You're getting this email because you RSVP'd to O
 
 function render(content: EmailContent): RenderedEmail {
   const footerReason = content.footerReason ?? DEFAULT_FOOTER_REASON;
-  const html = Mustache.render(layoutTemplate, { ...content, footerReason });
+  // The summary box is laid out like a ticket stub: "Label: value" lines
+  // become a label and a value side by side (a line with no label spans
+  // both).
+  const summary = content.summary && {
+    heading: content.summary.heading,
+    rows: content.summary.lines.map((line) => {
+      const colon = line.indexOf(": ");
+      return colon > 0 ? { label: line.slice(0, colon), value: line.slice(colon + 2) } : { label: "", value: line };
+    }),
+  };
+  const html = Mustache.render(layoutTemplate, { ...content, summary, footerReason });
 
   // Plain-text alternative with the same content, for clients that prefer it.
   const text = [
@@ -56,8 +67,8 @@ function summariseAnswers(guest: Guest): string[] {
   if (guest.attendance === "yes") {
     if (guest.arrival_day) lines.push(`Arriving: ${guest.arrival_day}`);
     if (guest.departure_day) lines.push(`Departing: ${guest.departure_day}`);
-    if (guest.camping) lines.push(`Camping: ${guest.camping.replace("_", " ")}`);
-    if (guest.vehicle) lines.push(`Vehicle: ${guest.vehicle.replace("_", " ")}`);
+    if (guest.camping) lines.push(`Camping: ${CAMPING_LABELS[guest.camping] ?? guest.camping}`);
+    if (guest.vehicle) lines.push(`Vehicle: ${VEHICLE_LABELS[guest.vehicle] ?? guest.vehicle}`);
     if (guest.dietary) lines.push(`Dietary requirements: ${guest.dietary}`);
     if (guest.accessibility) lines.push(`Accessibility requirements: ${guest.accessibility}`);
     if (guest.notes) lines.push(`Notes: ${guest.notes}`);
