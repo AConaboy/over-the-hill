@@ -1,4 +1,6 @@
 ---
+import { asset } from "../lib/assets";
+
 export interface Props {
   currentPath: string;
   /** "Your RSVP" once this browser's guest has replied (see Layout). */
@@ -50,28 +52,4 @@ const navItems = [
   </div>
 </header>
 
-<script>
-  function attachMenuToggle() {
-    const header = document.querySelector(".site-header");
-    const menuButton = header?.querySelector<HTMLButtonElement>(".menu-button");
-    const navigation = header?.querySelector<HTMLElement>(".main-navigation");
-
-    if (!menuButton || !navigation) {
-      return;
-    }
-
-    menuButton.addEventListener("click", () => {
-      const isOpen = navigation.classList.toggle("is-open");
-      menuButton.setAttribute("aria-expanded", String(isOpen));
-    });
-
-    navigation.addEventListener("click", (event) => {
-      if (event.target instanceof HTMLAnchorElement) {
-        navigation.classList.remove("is-open");
-        menuButton.setAttribute("aria-expanded", "false");
-      }
-    });
-  }
-
-  attachMenuToggle();
-</script>
+<script is:inline src={asset("/js/nav.js")} defer></script>

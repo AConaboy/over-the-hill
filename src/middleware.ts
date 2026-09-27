@@ -40,16 +40,24 @@ const requireAccess = defineMiddleware(async (context, next) => {
   return next();
 });
 
+// The full Content Security Policy (astro.config.mjs). Only in the built
+// site: the dev server injects its own inline scripts, so dev keeps just
+// frame-ancestors.
+declare const __CONTENT_SECURITY_POLICY__: string;
+
 // Static files get the same headers from public/_headers.
 const securityHeaders = defineMiddleware(async (context, next) => {
   const response = await next();
   const headers = response.headers;
 
-  headers.set("Strict-Transport-Security", "max-age=31536000");
+  headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  // Nothing here uses the camera, microphone or location; payment only on
+  // our own pages (Stripe's checkout is its own site).
+  headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(self)");
   headers.set("X-Content-Type-Options", "nosniff");
   // Nothing here is meant to be framed; this stops clickjacking, e.g. a
   // host being tricked into pressing "Regenerate link" inside an iframe.
-  headers.set("Content-Security-Policy", "frame-ancestors 'none'");
+  headers.set("Content-Security-Policy", import.meta.env.DEV ? "frame-ancestors 'none'" : __CONTENT_SECURITY_POLICY__);
   headers.set("X-Frame-Options", "DENY");
   // Guest tokens live in URLs, so never send a path to another site.
   headers.set("Referrer-Policy", "same-origin");

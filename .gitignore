@@ -14,9 +14,12 @@ yarn-error.log*
 pnpm-debug.log*
 
 
-# environment variables
+# environment variables and local secrets (this repo is public)
 .env
 .env.production
+.env.*.local
+# Wrangler's local secrets file (e.g. Stripe or Resend keys for local testing)
+.dev.vars*
 
 # macOS-specific files
 .DS_Store

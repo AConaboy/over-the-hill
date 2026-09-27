@@ -120,6 +120,7 @@ create table guest_inviters (
 - QR encodes a URL built from `ticket_ref` (a short code, distinct from the long-lived `token`), e.g. `https://overthehill.xyz/checkin/<ticket_ref>` — not the token itself, since the token is an edit credential and the QR may be shown to someone else at the gate.
 - Generated with the `qrcode` npm package inside a small Astro island component (client or server-rendered SVG — either works now that we have a build step).
 - **Off by default** (admin Payments page → Tickets, the `ticket_qr` setting): with no check-in page yet, scanning it does nothing, so registered guests see their ticket reference instead until check-in exists.
+- **When `/checkin/<ticket_ref>` is built it must be hosts-only** (behind Cloudflare Access, like `/admin`): `ticket_ref` is only 8 hex characters (32 bits), fine as a reference but guessable if the check-in page were public.
 - v2 purpose (no new QR issued): becomes the door check-in scan target (`checked_in_at` column already exists) and the same code a guest's ticket shows as "paid" once a deposit/payment lands — the guest's link and QR never change, only their status does.
 
 ## Email confirmation

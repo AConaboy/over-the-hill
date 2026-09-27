@@ -14,7 +14,8 @@ const currentPath = Astro.url.pathname.replace(/\/$/, "") || "/";
 // to RSVP again (the cookie's set on their page; see rememberCookie.ts).
 const rsvpLabel = Astro.cookies.get(RSVPED_COOKIE_NAME)?.value === "1" ? "Your RSVP" : "RSVP";
 // The butterfly wanders every page but the hosts' admin screens.
-const showButterfly = !currentPath.startsWith("/admin");
+const isAdmin = currentPath.startsWith("/admin");
+const showButterfly = !isAdmin;
 ---
 
 <!DOCTYPE html>
@@ -60,5 +61,7 @@ const showButterfly = !currentPath.startsWith("/admin");
   {/* On every page (see the top of public/js/butterfly.js to give a new
       page places for it to land). */}
   {showButterfly && <script is:inline src={asset("/js/butterfly.js")} defer></script>}
+  {/* Admin's confirm prompts and auto-submitting filters. */}
+  {isAdmin && <script is:inline src={asset("/js/admin.js")} defer></script>}
 </body>
 </html>

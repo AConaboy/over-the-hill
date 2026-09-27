@@ -21,6 +21,12 @@ Consult these guides before working on related tasks:
 - [Adding styles or using Tailwind](https://docs.astro.build/en/guides/styling/)
 - [Supporting multiple languages](https://docs.astro.build/en/guides/internationalization/)
 
+## Security notes
+
+- In `astro dev`, admin has no login (the Access check in `src/middleware.ts` is skipped in dev). Keep the dev server on localhost: never run it with `--host`.
+- Real secrets for local testing go in `.dev.vars` (gitignored; this repo is public), never in `.env.development` or any tracked file.
+- GitHub Actions are pinned to commit SHAs; to update one, look up the new release's commit and keep the version in the comment.
+
 ## New pages
 
 Every page uses `src/layouts/Layout.astro`, which loads the wandering butterfly (`public/js/butterfly.js`) on every page except `/admin`. When adding a page:

@@ -3,6 +3,7 @@ import { claimCheckout, clearCheckout, getGuestById, type Guest } from "./guests
 import { getPaymentSettings } from "./settings";
 import { nextPayment } from "./payments";
 import { CHECKOUT_INTEGRATION_ID, getStripe, isStripeConfigured } from "./stripe";
+import { CHECKOUT_APP } from "./stripeWebhook";
 
 // Starting (or resuming) a guest's Stripe checkout. Shared by the Pay
 // button (/api/pay/[token]) and the RSVP submit, which sends a guest straight
@@ -72,8 +73,8 @@ export async function startCheckout(guest: Guest): Promise<StartCheckoutResult> 
         },
       ],
       client_reference_id: guest.ticket_ref ?? undefined,
-      metadata: { guest_id: guest.id, kind: next.kind },
-      payment_intent_data: { metadata: { guest_id: guest.id, kind: next.kind } },
+      metadata: { app: CHECKOUT_APP, guest_id: guest.id, kind: next.kind },
+      payment_intent_data: { metadata: { app: CHECKOUT_APP, guest_id: guest.id, kind: next.kind } },
       customer_email: guest.email ?? undefined,
       expires_at: Math.floor(Date.now() / 1000) + CHECKOUT_LIFETIME_SECONDS,
       success_url: new URL(`${guestPath}?paid=1#rsvp-status`, SITE_URL).toString(),

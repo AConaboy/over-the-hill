@@ -75,7 +75,7 @@ function statusLabel(guest: (typeof guests)[number]): string {
         <form method="GET" action="/admin" class="admin-filters">
           <div class="admin-filter">
             <label for="inviter">Filter by inviter</label>
-            <select id="inviter" name="inviter" onchange="this.form.submit()">
+            <select id="inviter" name="inviter" data-autosubmit>
               <option value="" selected={!inviterFilter}>All guests</option>
               {inviterNames.map((name) => (
                 <option value={name} selected={inviterFilter === name}>{name}</option>
@@ -85,7 +85,7 @@ function statusLabel(guest: (typeof guests)[number]): string {
 
           <div class="admin-filter">
             <label for="kind">Show</label>
-            <select id="kind" name="kind" onchange="this.form.submit()">
+            <select id="kind" name="kind" data-autosubmit>
               {Object.entries(GUEST_KINDS).map(([value, { label }]) => (
                 <option value={value} selected={kind === value}>{label}</option>
               ))}
@@ -94,7 +94,7 @@ function statusLabel(guest: (typeof guests)[number]): string {
 
           <div class="admin-filter">
             <label for="sort">Sort by</label>
-            <select id="sort" name="sort" onchange="this.form.submit()">
+            <select id="sort" name="sort" data-autosubmit>
               {Object.entries(GUEST_SORTS).map(([value, { label }]) => (
                 <option value={value} selected={sort === value}>{label}</option>
               ))}
@@ -168,7 +168,7 @@ function statusLabel(guest: (typeof guests)[number]): string {
                     readonly
                     class="admin-link-input"
                     value={new URL(`/rsvp/${guest.token}`, SITE_URL).toString()}
-                    onclick="this.select()"
+                    data-select-on-click
                   />
                 </td>
                 <td>
@@ -179,7 +179,7 @@ function statusLabel(guest: (typeof guests)[number]): string {
                   <form
                     method="POST"
                     action={`/api/admin/guests/${guest.id}/regenerate`}
-                    onsubmit="return confirm('Regenerate this guest\'s link? Their current link will stop working immediately.')"
+                    data-confirm="Regenerate this guest's link? Their current link will stop working immediately."
                   >
                     <button class="text-link admin-inline-button" type="submit">Regenerate link</button>
                   </form>

@@ -169,7 +169,7 @@ const formatDate = (iso: string) =>
               class="rsvp-form admin-payment-form"
               method="POST"
               action={`/api/admin/guests/${guest.id}/payments`}
-              onsubmit="return confirm('Record this payment?')"
+              data-confirm="Record this payment?"
             >
               <h3>Record a manual payment</h3>
               <input type="hidden" name="action" value="manual" />
@@ -189,7 +189,7 @@ const formatDate = (iso: string) =>
                 class="rsvp-form admin-payment-form"
                 method="POST"
                 action={`/api/admin/guests/${guest.id}/payments`}
-                onsubmit="return confirm('Have you already made this refund in the Stripe Dashboard?')"
+                data-confirm="Have you already made this refund in the Stripe Dashboard?"
               >
                 <h3>Record a refund</h3>
                 <p class="form-field-help">Make the refund in the Stripe Dashboard first. This only updates our records.</p>
@@ -213,9 +213,9 @@ const formatDate = (iso: string) =>
             <form
               method="POST"
               action={`/api/admin/guests/${guest.id}/cancel`}
-              onsubmit={cancelled
-                ? "return confirm('Reinstate this place? They will be able to pay again.')"
-                : "return confirm('Cancel this place? They will no longer be able to pay, and their ticket will show as cancelled.')"}
+              data-confirm={cancelled
+                ? "Reinstate this place? They will be able to pay again."
+                : "Cancel this place? They will no longer be able to pay, and their ticket will show as cancelled."}
             >
               <input type="hidden" name="action" value={cancelled ? "reinstate" : "cancel"} />
               <button class="text-link admin-inline-button status-expired" type="submit">
@@ -227,7 +227,7 @@ const formatDate = (iso: string) =>
           <form
             method="POST"
             action={`/api/admin/guests/${guest.id}/regenerate`}
-            onsubmit="return confirm('Regenerate this guest\'s link? Their current link will stop working immediately.')"
+            data-confirm="Regenerate this guest's link? Their current link will stop working immediately."
           >
             <button class="button" type="submit">Regenerate link</button>
           </form>
@@ -235,7 +235,7 @@ const formatDate = (iso: string) =>
           <form
             method="POST"
             action={`/api/admin/guests/${guest.id}/delete`}
-            onsubmit={`return confirm(${JSON.stringify(`Delete ${guest.name} and all their RSVP details? This can't be undone.`)})`}
+            data-confirm={`Delete ${guest.name} and all their RSVP details? This can't be undone.`}
           >
             <button class="text-link admin-inline-button status-expired" type="submit">Delete guest</button>
           </form>

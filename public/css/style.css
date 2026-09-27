@@ -702,6 +702,23 @@ main:has(> .page-hero) {
 }
 
 /* The form's Send / Save changes button, and Cancel beside it when editing */
+/* "Not Sam? Forget this device", small, under a guest's page */
+.forget-device {
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.85rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .rsvp-form-actions {
   display: flex;
   flex-wrap: wrap;

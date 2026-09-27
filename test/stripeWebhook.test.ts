@@ -17,7 +17,9 @@ function sessionEvent(type: string, session: Record<string, unknown>) {
         amount_total: 2000,
         payment_status: "paid",
         payment_intent: "pi_1",
-        metadata: { guest_id: "guest-1", kind: "deposit" },
+        currency: "gbp",
+        created: Math.floor(Date.now() / 1000),
+        metadata: { app: "over-the-hill", guest_id: "guest-1", kind: "deposit" },
         ...session,
       },
     },
@@ -48,6 +50,25 @@ describe("verifyStripeEvent", () => {
 });
 
 describe("handleStripeEvent", () => {
+  it("ignores paid sessions this site didn't create", async () => {
+    const later = Date.UTC(2026, 11, 1) / 1000;
+    for (const session of [
+      { metadata: { app: "something-else", guest_id: "guest-1", kind: "deposit" } },
+      { metadata: { guest_id: "guest-1", kind: "deposit" }, created: later },
+      { currency: "usd" },
+    ]) {
+      const deps = fakeDeps({ recorded: true, guest: someGuest, completedRegistration: true });
+      expect(await handleStripeEvent(sessionEvent("checkout.session.completed", session), deps)).toBe("ignored");
+      expect(deps.recordPayment).not.toHaveBeenCalled();
+    }
+  });
+
+  it("still accepts an unstamped session created before the stamp was required", async () => {
+    const deps = fakeDeps({ recorded: true, guest: someGuest, completedRegistration: true });
+    const session = { metadata: { guest_id: "guest-1", kind: "deposit" }, created: Date.UTC(2026, 8, 26) / 1000 };
+    expect(await handleStripeEvent(sessionEvent("checkout.session.completed", session), deps)).toBe("recorded");
+  });
+
   it("records a paid checkout once, keyed on the session id, then emails", async () => {
     const deps = fakeDeps({ recorded: true, guest: someGuest, completedRegistration: true });
     expect(await handleStripeEvent(sessionEvent("checkout.session.completed", {}), deps)).toBe("recorded");

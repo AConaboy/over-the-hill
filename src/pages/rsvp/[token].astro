@@ -374,6 +374,12 @@ const pageUrl = guest ? `/rsvp/${guest.token}` : "";
               </a>
               <a class="text-link" href="/location">Where's the festival? →</a>
             </div>
+
+            {/* This browser remembers them (so /rsvp comes straight here);
+                on a shared device, let them undo that. */}
+            <form class="forget-device" method="POST" action="/api/rsvp/forget">
+              <button class="link-button" type="submit">Not {firstName}? Forget this device</button>
+            </form>
           </section>
         </div>
       </>

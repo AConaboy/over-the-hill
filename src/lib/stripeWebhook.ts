@@ -37,7 +37,24 @@ function guestIdOf(session: Stripe.Checkout.Session): string | null {
   return session.metadata?.guest_id ?? null;
 }
 
+/** Stamped on every checkout this site creates (src/lib/checkout.ts), so a
+ * paid session made by anything else on the same Stripe account, even one
+ * carrying a guest_id, is never taken as a guest's payment. */
+export const CHECKOUT_APP = "over-the-hill";
+// Checkouts created before the stamp was added have none; a slow payment
+// method could complete one a few days later, so they're accepted until
+// then. After this date the stamp is required.
+const STAMP_REQUIRED_FROM = Date.UTC(2026, 9, 4) / 1000;
+
+function isOurCheckout(session: Stripe.Checkout.Session): boolean {
+  if (session.currency && session.currency !== "gbp") return false;
+  const app = session.metadata?.app;
+  if (app) return app === CHECKOUT_APP;
+  return (session.created ?? Infinity) < STAMP_REQUIRED_FROM;
+}
+
 async function recordSessionPayment(session: Stripe.Checkout.Session, deps: WebhookDeps): Promise<WebhookOutcome> {
+  if (!isOurCheckout(session)) return "ignored";
   const guestId = guestIdOf(session);
   if (!guestId || session.amount_total === null) return "unknown_guest";
 
