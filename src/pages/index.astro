@@ -30,7 +30,7 @@ const hosts = (fields.credits ?? "")
         <p class="hero-description">{fields.tagline}</p>
         <p class="event-details">{fields.venue_line}</p>
         <div class="button-row">
-          <a class="button" href="/rsvp">{replied ? "Your RSVP" : fields.cta_label}</a>
+          <a class="button" href="/rsvp" data-shower>{replied ? "Your RSVP" : fields.cta_label}</a>
           <a class="text-link" href="/location">{fields.location_cta_label || "Where is it?"}</a>
         </div>
 

@@ -102,6 +102,11 @@ const answers: [string, string | null][] = guest
     ]
   : [];
 const pageUrl = guest ? `/rsvp/${guest.token}` : "";
+// Straight after saying yes, or back from paying: the page celebrates with a
+// flower shower (if it followed their own submit; see /js/flowers.js).
+const celebrate = (submitted && guest?.attendance === "yes") || params.get("paid") === "1";
+// Jess's flowers as the bullets of their answers, a different one each line.
+const BULLET_FLOWERS = ["flower-02", "flower-05", "flower-01", "flower-04", "flower-06", "flower-03", "flower-07"];
 ---
 
 <Layout
@@ -126,7 +131,7 @@ const pageUrl = guest ? `/rsvp/${guest.token}` : "";
             {replied ? (
               <a class="button invite-jump invite-jump-quiet" href="#rsvp-status">Your RSVP ↓</a>
             ) : (
-              <a class="button invite-jump" href="#rsvp-form">RSVP now ↓</a>
+              <a class="button invite-jump" href="#rsvp-form" data-shower>RSVP now ↓</a>
             )}
             <div class="invite-text">
               {fields.hero_eyebrow && <p class="eyebrow">{fields.hero_eyebrow}</p>}
@@ -138,7 +143,7 @@ const pageUrl = guest ? `/rsvp/${guest.token}` : "";
         <div class="invite-body">
           {/* id: after sending the form (or paying), the page opens here, at
               where they stand, rather than at the poster. */}
-          <section class="page-content" id="rsvp-status">
+          <section class="page-content" id="rsvp-status" data-celebrate={celebrate || undefined}>
             {paymentPending && (
               <article class="content-block notice">
                 <h2>Thanks for your payment!</h2>
@@ -166,7 +171,7 @@ const pageUrl = guest ? `/rsvp/${guest.token}` : "";
                   {submitted && emailed && " We've also emailed you a link so you can finish later."}
                 </p>
                 {deposit?.kind === "deposit" ? (
-                  <form method="POST" action={`/api/pay/${guest.token}`}>
+                  <form method="POST" action={`/api/pay/${guest.token}`} data-shower>
                     <button class="button" type="submit">Pay deposit ({formatPence(deposit.amountPence)})</button>
                   </form>
                 ) : (
@@ -176,7 +181,8 @@ const pageUrl = guest ? `/rsvp/${guest.token}` : "";
             )}
 
             {registered && (
-              <article class="content-block notice">
+              <article class="content-block notice has-corner-flower">
+                <img class="corner-flower" src="/images/flowers/flower-05.webp" alt="" width="70" height="74" />
                 {submitted && <p class="eyebrow">{updated ? "Updated" : "Thanks"}, {firstName}!</p>}
                 <h2>You're on the list 🎉 See you there!</h2>
                 <p>
@@ -193,7 +199,7 @@ const pageUrl = guest ? `/rsvp/${guest.token}` : "";
                 {depositNowDue && deposit?.kind === "deposit" && !paymentPending && (
                   <>
                     <p>Your {formatPence(deposit.amountPence)} deposit is now due.</p>
-                    <form method="POST" action={`/api/pay/${guest.token}`}>
+                    <form method="POST" action={`/api/pay/${guest.token}`} data-shower>
                       <button class="button" type="submit">Pay deposit ({formatPence(deposit.amountPence)})</button>
                     </form>
                   </>
@@ -224,9 +230,12 @@ const pageUrl = guest ? `/rsvp/${guest.token}` : "";
             {replied && !editing && (
               <article class="content-block">
                 <h2>Your answers</h2>
-                <ul class="information-list">
-                  {answers.filter(([, value]) => value).map(([label, value]) => (
-                    <li><strong>{label}:</strong> {value}</li>
+                <ul class="flower-list">
+                  {answers.filter(([, value]) => value).map(([label, value], i) => (
+                    <li>
+                      <img src={`/images/flowers/${BULLET_FLOWERS[i % BULLET_FLOWERS.length]}.webp`} alt="" width="26" height="30" />
+                      <span><strong>{label}:</strong> {value}</span>
+                    </li>
                   ))}
                 </ul>
                 <p>
@@ -238,7 +247,7 @@ const pageUrl = guest ? `/rsvp/${guest.token}` : "";
             {!replied && deadlineBlock && <ContentBlockView block={deadlineBlock} />}
 
             {editing && (
-              <form class="rsvp-form" id="rsvp-form" method="POST" action="/api/rsvp">
+              <form class="rsvp-form" id="rsvp-form" method="POST" action="/api/rsvp" data-shower>
                 {replied && <h2>Edit your response</h2>}
                 <input type="hidden" name="token" value={guest.token} />
 
@@ -358,6 +367,13 @@ const pageUrl = guest ? `/rsvp/${guest.token}` : "";
                 </div>
               </form>
             )}
+
+            {/* a break before the general information */}
+            <div class="flower-rule" aria-hidden="true">
+              <img src="/images/flowers/flower-01.webp" alt="" width="44" height="58" />
+              <img src="/images/flowers/flower-06.webp" alt="" width="44" height="45" />
+              <img src="/images/flowers/flower-04.webp" alt="" width="44" height="49" />
+            </div>
 
             {changingBlock && <ContentBlockView block={changingBlock} />}
             {/* Before they've replied: what paying involves. After, the

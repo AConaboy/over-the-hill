@@ -1604,3 +1604,130 @@ html:has(.sunrise-rays) {
 .butterfly[data-wing="2"] .down {
   visibility: visible;
 }
+
+/* Jess Porter's flowers (from the flower ideas made in Claude Design).
+   /js/flowers.js does the moving ones. */
+
+/* The poster's Mexican wave: copies of the drawn flowers, laid exactly
+   over them and hidden, shown only while they wave. */
+.poster-flowers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.poster-flower {
+  position: absolute;
+  height: auto;
+  opacity: 0;
+  transform-origin: 50% 70%;
+}
+
+/* The shower: over everything, never in the way of a click. */
+.flower-shower {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.flower-shower img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: auto;
+  will-change: transform;
+}
+
+/* Still flowers */
+
+/* A flower tucked over the corner of a card, like a sticker on the poster */
+.has-corner-flower {
+  position: relative;
+}
+
+.corner-flower {
+  position: absolute;
+  top: -30px;
+  right: -20px;
+  width: 70px;
+  height: auto;
+  transform: rotate(25deg);
+  pointer-events: none;
+}
+
+/* Flowers as list bullets, a different one each line */
+.flower-list {
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+  font-weight: 600;
+}
+
+.flower-list li {
+  display: flex;
+  gap: 0.7rem;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.flower-list img {
+  flex-shrink: 0;
+  width: 26px;
+  height: auto;
+  margin-top: -0.1em;
+}
+
+/* Three flowers between two ink lines, to break up a long page */
+.flower-rule {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 0.5rem 0 2.5rem;
+}
+
+.flower-rule::before,
+.flower-rule::after {
+  content: "";
+  flex: 1;
+  height: 3px;
+  background: var(--ink);
+}
+
+.flower-rule img {
+  width: 44px;
+  height: auto;
+}
+
+/* The footer: a band of Jess's flowers along its top, with the text on
+   plain green below it so the flowers never sit behind the words */
+.site-footer {
+  position: relative;
+  padding-top: calc(2rem + 64px);
+}
+
+.site-footer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 110px;
+  background: url("/images/flower-pattern-tile.webp") 0 0 / 190px 190px repeat;
+  -webkit-mask-image: linear-gradient(#000 30%, transparent);
+  mask-image: linear-gradient(#000 30%, transparent);
+  pointer-events: none;
+}
+
+.site-footer .footer-inner {
+  position: relative;             /* above the flowers where they fade out */
+}
+
+@media (max-width: 600px) {
+  .corner-flower {
+    top: -26px;
+    right: -12px;
+    width: 56px;
+  }
+}

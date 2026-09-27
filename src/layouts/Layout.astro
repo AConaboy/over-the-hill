@@ -61,6 +61,8 @@ const showButterfly = !isAdmin;
   {/* On every page (see the top of public/js/butterfly.js to give a new
       page places for it to land). */}
   {showButterfly && <script is:inline src={asset("/js/butterfly.js")} defer></script>}
+  {/* Jess's flowers: the poster's wave, and the shower after pressing RSVP. */}
+  {showButterfly && <script is:inline src={asset("/js/flowers.js")} defer></script>}
   {/* Admin's confirm prompts and auto-submitting filters. */}
   {isAdmin && <script is:inline src={asset("/js/admin.js")} defer></script>}
 </body>

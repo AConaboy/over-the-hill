@@ -41,7 +41,7 @@ const remaining = price === null ? null : Math.max(0, price - paid);
       {paymentPending && <p>Your payment is being confirmed.</p>}
 
       {!paymentPending && (next.kind === "deposit" || next.kind === "balance") && (
-        <form method="POST" action={`/api/pay/${guest.token}`}>
+        <form method="POST" action={`/api/pay/${guest.token}`} data-shower>
           <button class="button" type="submit">
             {next.kind === "deposit" ? "Pay deposit" : "Pay balance"} ({formatPence(next.amountPence)})
           </button>
