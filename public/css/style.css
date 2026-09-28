@@ -387,27 +387,27 @@ h2 {
    visible without scrolling. Its width is the smallest of: the page width,
    900px, and the height left under the header (~87px), the top padding,
    the button and some breathing room (205px in all), turned into a width
-   by the 900:875 box plus the invite line's room (1.0282 in all). 300px
+   by the 900:875 box plus the invite line's room (1.048 in all). 300px
    is the floor for very short windows. svh ignores mobile browser
    toolbars; the vh line is the fallback for browsers without it. */
 .poster-hero-art {
   position: relative;
-  --poster-width: min(100%, 900px, max(300px, calc((100vh - 205px) / 1.0282)));
+  --poster-width: min(100%, 900px, max(300px, calc((100vh - 205px) / 1.048)));
   width: var(--poster-width);
   aspect-ratio: 900 / 875;
 }
 
 @supports (height: 100svh) {
   .poster-hero-art {
-    --poster-width: min(100%, 900px, max(300px, calc((100svh - 205px) / 1.0282)));
+    --poster-width: min(100%, 900px, max(300px, calc((100svh - 205px) / 1.048)));
   }
 }
 
-/* Room above for the invite line's arc, which reaches 50 units (of 900)
+/* Room above for the invite line's arc, which reaches 68 units (of 900)
    above the box. (Both percentages here are of the same width, the column
    the poster sits in.) */
 .poster-hero-art.has-invite {
-  margin-top: calc(var(--poster-width) * 0.056);
+  margin-top: calc(var(--poster-width) * 0.076);
 }
 
 .poster-hero-art img {
@@ -433,8 +433,8 @@ h2 {
 }
 
 .poster-arc-title {
-  font-size: 88px;
-  letter-spacing: 8px;
+  font-size: 128px;
+  letter-spacing: 12px;
 }
 
 .poster-arc-date {
