@@ -48,7 +48,6 @@ export const CONTENT_PAGES: ContentPageDef[] = [
       { key: "venue_line", label: "Venue & address line" },
       { key: "cta_label", label: "RSVP button label" },
       { key: "location_cta_label", label: "Location link label" },
-      { key: "credits", label: "Brought to you by (one name per line)", multiline: true },
     ],
   },
   {
@@ -70,6 +69,7 @@ export const CONTENT_PAGES: ContentPageDef[] = [
       { key: "invite_line", label: "Invite line, arcing above the poster title ({first_name} or {name}; blank: \"{first_name}, you are invited to\")" },
       { key: "attending_line", label: "That line once they've said yes (blank: \"{first_name}, see you at\")" },
       { key: "hero_introduction", label: "Introduction, before they've replied", multiline: true },
+      { key: "credits", label: "Brought to you by (one name per line; only shown to guests on their own link)", multiline: true },
       { key: "responded_introduction", label: "Introduction once they've replied (blank: \"Thanks for replying. Your answers are below, and you can change them any time.\")", multiline: true },
     ],
   },

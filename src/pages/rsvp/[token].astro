@@ -102,6 +102,11 @@ const answers: [string, string | null][] = guest
     ]
   : [];
 const pageUrl = guest ? `/rsvp/${guest.token}` : "";
+// "Brought to you by …", the hosts: only for a guest on their own link.
+const hosts = (fields.credits ?? "")
+  .split("\n")
+  .map((name) => name.trim())
+  .filter(Boolean);
 // Jess's flowers as the bullets of their answers, a different one each line.
 const BULLET_FLOWERS = ["flower-02", "flower-05", "flower-01", "flower-04", "flower-06", "flower-03", "flower-07"];
 ---
@@ -133,6 +138,7 @@ const BULLET_FLOWERS = ["flower-02", "flower-05", "flower-01", "flower-04", "flo
             <div class="invite-text">
               {fields.hero_eyebrow && <p class="eyebrow">{fields.hero_eyebrow}</p>}
               {introduction && <p class="page-introduction">{introduction}</p>}
+              {hosts.length > 0 && <p class="credit-line">Brought to you by {hosts.join(", ")}</p>}
             </div>
           </div>
         </section>

@@ -669,6 +669,11 @@ main:has(> .page-hero) {
   text-align: center;
 }
 
+/* "Brought to you by …": centred under the invitation */
+.invite-text .credit-line {
+  margin: 0.75rem auto 0;
+}
+
 .invite-text .eyebrow {
   margin-bottom: 1rem;
 }
