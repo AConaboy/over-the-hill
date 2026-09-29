@@ -3,13 +3,22 @@ import Nav from "../components/Nav.astro";
 import { asset } from "../lib/assets";
 import { RSVPED_COOKIE_NAME } from "../lib/rememberCookie";
 import { INSTAGRAM_HANDLE, INSTAGRAM_URL } from "../lib/site";
+import { SITE_URL } from "astro:env/server";
 
 export interface Props {
   title: string;
   description: string;
+  /** How a link to this page previews when it's shared in a chat or post
+   * (defaults to the title and description). */
+  shareTitle?: string;
+  shareDescription?: string;
 }
 
-const { title, description } = Astro.props;
+const { title, description, shareTitle = title, shareDescription = description } = Astro.props;
+// The share card: the disco-ball sun and the name, dates and place, big
+// enough to read as a small chat preview. Absolute URLs, as the apps need.
+const shareImage = new URL("/images/share-card.jpg", SITE_URL).toString();
+const shareUrl = new URL(Astro.url.pathname, SITE_URL).toString();
 const currentPath = Astro.url.pathname.replace(/\/$/, "") || "/";
 // A guest who has already replied gets "Your RSVP" rather than being asked
 // to RSVP again (the cookie's set on their page; see rememberCookie.ts).
@@ -27,6 +36,18 @@ const showButterfly = !isAdmin;
   <meta name="description" content={description} />
 
   <title>{title}</title>
+
+  <!-- Link previews (WhatsApp, iMessage, Facebook, Slack, X…) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Over the Hill" />
+  <meta property="og:title" content={shareTitle} />
+  <meta property="og:description" content={shareDescription} />
+  <meta property="og:url" content={shareUrl} />
+  <meta property="og:image" content={shareImage} />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Over the Hill: 13–15 August 2027, Out to Grass, Cradley" />
+  <meta name="twitter:card" content="summary_large_image" />
 
   <meta name="theme-color" content="#ffe8cc" />
   <link rel="icon" href="/favicon.ico" sizes="any" />

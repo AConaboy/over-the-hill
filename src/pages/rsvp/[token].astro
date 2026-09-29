@@ -14,6 +14,7 @@ import { isStripeConfigured } from "../../lib/stripe";
 import { formatPence } from "../../lib/money";
 import { CAMPING_LABELS, VEHICLE_LABELS } from "../../lib/answerLabels";
 import { INSTAGRAM_HANDLE, INSTAGRAM_URL } from "../../lib/site";
+import { isLinkPreviewFetch } from "../../lib/linkPreview";
 
 // A guest's one page: their invitation, and once they've replied, where
 // they stand (registered, deposit to pay, declined), paying, and their
@@ -36,7 +37,11 @@ const cancelled = guest?.status === "cancelled";
 // rather than being asked to RSVP again.
 const replied = !!guest && guest.attendance !== "pending";
 
-if (guest && !expired) {
+// A chat app fetching the link to build its preview (when a host sends the
+// invite) isn't the guest opening it: don't mark it viewed or set cookies.
+const previewFetch = isLinkPreviewFetch(Astro.request);
+
+if (guest && !expired && !previewFetch) {
   await markViewed(guest);
   // A valid, live link is the strongest signal we ever get that this
   // browser belongs to this guest — remember them so /rsvp can skip
@@ -115,6 +120,8 @@ const BULLET_FLOWERS = ["flower-02", "flower-05", "flower-01", "flower-04", "flo
 <Layout
   title="RSVP | Over the Hill"
   description="RSVP for Over the Hill and provide camping, dietary and activity information."
+  shareTitle={guest && !expired && !cancelled ? `${firstName}, you're invited to Over the Hill` : "Over the Hill"}
+  shareDescription="13–15 August 2027 at Out to Grass, Cradley. Open your invite to RSVP."
 >
   <main class={guest && !expired && !cancelled ? "invite-main" : undefined}>
     {!guest && <LinkProblemNotice kind="not_found" />}
