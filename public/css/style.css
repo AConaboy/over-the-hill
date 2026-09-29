@@ -706,6 +706,17 @@ main:has(> .page-hero) {
   }
 }
 
+/* "Follow us for updates" on a guest's page, once they've replied */
+.follow-us .button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.follow-us-icon {
+  flex-shrink: 0;
+}
+
 /* The form's Send / Save changes button, and Cancel beside it when editing */
 /* "Not Sam? Forget this device", small, under a guest's page */
 .forget-device {

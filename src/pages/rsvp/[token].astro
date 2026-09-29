@@ -13,6 +13,7 @@ import { isAwaitingDeposit, isRegistered, nextPayment } from "../../lib/payments
 import { isStripeConfigured } from "../../lib/stripe";
 import { formatPence } from "../../lib/money";
 import { CAMPING_LABELS, VEHICLE_LABELS } from "../../lib/answerLabels";
+import { INSTAGRAM_HANDLE, INSTAGRAM_URL } from "../../lib/site";
 
 // A guest's one page: their invitation, and once they've replied, where
 // they stand (registered, deposit to pay, declined), paying, and their
@@ -227,6 +228,27 @@ const BULLET_FLOWERS = ["flower-02", "flower-05", "flower-01", "flower-04", "flo
                 stripeConfigured={isStripeConfigured()}
                 paymentPending={paymentPending}
               />
+            )}
+
+            {/* Once they've replied: where to hear what's happening next. */}
+            {replied && !editing && (
+              <article class="content-block follow-us">
+                <h2>Follow us for updates</h2>
+                <p>
+                  Line-up news, plans and reminders go up on Instagram first,
+                  at <strong>@{INSTAGRAM_HANDLE}</strong>.
+                </p>
+                <p>
+                  <a class="button" href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer">
+                    <svg class="follow-us-icon" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" focusable="false">
+                      <rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="2" />
+                      <circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="2" />
+                      <circle cx="17.4" cy="6.6" r="1.3" fill="currentColor" />
+                    </svg>
+                    Follow us<span class="visually-hidden"> on Instagram (opens in a new tab)</span>
+                  </a>
+                </p>
+              </article>
             )}
 
             {replied && !editing && (
