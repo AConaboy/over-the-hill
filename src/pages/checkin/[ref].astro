@@ -1,0 +1,31 @@
+---
+// What a ticket's QR code opens: that guest, ready to check in. Hosts only
+// (behind Cloudflare Access, like /admin; see src/middleware.ts).
+import Layout from "../../layouts/Layout.astro";
+import AdminHeader from "../../components/AdminHeader.astro";
+import CheckinCard from "../../components/CheckinCard.astro";
+import { getGuestByTicketRef } from "../../lib/guests";
+
+const ref = Astro.params.ref ?? "";
+const guest = /^[A-Za-z0-9-]{1,40}$/.test(ref) ? await getGuestByTicketRef(ref) : null;
+if (!guest) Astro.response.status = 404;
+---
+
+<Layout title="Check-in | Over the Hill" description="Check a guest in at the gate.">
+  <main class="admin-main">
+    <AdminHeader title="Check-in" />
+
+    <section class="page-content checkin-content">
+      {guest ? (
+        <CheckinCard guest={guest} back={Astro.url.pathname} />
+      ) : (
+        <article class="content-block">
+          <p>No ticket matches “{ref}”. Search by name instead.</p>
+        </article>
+      )}
+      <div class="page-actions">
+        <a class="button" href="/admin/checkin">Search by name</a>
+      </div>
+    </section>
+  </main>
+</Layout>

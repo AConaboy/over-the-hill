@@ -1,0 +1,40 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import AdminHeader from "../../components/AdminHeader.astro";
+import CheckinCard from "../../components/CheckinCard.astro";
+import { guestCounts, listGuestsWithInviters } from "../../lib/guests";
+
+// Made for a phone at the gate: search by name (or email, phone), then tap.
+const q = (Astro.url.searchParams.get("q") ?? "").trim().slice(0, 100);
+const [counts, guests] = await Promise.all([
+  guestCounts(),
+  q ? listGuestsWithInviters({ kind: "attending", q, sort: "name" }) : Promise.resolve([]),
+]);
+const here = Astro.url.pathname + Astro.url.search;
+---
+
+<Layout title="Check-in | Over the Hill" description="Check guests in at the gate.">
+  <main class="admin-main">
+    <AdminHeader title="Check-in">
+      <span class="checkin-count"><strong>{counts.checkedIn}</strong> of {counts.attending} here</span>
+      <a slot="actions" class="button button-small button-secondary" href="/api/admin/checkin-sheet.pdf" download>
+        Check-in sheet (PDF)
+      </a>
+    </AdminHeader>
+
+    <section class="page-content checkin-content">
+      <form method="GET" action="/admin/checkin" class="checkin-search">
+        <label for="q" class="visually-hidden">Guest's name</label>
+        <input id="q" name="q" type="search" value={q} placeholder="Name or ticket ref" autocomplete="off" autofocus />
+        <button class="button" type="submit">Find</button>
+      </form>
+
+      {q && guests.length === 0 && (
+        <article class="content-block">
+          <p>Nobody on the list matches “{q}”. Try part of their name, their email or phone number.</p>
+        </article>
+      )}
+      {guests.map((guest) => <CheckinCard guest={guest} back={here} />)}
+    </section>
+  </main>
+</Layout>

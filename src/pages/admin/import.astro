@@ -1,0 +1,184 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import AdminHeader from "../../components/AdminHeader.astro";
+import { heldBackNames, phaseOf, planImport, roundToPhase, type ImportPlan } from "../../lib/inviteImport";
+import { importGuests, listGuestsWithInviters, PHASE_LABELS, INVITE_PHASES, type ImportResult, type InvitePhase } from "../../lib/guests";
+import { openIssueCount, saveIssues } from "../../lib/importIssues";
+
+// Importing the hosts' invite spreadsheet, a phase at a time:
+// 1. upload the List tab as CSV; 2. check the preview and tick phases;
+// 3. import. Everyone with a full name goes straight in. The rest (no known
+// surname, or possibly the same person as someone else) go on the to-fix
+// list (/admin/import/fix) to sort out whenever. Anyone already on the
+// guest list (same name) is left alone, so importing a later phase, or the
+// same file again after fixing names in it, is safe.
+
+const MAX_BYTES = 1_000_000;
+
+let csv = "";
+let error: string | null = null;
+let plan: ImportPlan | null = null;
+let result: ImportResult | null = null;
+let saved: { added: number; fixedInSheet: number } | null = null;
+let chosen: InvitePhase[] = [];
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const file = form.get("file");
+  if (file instanceof File && file.size > 0) {
+    if (file.size > MAX_BYTES) error = "That file's too big for a guest list (over 1 MB). Is it the right one?";
+    else csv = await file.text();
+  } else csv = String(form.get("csv") ?? "");
+  if (!error && !csv.trim()) error = "Choose the CSV file to upload.";
+
+  if (!error) {
+    plan = planImport(csv);
+    if (plan.guests.length === 0 && plan.skipped.length === 0) {
+      error = "No guests found. Export the List tab (File → Download → CSV) and upload that.";
+      plan = null;
+    }
+  }
+  chosen = INVITE_PHASES.filter((phase) => form.getAll("phase").includes(phase));
+  if (plan && form.get("step") === "import") {
+    if (chosen.length === 0) error = "Tick at least one phase to import.";
+    else {
+      const actor = Astro.locals.hostEmail ?? "a host";
+      const held = heldBackNames(plan);
+      result = await importGuests(
+        plan.guests
+          .filter((guest) => chosen.includes(phaseOf(guest.group)) && !held.has(guest.name))
+          .map((guest) => ({ name: guest.name, phase: phaseOf(guest.group), inviterNames: guest.inviters, isPerformer: guest.performer })),
+        actor,
+      );
+      saved = await saveIssues(plan, chosen, actor);
+    }
+  }
+}
+
+const toFix = await openIssueCount();
+// Who's already on the list, to show in the preview.
+const existingNames = plan ? new Set((await listGuestsWithInviters()).map((g) => g.name.toLowerCase())) : new Set<string>();
+const held = plan ? heldBackNames(plan) : new Set<string>();
+const byPhase = INVITE_PHASES.map((phase) => {
+  const guests = plan?.guests.filter((g) => phaseOf(g.group) === phase) ?? [];
+  const fresh = guests.filter((g) => !existingNames.has(g.name.toLowerCase()));
+  return {
+    phase,
+    guests,
+    toAdd: fresh.filter((g) => !held.has(g.name)).length,
+    heldBack: fresh.filter((g) => held.has(g.name)).length,
+    onList: guests.length - fresh.length,
+    skipped: plan?.skipped.filter((s) => roundToPhase(s.round) === phase).length ?? 0,
+  };
+});
+---
+
+<Layout title="Import guests | Over the Hill" description="Import guests from the invite spreadsheet.">
+  <main class="admin-main">
+    <AdminHeader title="Import guests">
+      From the invite spreadsheet, a phase at a time. Everyone with a full name goes straight in; anything that needs checking goes on a to-fix list you can work through whenever.
+    </AdminHeader>
+
+    <section class="page-content admin-content admin-report">
+      {error && (
+        <article class="content-block notice">
+          <p class="status-expired">{error}</p>
+        </article>
+      )}
+
+      {result && saved && (
+        <article class="content-block notice">
+          <h2>Imported {result.added.length} {result.added.length === 1 ? "guest" : "guests"}</h2>
+          <p>
+            {chosen.map((p) => PHASE_LABELS[p]).join(", ")}.
+            {result.existing.length > 0 && ` ${result.existing.length} already on the list were left alone.`}
+            {" "}Their links are ready: copy each invite message from the <a class="text-link" href="/admin?kind=notSent">guest list</a>.
+          </p>
+          {(saved.added > 0 || saved.fixedInSheet > 0) && (
+            <p>
+              {saved.added > 0 && `${saved.added} new to fix (no surname yet, or possibly the same person). `}
+              {saved.fixedInSheet > 0 && `${saved.fixedInSheet} on the to-fix list were fixed in the sheet, so they're marked as sorted. `}
+            </p>
+          )}
+          {result.existing.length > 0 && (
+            <details>
+              <summary>Already on the list ({result.existing.length})</summary>
+              <p>{result.existing.join(", ")}</p>
+            </details>
+          )}
+        </article>
+      )}
+
+      {toFix > 0 && (
+        <article class="content-block">
+          <h2>To fix: {toFix}</h2>
+          <p>
+            Invites waiting for a surname, or for someone to say whether two
+            names are the same person. <a class="button" href="/admin/import/fix">Open the to-fix list</a>
+          </p>
+        </article>
+      )}
+
+      {!plan || result ? (
+        <article class="content-block">
+          <h2>{result ? "Import another file" : "1. Upload the spreadsheet"}</h2>
+          <p>
+            In the spreadsheet, open the <strong>List</strong> tab and download it
+            as CSV (File → Download → Comma-separated values), then choose that file here.
+          </p>
+          <form class="rsvp-form" method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="step" value="preview" />
+            <div class="form-field">
+              <label for="file">CSV file</label>
+              <input id="file" name="file" type="file" accept=".csv,text/csv" required />
+            </div>
+            <button class="button" type="submit">Preview</button>
+          </form>
+        </article>
+      ) : (
+        <form method="POST" class="admin-report">
+          <input type="hidden" name="step" value="import" />
+          <textarea name="csv" hidden>{csv}</textarea>
+
+          <article class="content-block">
+            <h2>2. Choose phases to import</h2>
+            <p>Nothing's been added yet.</p>
+            {byPhase.map(({ phase, toAdd, heldBack, onList, skipped }) => (
+              <div class="form-field form-field-checkbox import-phase">
+                <input id={`phase-${phase}`} type="checkbox" name="phase" value={phase} checked={chosen.includes(phase)} disabled={toAdd + heldBack + skipped === 0} />
+                <label for={`phase-${phase}`}>
+                  <strong>{PHASE_LABELS[phase]}</strong>: {toAdd} to add
+                  {onList > 0 && `, ${onList} already on the list`}
+                  {heldBack + skipped > 0 && <span class="status-expired">, {heldBack + skipped} to fix later</span>}
+                  {phase === "acts" && " · added as performers"}
+                </label>
+              </div>
+            ))}
+            <p class="admin-muted">
+              “To fix later” are names missing a surname, and pairs that may be
+              the same person (neither is added until someone decides). They go
+              on the to-fix list when you import.
+            </p>
+            {byPhase.map(({ phase, guests }) => guests.length > 0 && (
+              <details>
+                <summary>Who's in {PHASE_LABELS[phase]} ({guests.length})</summary>
+                <ul>
+                  {guests.map((g) => (
+                    <li>
+                      {g.name}
+                      <span class="admin-muted">
+                        {" "}· {g.inviters.length ? g.inviters.join(", ") : "Communal"}
+                        {existingNames.has(g.name.toLowerCase()) ? " · already on the list" : held.has(g.name) ? " · possibly a duplicate: to fix" : ""}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            ))}
+            <p><button class="button" type="submit">Import</button></p>
+          </article>
+        </form>
+      )}
+    </section>
+  </main>
+</Layout>

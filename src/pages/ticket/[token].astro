@@ -1,0 +1,16 @@
+---
+// A guest's ticket used to have its own page; it's now part of their one
+// page at /rsvp/<token>. This keeps old links working (emails already
+// sent, and a Stripe checkout started before the change), carrying over
+// the "just paid" / "couldn't start the payment" flags.
+
+const { token } = Astro.params;
+const keep = new URLSearchParams();
+for (const key of ["paid", "payerror"]) {
+  const value = Astro.url.searchParams.get(key);
+  if (value) keep.set(key, value);
+}
+const query = keep.toString();
+
+return Astro.redirect(`/rsvp/${encodeURIComponent(token ?? "")}${query ? `?${query}` : ""}#rsvp-status`, 301);
+---

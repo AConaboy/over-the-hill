@@ -1,0 +1,41 @@
+## Development
+
+When starting the dev server, use background mode:
+
+```
+astro dev --background
+```
+
+Manage the background server with `astro dev stop`, `astro dev status`, and `astro dev logs`.
+
+## QA
+
+Run `npm run qa` (unit tests, type check and the browser suite in `qa/`) before deploying to staging or production, and `npm run qa:staging` after a staging deploy. When adding or changing a feature, add or update its test in `qa/tests/` (see `qa/README.md`).
+
+## Documentation
+
+Full documentation: https://docs.astro.build
+
+Consult these guides before working on related tasks:
+
+- [Adding pages, dynamic routes, or middleware](https://docs.astro.build/en/guides/routing/)
+- [Working with Astro components](https://docs.astro.build/en/basics/astro-components/)
+- [Using React, Vue, Svelte, or other framework components](https://docs.astro.build/en/guides/framework-components/)
+- [Adding or managing content](https://docs.astro.build/en/guides/content-collections/)
+- [Adding styles or using Tailwind](https://docs.astro.build/en/guides/styling/)
+- [Supporting multiple languages](https://docs.astro.build/en/guides/internationalization/)
+
+## Security notes
+
+- In `astro dev`, admin has no login (the Access check in `src/middleware.ts` is skipped in dev). Keep the dev server on localhost: never run it with `--host`.
+- Real secrets for local testing go in `.dev.vars` (gitignored; this repo is public), never in `.env.development` or any tracked file.
+- GitHub Actions are pinned to commit SHAs; to update one, look up the new release's commit and keep the version in the comment.
+- The built site sends a strict Content Security Policy (built in `astro.config.mjs`, sent by `src/middleware.ts`; not in `astro dev`, so test with `build` + `preview`). Scripts must be files under `public/js/` loaded with `src={asset(...)}`; an inline `<script>` only runs if it's copied from a file listed in `INLINE_SCRIPTS`, and inline `onclick`/`onsubmit`/`style="…"` attributes are blocked (admin uses `data-confirm`, `data-autosubmit`, `data-select-on-click` via `/js/admin.js`).
+
+## New pages
+
+Every page uses `src/layouts/Layout.astro`, which loads the wandering butterfly (`public/js/butterfly.js`) on every page except `/admin`. When adding a page:
+
+- Give it a `PageHero` (or another `.page-hero h1`): without the poster, the butterfly's home is standing on that heading (falling back to the header logo).
+- Give it places to land: stops come from `perches()` in `public/js/butterfly.js`. Page headings, cards (`.content-block`), form labels and buttons inside `.page-content` are already covered; add any new kind of element there, and add its text to `TEXT` (or to `FIELDS` for things like images and inputs) so the butterfly never sits over it.
+- Check it on a phone and a laptop: it should only ever land where you can see it.

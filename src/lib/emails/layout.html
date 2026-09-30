@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<!--
+  Over the Hill – shared email layout (Mustache). Every email the site
+  sends uses this, so they all match the website and each other; the
+  wording lives in src/lib/emailContent.ts.
+
+  The look is the homepage's: the sunburst poster at the top (rendered
+  from the site: public/images/email-hero.jpg), a paper card with the
+  butterfly perched on it, a "ticket stub" for the details, and the
+  site's hills leading into a green footer. Images are on the production
+  site, so emails sent from anywhere show them.
+
+  All variables are HTML-escaped by Mustache (double braces).
+    subject        <title>
+    preheader      inbox preview line (hidden in the email itself)
+    guestName      "Hi {name},"
+    paragraphs     array of strings, one <p> each
+    summary        optional { heading, rows[{ label, value }] }: the
+                   ticket stub (a row with no label spans both columns)
+    button         optional { label, url }: the big button plus a
+                   copy-paste fallback link
+    link           optional { label, url }: a smaller text link under the
+                   button (e.g. "Add to your calendar")
+    footnote       optional string, a paragraph after the button
+    footerReason   why they got the email (footer)
+
+  All layout styles are inline. The one <style> block only adds web
+  fonts, phone tweaks and Outlook fixes, and the email still works if a
+  client strips it.
+-->
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="x-apple-disable-message-reformatting">
+  <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+  <!-- Keep the poster palette: ask clients not to auto-darken it. -->
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+  <title>{{subject}}</title>
+
+  <!-- Progressive enhancement: Apple Mail, iOS Mail and some others load these. Gmail and Outlook use the fallbacks. -->
+  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand+SC&amp;family=Quicksand:wght@500;700&amp;display=swap" rel="stylesheet">
+
+  <style>
+    :root { color-scheme: light; supported-color-schemes: light; }
+    body { margin: 0 !important; padding: 0 !important; }
+    a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; }
+    @media only screen and (max-width: 620px) {
+      .oth-pad { padding-left: 22px !important; padding-right: 22px !important; }
+      .oth-h1 { font-size: 36px !important; line-height: 40px !important; }
+      .oth-stub { padding-left: 16px !important; padding-right: 16px !important; }
+      .oth-label { width: 42% !important; }
+      .oth-perch { padding-right: 28px !important; }
+    }
+  </style>
+
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:AllowPNG/>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <style>
+    /* Outlook for Windows would otherwise fall back to Times New Roman. */
+    body, table, td, p, li, a, span { font-family: "Segoe UI", Arial, sans-serif !important; }
+    .oth-display { font-family: "Comic Sans MS", "Segoe UI", Arial, sans-serif !important; }
+  </style>
+  <![endif]-->
+</head>
+
+<body style="margin: 0; padding: 0; background-color: #ffe8cc; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+
+  <!-- Preheader: shown as the inbox preview line, hidden in the email itself. -->
+  <div style="display: none; max-height: 0; overflow: hidden; mso-hide: all; font-size: 1px; line-height: 1px; color: #ffe8cc; opacity: 0;">
+    {{preheader}}
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffe8cc; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 12px 10px 0 10px;">
+
+        <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 600px; border-collapse: separate;">
+
+          <!-- ========== HERO: the sunburst poster ========== -->
+          <tr>
+            <td align="center" style="padding: 0;">
+              <a href="https://overthehill.live/" target="_blank" style="text-decoration: none;">
+                <img src="https://overthehill.live/images/email-hero.jpg" width="600" alt="Over the Hill Festival: August 13th to 15th 2027 at Out to Grass" style="display: block; width: 100%; max-width: 600px; height: auto; border: 0; outline: none; text-decoration: none; background-color: #ffe8cc; font-family: 'Patrick Hand SC', 'Comic Sans MS', 'Chalkboard SE', 'Trebuchet MS', sans-serif; font-size: 26px; line-height: 32px; color: #1a1a17; text-align: center;">
+              </a>
+            </td>
+          </tr>
+
+          <!-- ========== THE BUTTERFLY, perched on the card's edge ========== -->
+          <tr>
+            <td class="oth-perch" align="right" style="padding: 14px 44px 0 0; font-size: 0; line-height: 0;">
+              <img src="https://overthehill.live/images/email-butterfly.png" width="52" height="48" alt="" style="display: inline-block; width: 52px; height: 48px; border: 0; vertical-align: bottom;">
+            </td>
+          </tr>
+
+          <!-- ========== MAIN CARD ========== -->
+          <tr>
+            <td style="padding: 0 6px 6px 0;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: separate; background-color: #fff4e6; border: 3px solid #1a1a17; border-radius: 26px; box-shadow: 6px 6px 0 #1a1a17;">
+                <tr>
+                  <td class="oth-pad" style="padding: 34px 40px 38px 40px;">
+
+                    <!-- Greeting -->
+                    <h1 class="oth-display oth-h1" style="margin: 0 0 16px 0; font-family: 'Patrick Hand SC', 'Comic Sans MS', 'Chalkboard SE', 'Trebuchet MS', sans-serif; font-size: 44px; line-height: 48px; font-weight: normal; color: #1a1a17; text-align: center;">
+                      Hi {{guestName}},
+                    </h1>
+                    {{#paragraphs}}
+                    <p style="margin: 0 0 20px 0; font-family: 'Quicksand', 'Segoe UI', Arial, sans-serif; font-size: 17px; line-height: 27px; font-weight: 500; color: #1a1a17; text-align: center;">{{.}}</p>
+                    {{/paragraphs}}
+
+                    <!-- Summary (optional): a ticket stub -->
+                    {{#summary}}
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 12px 0 0 0; border-collapse: separate; background-color: #f7cf97; border: 2px solid #1a1a17; border-radius: 18px;">
+                      <tr>
+                        <td class="oth-stub" align="center" style="padding: 18px 26px 12px 26px;">
+                          <p class="oth-display" style="margin: 0; font-family: 'Patrick Hand SC', 'Comic Sans MS', 'Chalkboard SE', 'Trebuchet MS', sans-serif; font-size: 26px; line-height: 30px; color: #1a1a17;">{{heading}}</p>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="oth-stub" style="padding: 0 26px;">
+                          <!-- the stub's tear line -->
+                          <div style="height: 0; line-height: 0; font-size: 0; border-top: 2px dashed #1a1a17;">&nbsp;</div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="oth-stub" style="padding: 10px 26px 16px 26px;">
+                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse;">
+                            {{#rows}}
+                            <tr>
+                              {{#label}}
+                              <td class="oth-label" width="44%" valign="top" style="padding: 7px 12px 7px 0; font-family: 'Quicksand', 'Segoe UI', Arial, sans-serif; font-size: 14px; line-height: 22px; font-weight: 700; color: #6a4513;">{{label}}</td>
+                              <td valign="top" style="padding: 7px 0; font-family: 'Quicksand', 'Segoe UI', Arial, sans-serif; font-size: 16px; line-height: 22px; font-weight: 700; color: #1a1a17;">{{value}}</td>
+                              {{/label}}
+                              {{^label}}
+                              <td colspan="2" valign="top" style="padding: 7px 0; font-family: 'Quicksand', 'Segoe UI', Arial, sans-serif; font-size: 16px; line-height: 22px; font-weight: 700; color: #1a1a17;">{{value}}</td>
+                              {{/label}}
+                            </tr>
+                            {{/rows}}
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                    {{/summary}}
+
+                    <!-- Button (optional) -->
+                    {{#button}}
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td align="center" style="padding: 30px 0 12px 0;">
+                          <!--[if mso]>
+                          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{url}}" style="height:56px;v-text-anchor:middle;width:320px;" arcsize="50%" strokecolor="#1a1a17" strokeweight="2.25pt" fillcolor="#ee8a0a">
+                            <w:anchorlock/>
+                            <center style="color:#1a1a17;font-family:'Comic Sans MS',Arial,sans-serif;font-size:22px;">{{label}}</center>
+                          </v:roundrect>
+                          <![endif]-->
+                          <!--[if !mso]><!-->
+                          <a href="{{url}}" target="_blank" class="oth-display" style="display: inline-block; padding: 13px 38px; background-color: #ee8a0a; border: 3px solid #1a1a17; border-radius: 999px; box-shadow: 5px 5px 0 #1a1a17; font-family: 'Patrick Hand SC', 'Comic Sans MS', 'Chalkboard SE', 'Trebuchet MS', sans-serif; font-size: 26px; line-height: 30px; color: #1a1a17; text-decoration: none; mso-hide: all;">{{label}}</a>
+                          <!--<![endif]-->
+                        </td>
+                      </tr>
+                      <tr>
+                        <td align="center" style="padding: 4px 0 24px 0; font-family: 'Quicksand', 'Segoe UI', Arial, sans-serif; font-size: 13px; line-height: 20px; color: #3b3a33;">
+                          Button not working? Copy this link into your browser:<br>
+                          <a href="{{url}}" target="_blank" style="color: #8a4b00; font-weight: 700; text-decoration: underline; word-break: break-all;">{{url}}</a>
+                        </td>
+                      </tr>
+                    </table>
+                    {{/button}}
+
+                    <!-- Text link (optional) -->
+                    {{#link}}
+                    <p style="margin: 0 0 22px 0; font-family: 'Quicksand', 'Segoe UI', Arial, sans-serif; font-size: 16px; line-height: 24px; font-weight: 700; text-align: center;">
+                      <a href="{{url}}" target="_blank" style="color: #8a4b00; text-decoration: underline;">{{label}}</a>
+                    </p>
+                    {{/link}}
+
+                    <!-- Footnote (optional) -->
+                    {{#footnote}}
+                    <p style="margin: 0 0 26px 0; font-family: 'Quicksand', 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 24px; font-weight: 500; color: #3b3a33; text-align: center;">{{.}}</p>
+                    {{/footnote}}
+
+                    <!-- Sign-off -->
+                    <p class="oth-display" style="margin: 0; font-family: 'Patrick Hand SC', 'Comic Sans MS', 'Chalkboard SE', 'Trebuchet MS', sans-serif; font-size: 32px; line-height: 36px; color: #1a1a17; text-align: center;">
+                      See you there!
+                    </p>
+                    <p style="margin: 4px 0 0 0; font-family: 'Quicksand', 'Segoe UI', Arial, sans-serif; font-size: 16px; line-height: 24px; font-weight: 700; color: #3b3a33; text-align: center;">
+                      The Over the Hill hosts
+                    </p>
+
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ========== HILLS, into the green footer ========== -->
+          <tr>
+            <td style="padding: 36px 0 0 0; font-size: 0; line-height: 0;">
+              <img src="https://overthehill.live/images/email-hills.png" width="600" alt="" style="display: block; width: 100%; max-width: 600px; height: auto; border: 0;">
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="background-color: #8bd580; padding: 6px 24px 26px 24px; font-family: 'Quicksand', 'Segoe UI', Arial, sans-serif; font-size: 14px; line-height: 22px; font-weight: 700; color: #1a1a17;">
+              <p class="oth-display" style="margin: 0 0 4px 0; font-family: 'Patrick Hand SC', 'Comic Sans MS', 'Chalkboard SE', 'Trebuchet MS', sans-serif; font-size: 28px; line-height: 32px; font-weight: normal; color: #1a1a17;">
+                Over the Hill Festival
+              </p>
+              <p style="margin: 0; color: #1a1a17;">
+                August 13th &ndash; 15th 2027<br>
+                Out to Grass, Woodend Farm, Cradley, WR13&nbsp;5JW
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="background-color: #2e5529; border-top: 3px solid #1a1a17; padding: 18px 24px 22px 24px; font-family: 'Quicksand', 'Segoe UI', Arial, sans-serif; font-size: 13px; line-height: 21px; font-weight: 500; color: #ffe8cc;">
+              {{footerReason}}<br>
+              <a href="https://overthehill.live/" target="_blank" style="color: #ffe8cc; font-weight: 700; text-decoration: underline;">overthehill.live</a>
+            </td>
+          </tr>
+
+        </table>
+        <!--[if mso]></td></tr></table><![endif]-->
+
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 0 0 28px 0; font-size: 0; line-height: 0;">&nbsp;</td>
+    </tr>
+  </table>
+
+</body>
+</html>

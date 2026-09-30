@@ -1,0 +1,81 @@
+---
+import { asset } from "../lib/assets";
+
+export interface Props {
+  currentPath: string;
+  /** "Your RSVP" once this browser's guest has replied (see Layout). */
+  rsvpLabel?: string;
+  /** The hosts' pages get their own navigation. */
+  admin?: boolean;
+}
+
+const { currentPath, rsvpLabel = "RSVP", admin = false } = Astro.props;
+
+interface NavItem {
+  href: string;
+  label: string;
+  className?: string;
+  /** Other paths this item is current for (defaults to its own subpages). */
+  also?: string[];
+}
+
+const navItems: NavItem[] = admin
+  ? [
+      { href: "/admin", label: "Guests", also: ["/admin/guests"] },
+      { href: "/admin/import", label: "Import" },
+      { href: "/admin/report", label: "Report" },
+      { href: "/admin/checkin", label: "Check-in", also: ["/checkin"] },
+      { href: "/admin/payments", label: "Payments" },
+      { href: "/admin/content", label: "Site text" },
+      { href: "/", label: "View site ↗", className: "nav-view-site" },
+    ]
+  : [
+      { href: "/location", label: "Location" },
+      { href: "/rsvp", label: rsvpLabel, className: "nav-rsvp" },
+    ];
+const isCurrentItem = ({ href, also = [] }: NavItem) =>
+  currentPath === href ||
+  (href !== "/admin" && href !== "/" && currentPath.startsWith(`${href}/`)) ||
+  also.some((path) => currentPath === path || currentPath.startsWith(`${path}/`));
+---
+
+<header class:list={["site-header", { "is-admin": admin }]}>
+  <div class="nav-container">
+    <div class="brand-group">
+      <a class="site-logo" href="/" aria-label="Go to the homepage">
+        <!-- Spinning disco ball; a still frame for anyone who prefers reduced
+             motion. alt is empty because the link has its own label. -->
+        <picture>
+          <source srcset="/images/logo-static.webp" media="(prefers-reduced-motion: reduce)" />
+          <img src="/images/logo-animated.webp" alt="" width="54" height="54" />
+        </picture>
+      </a>
+      <a class="site-name" href={admin ? "/admin" : "/"}>Over the Hill</a>
+      {admin && <span class="admin-badge">Hosts</span>}
+    </div>
+
+    <button
+      class="menu-button"
+      type="button"
+      aria-expanded="false"
+      aria-controls="main-navigation"
+    >
+      Menu
+    </button>
+
+    <nav id="main-navigation" class="main-navigation" aria-label="Main navigation">
+      {navItems.map((item) => {
+        const { href, label, className } = item;
+        const isCurrent = isCurrentItem(item);
+        const classes = [className, isCurrent ? "is-current" : ""].filter(Boolean).join(" ");
+        return (
+          <a href={href} class={classes || undefined} aria-current={isCurrent ? "page" : undefined}>
+            {label}
+          </a>
+        );
+      })}
+    </nav>
+  </div>
+</header>
+
+<script is:inline src={asset("/js/nav.js")} defer></script>

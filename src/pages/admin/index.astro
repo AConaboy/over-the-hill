@@ -1,0 +1,267 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import AdminHeader from "../../components/AdminHeader.astro";
+import SentToggle from "../../components/SentToggle.astro";
+import {
+  listGuestsWithInviters,
+  listAllInviterNames,
+  isLinkExpired,
+  isGuestSort,
+  isGuestKind,
+  GUEST_SORTS,
+  GUEST_KINDS,
+  guestCounts,
+  lastEventByGuest,
+  openedAtByGuest,
+  INVITE_PHASES,
+  PHASE_LABELS,
+  type GuestKind,
+  type GuestWithInviters,
+  type InvitePhase,
+} from "../../lib/guests";
+import { formatPence } from "../../lib/money";
+import { getPaymentSettings } from "../../lib/settings";
+import { overpaidBy, ticketPrice } from "../../lib/payments";
+import { inviteMessage } from "../../lib/site";
+import { openIssueCount } from "../../lib/importIssues";
+import { SITE_URL } from "astro:env/server";
+
+const params = Astro.url.searchParams;
+const inviterFilter = params.get("inviter") ?? "";
+const sortParam = params.get("sort");
+const sort = isGuestSort(sortParam) ? sortParam : "name";
+const kindParam = params.get("kind");
+const kind = isGuestKind(kindParam) ? kindParam : "all";
+const phaseParam = params.get("phase");
+const phase = (INVITE_PHASES as readonly string[]).includes(phaseParam ?? "") ? (phaseParam as InvitePhase) : undefined;
+const q = (params.get("q") ?? "").trim().slice(0, 100);
+const [guests, inviterNames, paymentSettings, counts, lastEvents, toFix, openedAt] = await Promise.all([
+  listGuestsWithInviters({ inviter: inviterFilter || undefined, kind, sort, q, phase }),
+  listAllInviterNames(),
+  getPaymentSettings(),
+  guestCounts(),
+  lastEventByGuest(),
+  openIssueCount(),
+  openedAtByGuest(),
+]);
+// Where this page is, to come back to after marking an invite sent.
+const here = Astro.url.pathname + Astro.url.search;
+const filtered = kind !== "all" || !!phase || !!inviterFilter || !!q;
+
+// The headline numbers, each opening the list filtered to it (the "Show"
+// menu has every other filter).
+const STATS: { kind: GuestKind; label: string }[] = [
+  { kind: "all", label: "Invited" },
+  { kind: "notSent", label: "Not sent yet" },
+  { kind: "unopened", label: "Sent, not opened" },
+  { kind: "waiting", label: "Opened, no reply" },
+  { kind: "attending", label: "Attending" },
+  { kind: "declined", label: "Can't come" },
+];
+// A link to this list with one filter changed (keeping the others).
+function withParam(name: string, value: string | null): string {
+  const next = new URLSearchParams(params);
+  if (value) next.set(name, value);
+  else next.delete(name);
+  const query = next.toString();
+  return query ? `/admin?${query}` : "/admin";
+}
+
+type Tone = "muted" | "sent" | "opened" | "yes" | "due" | "no" | "off";
+/** Where they are, as a coloured badge. */
+function statusBadge(guest: GuestWithInviters): { label: string; tone: Tone } {
+  switch (guest.status) {
+    case "invited":
+      return guest.invite_sent_at ? { label: `Sent ${shortDate(guest.invite_sent_at)}`, tone: "sent" } : { label: "Not sent", tone: "muted" };
+    case "viewed": {
+      const opened = openedAt.get(guest.id);
+      return { label: opened ? `Opened ${shortDate(opened)}` : "Opened", tone: "opened" };
+    }
+    case "rsvp_yes":
+      return guest.registered_at ? { label: "Attending", tone: "yes" } : { label: "Deposit due", tone: "due" };
+    case "rsvp_no":
+      return { label: "Can't come", tone: "no" };
+    case "cancelled":
+      return { label: "Cancelled", tone: "off" };
+    default:
+      return { label: guest.status, tone: "muted" };
+  }
+}
+
+/** e.g. "£20 of £60", "£20 · price TBC", or null when there's nothing to show. */
+function paymentSummary(guest: GuestWithInviters): string | null {
+  if (guest.status === "cancelled" || guest.attendance !== "yes") return null;
+  const paid = guest.amount_paid_pence ?? 0;
+  const price = ticketPrice(guest, paymentSettings);
+  if (price === null) return paid > 0 ? `${formatPence(paid)} paid · price TBC` : null;
+  if (price === 0) return null;
+  return `${formatPence(paid)} of ${formatPence(price)} paid`;
+}
+
+const refundOwed = (guest: GuestWithInviters) =>
+  (guest.status === "cancelled" ? (guest.amount_paid_pence ?? 0) : overpaidBy(guest, paymentSettings)) > 0;
+
+function shortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
+/** Their latest history entry, if it says more than the badge does. */
+function lastActivity(guest: GuestWithInviters): string | null {
+  const event = lastEvents.get(guest.id);
+  // (the badge already says when they were sent it or opened it)
+  if (!event || ["imported", "invite", "opened"].includes(event.action)) return null;
+  return `${event.detail ?? event.action} · ${shortDate(event.at)}`;
+}
+
+function performerNote(guest: GuestWithInviters): string | null {
+  if (guest.is_performer !== 1) return null;
+  const price = guest.amount_due_pence === null ? "standard price" : guest.amount_due_pence === 0 ? "free" : formatPence(guest.amount_due_pence);
+  return `Performer (${price})`;
+}
+---
+
+<Layout title="Guests | Over the Hill" description="Manage the Over the Hill guest list.">
+  <main class="admin-main">
+    <AdminHeader title="Guests">
+      <Fragment slot="actions">
+        {toFix > 0 && <a class="admin-pill-link" href="/admin/import/fix">{toFix} to fix from the import</a>}
+        <a class="button button-small" href="/admin/guests/new">Add guest</a>
+      </Fragment>
+    </AdminHeader>
+
+    <section class="admin-body">
+      <nav class="admin-stats" aria-label="Summary">
+        {STATS.map((stat) => (
+          <a
+            class:list={["admin-stat", { "is-current": stat.kind !== "all" && kind === stat.kind }]}
+            href={stat.kind === "all" ? "/admin" : `/admin?kind=${stat.kind}`}
+          >
+            <span class="admin-stat-count">{counts[stat.kind]}</span>
+            <span class="admin-stat-label">{stat.label}</span>
+          </a>
+        ))}
+      </nav>
+
+      <form method="GET" action="/admin" class="admin-filterbar" role="search">
+        <div class="admin-filter admin-filter-search">
+          <label for="q" class="visually-hidden">Search</label>
+          <input id="q" name="q" type="search" value={q} placeholder="Search name, email, phone or ticket" />
+        </div>
+        <div class="admin-filter">
+          <label for="kind">Show</label>
+          <select id="kind" name="kind" data-autosubmit>
+            {Object.entries(GUEST_KINDS)
+              .filter(([value]) => !value.startsWith("phase"))
+              .map(([value, { label }]) => <option value={value} selected={kind === value}>{value === "all" ? "Everyone" : label}</option>)}
+          </select>
+        </div>
+        <div class="admin-filter">
+          <label for="phase">Phase</label>
+          <select id="phase" name="phase" data-autosubmit>
+            <option value="" selected={!phase}>All phases</option>
+            {INVITE_PHASES.map((p) => {
+              const key = p === "acts" ? "phaseActs" : (`phase${p}` as GuestKind);
+              return <option value={p} selected={phase === p}>{PHASE_LABELS[p]} ({counts[key]})</option>;
+            })}
+          </select>
+        </div>
+        <div class="admin-filter">
+          <label for="inviter">Invited by</label>
+          <select id="inviter" name="inviter" data-autosubmit>
+            <option value="" selected={!inviterFilter}>Anyone</option>
+            {inviterNames.map((name) => <option value={name} selected={inviterFilter === name}>{name}</option>)}
+          </select>
+        </div>
+        <div class="admin-filter">
+          <label for="sort">Sort</label>
+          <select id="sort" name="sort" data-autosubmit>
+            {Object.entries(GUEST_SORTS).map(([value, { label }]) => <option value={value} selected={sort === value}>{label}</option>)}
+          </select>
+        </div>
+        <button class="visually-hidden" type="submit">Search</button>
+      </form>
+
+      <p class="admin-resultline">
+        {guests.length} {guests.length === 1 ? "guest" : "guests"}
+        {filtered && <a class="text-link" href="/admin">Clear filters</a>}
+      </p>
+
+      <div class="admin-list">
+        <table class="admin-guests">
+          <thead>
+            <tr>
+              <th>Guest</th>
+              <th>Status</th>
+              <th>Invite</th>
+              <th><span class="visually-hidden">Edit</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {guests.map((guest) => {
+              const badge = statusBadge(guest);
+              const link = new URL(`/rsvp/${guest.token}`, SITE_URL).toString();
+              const details = [
+                guest.inviters.join(", ") || null,
+                guest.invite_phase && PHASE_LABELS[guest.invite_phase],
+                performerNote(guest),
+              ].filter(Boolean);
+              const contact = [guest.email, guest.phone].filter(Boolean).join(" · ");
+              const activity = lastActivity(guest);
+              const payment = paymentSummary(guest);
+              return (
+                <tr data-invite-cell id={`guest-${guest.id}`}>
+                  <td class="admin-guest">
+                    <a class="admin-guest-name" href={`/admin/guests/${guest.id}/edit`}>{guest.name}</a>
+                    {details.length > 0 && <div class="admin-sub">{details.join(" · ")}</div>}
+                    {contact && <div class="admin-sub">{contact}</div>}
+                  </td>
+                  <td class="admin-status">
+                    <span class={`badge badge-${badge.tone}`} data-invite-status={guest.status === "invited" ? "" : undefined}>
+                      {badge.label}
+                    </span>
+                    {guest.status === "invited" && guest.invite_sent_at && (
+                      <div class="admin-sub admin-unopened">Not opened yet</div>
+                    )}
+                    {payment && <div class="admin-sub">{payment}</div>}
+                    {refundOwed(guest) && <div class="admin-sub status-expired">Refund owed</div>}
+                    {isLinkExpired(guest) && <div class="admin-sub status-expired">Link expired: regenerate it from Edit</div>}
+                    {activity && <div class="admin-sub">{activity}</div>}
+                  </td>
+                  <td class="admin-invite">
+                    <button
+                      type="button"
+                      class="admin-copy-button"
+                      data-copy-invite={inviteMessage(guest.name, link)}
+                      data-sent-url={`/api/admin/guests/${guest.id}/sent`}
+                      title="Copy the invite message with their link, to paste into a chat"
+                    >
+                      Copy message
+                    </button>
+                    <button
+                      type="button"
+                      class="admin-copy-button"
+                      data-copy-invite={link}
+                      data-sent-url={`/api/admin/guests/${guest.id}/sent`}
+                      title="Copy just their personal link"
+                    >
+                      Copy link
+                    </button>
+                    <SentToggle guestId={guest.id} sentAt={guest.invite_sent_at} back={here} anchor={`guest-${guest.id}`} />
+                  </td>
+                  <td class="admin-edit">
+                    <a class="text-link" href={`/admin/guests/${guest.id}/edit`}>Edit</a>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {guests.length === 0 && (
+          <p class="admin-empty">
+            No guests match. <a class="text-link" href="/admin">Show everyone</a>
+          </p>
+        )}
+      </div>
+    </section>
+  </main>
+</Layout>
