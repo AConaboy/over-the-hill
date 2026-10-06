@@ -1,0 +1,37 @@
+---
+// Admin-only performer controls, shared by the add and edit guest forms.
+// Guests never see these; the RSVP form and its API don't touch them.
+import { formatPence } from "../lib/money";
+
+export interface Props {
+  isPerformer?: boolean;
+  amountDuePence?: number | null;
+}
+
+const { isPerformer = false, amountDuePence = null } = Astro.props;
+const priceValue = amountDuePence === null ? "" : formatPence(amountDuePence, { symbol: false });
+---
+
+<div class="form-field form-field-checkbox">
+  <input id="isPerformer" name="isPerformer" type="checkbox" checked={isPerformer} />
+  <label for="isPerformer">Performer</label>
+</div>
+
+<div class="form-field">
+  <label for="ticketPrice">Performer ticket price (£)</label>
+  <input
+    id="ticketPrice"
+    name="ticketPrice"
+    type="text"
+    inputmode="decimal"
+    pattern="£?[0-9]{1,5}(\.[0-9]{1,2})?"
+    title="An amount in pounds, e.g. 25 or 12.50"
+    placeholder="Standard price"
+    value={priceValue}
+  />
+</div>
+<p class="form-field-help">
+  Only used when Performer is ticked. Leave blank for the standard ticket
+  price, or enter 0 if they don't pay anything (they'll skip payment
+  entirely once payments are switched on).
+</p>

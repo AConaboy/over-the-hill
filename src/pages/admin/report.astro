@@ -1,0 +1,154 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import AdminHeader from "../../components/AdminHeader.astro";
+import { listGuestsWithInviters } from "../../lib/guests";
+import { buildReport, FESTIVAL_DAYS, NIGHTS } from "../../lib/report";
+import { DAY_LABELS } from "../../lib/answerLabels";
+
+const report = buildReport(await listGuestsWithInviters({ sort: "name" }));
+const DAY_ROWS = [...FESTIVAL_DAYS, "unsure", "unset"] as const;
+const dayLabel = (day: string) => (day === "unset" ? "Not given" : DAY_LABELS[day]);
+const generated = new Date().toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/London" });
+---
+
+<Layout title="Planning report | Over the Hill" description="Numbers and lists for planning Over the Hill.">
+  <main id="main" tabindex="-1" class="admin-main">
+    <AdminHeader title="Planning report">
+      Everyone who's said yes and hasn't cancelled: {report.attending} {report.attending === 1 ? "guest" : "guests"}. As of {generated}.
+      <a slot="actions" class="button button-small button-secondary no-print" href="/api/admin/checkin-sheet.pdf" download>Check-in sheet (PDF)</a>
+      <a slot="actions" class="button button-small no-print" href="/api/admin/export.csv" download>Download CSV</a>
+    </AdminHeader>
+
+    <section class="page-content admin-content admin-report">
+      <article class="content-block">
+        <h2>Arrivals, departures and nights</h2>
+        {report.datesUnknown > 0 && (
+          <p class="admin-note">
+            {report.datesUnknown === 1
+              ? "1 guest hasn't given both an arrival and a departure day yet (or isn't sure)"
+              : `${report.datesUnknown} guests haven't given both an arrival and a departure day yet (or aren't sure)`},
+            so they're not counted in “On site that night”.
+          </p>
+        )}
+        <div class="admin-table-wrapper">
+          <table class="admin-table">
+            <thead><tr><th>Day</th><th>Arriving</th><th>Leaving</th><th>On site that night</th></tr></thead>
+            <tbody>
+              {DAY_ROWS.map((day) => (
+                <tr>
+                  <td>{dayLabel(day)}</td>
+                  <td>{report.arrivals[day]}</td>
+                  <td>{report.departures[day]}</td>
+                  <td>{(NIGHTS as readonly string[]).includes(day) ? report.nights[day as (typeof NIGHTS)[number]] : ""}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="content-block">
+        <h2>Camping and vehicles</h2>
+        <ul>
+          <li>Camping: <strong>{report.camping.camping}</strong></li>
+          <li>Not camping: {report.camping.not_camping}</li>
+          <li>Undecided or not said: {report.camping.undecided + report.camping.unset}</li>
+          <li>Cars: <strong>{report.vehicles.car}</strong></li>
+          <li>Campervans: <strong>{report.vehicles.campervan}</strong></li>
+          <li>No vehicle: {report.vehicles.none}</li>
+          <li>Vehicle undecided or not said: {report.vehicles.undecided + report.vehicles.unset}</li>
+        </ul>
+      </article>
+
+      <article class="content-block">
+        <h2>Dietary requirements ({report.dietary.length})</h2>
+        {report.dietary.length === 0 ? <p>None given.</p> : (
+          <ul>{report.dietary.map((item) => <li><strong>{item.name}</strong>: {item.note}</li>)}</ul>
+        )}
+      </article>
+
+      <article class="content-block">
+        <h2>Accessibility ({report.accessibility.length})</h2>
+        {report.accessibility.length === 0 ? <p>None given.</p> : (
+          <ul>{report.accessibility.map((item) => <li><strong>{item.name}</strong>: {item.note}</li>)}</ul>
+        )}
+      </article>
+
+      <article class="content-block">
+        <h2>Performers ({report.performers.length})</h2>
+        {report.performers.length === 0 ? <p>None yet.</p> : <p>{report.performers.join(", ")}</p>}
+      </article>
+
+      <article class="content-block">
+        <h2>Lift share</h2>
+        {report.lifts.length === 0 ? <p>Nobody's offered or asked for a lift yet.</p> : (
+          report.lifts.map((group) => (
+            <div class="admin-lift-group">
+              <h3>From {group.from}</h3>
+              <ul>
+                {group.offers.map((offer) => (
+                  <li>
+                    <strong>{offer.name}</strong> can offer a lift
+                    {offer.seats !== null && ` (${offer.seats} ${offer.seats === 1 ? "seat" : "seats"})`}
+                    {offer.contact && <span class="admin-muted"> · {offer.contact}</span>}
+                  </li>
+                ))}
+                {group.needs.map((need) => (
+                  <li>
+                    <strong>{need.name}</strong> would like a lift
+                    {need.contact && <span class="admin-muted"> · {need.contact}</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
+        )}
+      </article>
+
+      <article class="content-block">
+        <h2>Glamping pod interest ({report.glamping.length})</h2>
+        <p class="admin-note">Interest only: guests were told there are just a few pods, no price yet, and that saying yes doesn't reserve one.</p>
+        {report.glamping.length === 0 ? <p>Nobody yet.</p> : (
+          <ul>
+            {report.glamping.map((item) => (
+              <li>
+                <strong>{item.name}</strong>{item.maybe && " (maybe)"}
+                {item.contact && <span class="admin-muted"> · {item.contact}</span>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </article>
+
+      <article class="content-block">
+        <h2>Anything else they told us ({report.notes.length})</h2>
+        {report.notes.length === 0 ? <p>Nothing.</p> : (
+          <ul>{report.notes.map((item) => <li><strong>{item.name}</strong>: {item.note}</li>)}</ul>
+        )}
+      </article>
+
+      <article id="check-in" class="content-block admin-checkin-sheet">
+        <h2>Check-in sheet</h2>
+        <p class="no-print">
+          For the gate, in case there's no signal: everyone coming, alphabetically, with a box to tick.
+          <a class="button button-small" href="/api/admin/checkin-sheet.pdf" download>Download PDF</a>
+        </p>
+        <div class="admin-table-wrapper">
+          <table class="admin-table">
+            <thead><tr><th></th><th>Name</th><th>Ticket</th><th>Payment</th></tr></thead>
+            <tbody>
+              {report.checkIn.map((row) => (
+                <tr>
+                  <td>{row.checkedIn ? "✓" : "☐"}</td>
+                  <td>{row.name}</td>
+                  <td>{row.ticketRef ?? "—"}</td>
+                  <td>{row.payment}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+  </main>
+</Layout>

@@ -1,0 +1,59 @@
+---
+import Layout from "../layouts/Layout.astro";
+import PageHero from "../components/PageHero.astro";
+import ContentBlockView from "../components/ContentBlockView.astro";
+import { getPageContent, parseBody } from "../lib/content";
+
+const { fields, blocks } = await getPageContent("travel");
+const venueBlock = blocks.find((block) => block.id === "travel-venue");
+const otherBlocks = blocks.filter((block) => block.id !== "travel-venue");
+---
+
+<Layout title="Travel | Over the Hill" description="Travel information for Our Big Party.">
+  <main>
+    <PageHero
+      eyebrow={fields.hero_eyebrow}
+      heading={fields.hero_heading}
+      introduction={fields.hero_introduction}
+      image="/images/spot-tulips.webp"
+    />
+
+    <section class="page-content">
+      {venueBlock && (
+        <article class="content-block">
+          {venueBlock.heading && <h2>{venueBlock.heading}</h2>}
+
+          {parseBody(venueBlock.body).map((node) =>
+            node.type === "ul" ? (
+              <ul class="information-list">
+                {node.items!.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            ) : (
+              <p>{node.text}</p>
+            ),
+          )}
+
+          <p>
+            <a
+              class="text-link"
+              href="https://www.google.com/maps/search/?api=1&query=Woodend+Farm+Cradley+WR13+5JW"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Open the venue in Google Maps →
+            </a>
+          </p>
+        </article>
+      )}
+
+      {otherBlocks.map((block) => <ContentBlockView block={block} />)}
+
+      <div class="page-actions">
+        <a class="button" href="/rsvp">Complete your RSVP</a>
+        <a class="text-link" href="/faq">Next: FAQs →</a>
+      </div>
+    </section>
+  </main>
+</Layout>

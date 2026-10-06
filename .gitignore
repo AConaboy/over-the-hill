@@ -1,0 +1,37 @@
+# build output
+dist/
+.wrangler/
+# generated types
+.astro/
+
+# dependencies
+node_modules/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+
+# environment variables and local secrets (this repo is public)
+.env
+.env.production
+.env.*.local
+# Wrangler's local secrets file (e.g. Stripe or Resend keys for local testing)
+.dev.vars*
+
+# macOS-specific files
+.DS_Store
+
+# jetbrains setting folder
+.idea/
+
+# Claude Code personal settings (permissions, local paths)
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+
+# QA suite output (npm run qa)
+qa/test-results/
+qa/playwright-report/
+test-results/
