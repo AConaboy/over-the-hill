@@ -63,6 +63,12 @@ const { fields, blocks } = pageDef ? await getPageContent(pageDef.slug) : { fiel
                     value={block.heading ?? ""}
                   />
                 </div>
+                {block.id === "rsvp-form-deadline" && (
+                  <p class="form-field-help">
+                    Keep {"{date}"} in the heading: each guest sees the day their own invite link stops working
+                    (30 days after it was sent), e.g. "Please RSVP by 11 November 2026".
+                  </p>
+                )}
 
                 <div class="form-field">
                   <label for={`block-${block.id}-body`}>Text</label>
