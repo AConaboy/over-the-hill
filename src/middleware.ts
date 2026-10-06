@@ -50,6 +50,17 @@ const requireAccess = defineMiddleware(async (context, next) => {
 // frame-ancestors.
 declare const __CONTENT_SECURITY_POLICY__: string;
 
+// admin Emails' preview of an email (an email carries its own inline
+// styles and web fonts, and no scripts), shown in a frame on that page.
+const EMAIL_PREVIEW_PATH = /^\/api\/admin\/emails\/[^/]+\/preview$/;
+const EMAIL_PREVIEW_POLICY = [
+  "default-src 'none'",
+  "style-src 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src https://fonts.gstatic.com",
+  "img-src 'self' https: data:",
+  "frame-ancestors 'self'",
+].join("; ");
+
 // Static files get the same headers from public/_headers.
 const securityHeaders = defineMiddleware(async (context, next) => {
   const response = await next();
@@ -62,8 +73,13 @@ const securityHeaders = defineMiddleware(async (context, next) => {
   headers.set("X-Content-Type-Options", "nosniff");
   // Nothing here is meant to be framed; this stops clickjacking, e.g. a
   // host being tricked into pressing "Regenerate link" inside an iframe.
-  headers.set("Content-Security-Policy", import.meta.env.DEV ? "frame-ancestors 'none'" : __CONTENT_SECURITY_POLICY__);
-  headers.set("X-Frame-Options", "DENY");
+  if (EMAIL_PREVIEW_PATH.test(context.url.pathname)) {
+    headers.set("Content-Security-Policy", EMAIL_PREVIEW_POLICY);
+    headers.set("X-Frame-Options", "SAMEORIGIN");
+  } else {
+    headers.set("Content-Security-Policy", import.meta.env.DEV ? "frame-ancestors 'none'" : __CONTENT_SECURITY_POLICY__);
+    headers.set("X-Frame-Options", "DENY");
+  }
   // Guest tokens live in URLs, so never send a path to another site.
   headers.set("Referrer-Policy", "same-origin");
   if (NOINDEX_PATH.test(context.url.pathname)) {

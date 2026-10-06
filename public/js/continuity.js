@@ -5,7 +5,7 @@
    before the first paint; its hash is in the Content Security Policy
    (astro.config.mjs). */
 (function () {
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if ((window.othMotion || matchMedia('(prefers-reduced-motion: reduce)')).matches) return;
   var spin = document.querySelector('.sunrise-rays .spin');
   var turn = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ray-speed')) * 1000 || 36000;
   if (spin) spin.style.animationDelay = -(Date.now() % turn) + 'ms';

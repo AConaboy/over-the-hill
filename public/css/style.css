@@ -135,6 +135,45 @@ select {
   font: inherit;
 }
 
+/* The first thing a keyboard user reaches: straight past the header. */
+.skip-link {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 1000;
+  padding: 0.6rem 1rem;
+  border: var(--outline);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 700;
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+/* the skip link's target: focused, but no box round the whole page */
+main:focus {
+  outline: none;
+}
+
+/* "Pause animations" (motion.js): everything CSS moves keeps still, as
+   for reduced motion. The scripts check it themselves. */
+html[data-motion="paused"] .sunrise-rays .spin,
+html[data-motion="paused"] .invite-jump {
+  animation: none;
+}
+
+html[data-motion="paused"] .invite-jump::after {
+  display: none;
+}
+
+html[data-motion="paused"]:has(.invite-main) {
+  scroll-behavior: auto;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -772,6 +811,7 @@ main:has(> .page-hero) {
 /* Opened at #rsvp-status after sending the form, or scrolled to the form:
    clear the sticky header. */
 #rsvp-status,
+#before-you-reply,
 #rsvp-form {
   scroll-margin-top: 110px;
 }
@@ -905,6 +945,39 @@ main:has(> .page-hero) {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 700;
+}
+
+.form-field-note {
+  margin: -0.25rem 0 0.6rem;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.field-required {
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+/* Above the RSVP form's Send button, when saying yes means paying next. */
+.rsvp-pay-next {
+  margin: 0.5rem 0 1.25rem;
+  padding: 0.8rem 1.1rem;
+  border: 2px solid var(--ink);
+  border-radius: 0.9rem;
+  background: var(--tan);
+  font-weight: 600;
+}
+
+.rsvp-privacy-link {
+  margin: 1.5rem 0 0;
+  font-size: 0.9rem;
+}
+
+/* a comfortable tap target (WCAG 2.2: at least 24px) */
+.form-field-note a,
+.rsvp-privacy-link a {
+  display: inline-block;
+  padding-block: 0.3rem;
 }
 
 .form-field input,
@@ -1124,6 +1197,38 @@ main:has(> .page-hero) {
   font-size: 0.85rem;
   font-weight: 500;
   opacity: 0.85;
+}
+
+.footer-credit a {
+  color: inherit;
+  text-underline-offset: 0.2em;
+}
+
+/* the hosts' way in: there, but quiet */
+.site-footer .footer-hosts {
+  font-size: 0.8rem;
+  opacity: 0.78;   /* as faint as it can be and still read (WCAG AA) */
+}
+
+.footer-hosts a {
+  display: inline-block;
+  padding-block: 0.3rem;
+}
+
+.motion-toggle {
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.site-footer :focus-visible {
+  outline-color: var(--cream);
 }
 
 /* Responsive */
@@ -1434,8 +1539,9 @@ main:has(> .page-hero) {
   color: var(--ink-soft);
 }
 
+/* dark enough to read on the green notices too (WCAG AA, 4.5:1) */
 .status-expired {
-  color: #a3261b;
+  color: #7f1d14;
   font-weight: 700;
 }
 
@@ -1467,6 +1573,16 @@ main:has(> .page-hero) {
   margin: -1rem 0 1.5rem;
   font-size: 0.85rem;
   color: var(--ink-soft);
+}
+
+.payment-stages {
+  margin: 0 0 1.5rem;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.payment-stages ul {
+  padding-left: 1.2rem;
 }
 
 .content-block-editor {
@@ -2460,4 +2576,79 @@ html:has(.sunrise-rays) {
 
 .admin-opened::before {
   background: currentColor;
+}
+
+/* Admin Emails: the wording on the left, the preview beside it at the
+   width an inbox shows it (stacked on narrower screens). Uses the whole
+   admin width, not the 860px reading column other admin pages keep to. */
+.admin-email-editor.admin-content {
+  width: min(100% - 2rem, var(--maximum-width));
+}
+
+.admin-email-columns {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.admin-email-columns > div {
+  min-width: 0;
+}
+
+.admin-email-wording {
+  display: grid;
+  gap: 1.5rem;
+  align-content: start;
+}
+
+.admin-email-wording .rsvp-form {
+  margin: 0;
+}
+
+/* only a target for the Reset button in the form above it */
+#reset-wording {
+  display: none;
+}
+
+.admin-email-preview {
+  padding: 1.25rem;
+  border: var(--outline);
+  border-radius: 1.1rem;
+  background: var(--paper);
+}
+
+.admin-email-preview h2 {
+  margin-top: 0;
+}
+
+.admin-email-preview iframe {
+  display: block;
+  width: 100%;
+  height: 80vh;
+  min-height: 520px;
+  border: 2px solid var(--ink);
+  border-radius: 0.8rem;
+  background: white;
+}
+
+@media (min-width: 1100px) {
+  .admin-email-columns {
+    grid-template-columns: minmax(380px, 1fr) minmax(0, 680px);
+    align-items: start;
+  }
+
+  .admin-email-preview {
+    position: sticky;
+    top: 96px;
+  }
+
+  .admin-email-preview iframe {
+    height: calc(100vh - 230px);
+  }
+}
+
+.admin-email-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
 }

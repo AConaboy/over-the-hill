@@ -1,6 +1,6 @@
 // The hosts' planning report (/admin/report): who's arriving when, who's
 // on site each night, camping, vehicles, food, access, performers, lifts,
-// and a check-in sheet. Pure, so it's unit-tested.
+// glamping pod interest and a check-in sheet. Pure, so it's unit-tested.
 import { DAY_VALUES, type Day, type Guest, type GuestWithInviters } from "./guests";
 
 /** The festival's days in order (not "unsure"). */
@@ -46,6 +46,8 @@ export interface Report {
   notes: NamedNote[];
   performers: string[];
   lifts: LiftGroup[];
+  /** Interested in a glamping pod (not a booking), "maybe"s marked. */
+  glamping: { name: string; maybe: boolean; contact: string | null }[];
   checkIn: CheckInRow[];
 }
 
@@ -63,7 +65,7 @@ export function isComing(guest: Pick<Guest, "attendance" | "status">): boolean {
 function paymentLabel(guest: Guest): string {
   if (guest.payment_status === "paid_full") return "Paid";
   if (guest.payment_status === "deposit_paid") return "Deposit paid";
-  return guest.registered_at ? "Nothing due yet" : "Deposit not paid";
+  return guest.registered_at ? "Not paid" : "Not paid (not on the list)";
 }
 
 function contact(guest: Guest): string | null {
@@ -86,6 +88,7 @@ export function buildReport(allGuests: (Guest | GuestWithInviters)[]): Report {
     notes: [],
     performers: [],
     lifts: [],
+    glamping: [],
     checkIn: [],
   };
   const lifts = new Map<string, LiftGroup>();
@@ -114,6 +117,8 @@ export function buildReport(allGuests: (Guest | GuestWithInviters)[]): Report {
       else group.needs.push({ name: guest.name, contact: contact(guest) });
       lifts.set(key, group);
     }
+
+    if (guest.glamping) report.glamping.push({ name: guest.name, maybe: guest.glamping === "maybe", contact: contact(guest) });
 
     report.checkIn.push({
       name: guest.name,

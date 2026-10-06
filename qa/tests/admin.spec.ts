@@ -8,6 +8,10 @@ import { expectNoSidewaysScroll, PHONE, watchForErrors } from "./helpers";
 test.describe.configure({ mode: "serial" });
 test.use({ permissions: ["clipboard-read", "clipboard-write"] });
 
+// a previous failed run's test wording for the "deposit due" email
+const CLEAR_TEST_WORDING = `delete from content_fields where page_slug = 'email:deposit-due'
+  and exists (select 1 from content_fields where page_slug = 'email:deposit-due' and value like '%Qatest%')`;
+
 const names = (page: Page) => page.locator(".admin-guest-name").allInnerTexts();
 const row = (page: Page, name: string) => page.locator(".admin-guests tbody tr", { hasText: name });
 
@@ -44,7 +48,7 @@ test("status badges: not opened yet, opened with its date, expired", async ({ pa
   await expect(row(page, "QA Sent Qatest").locator(".admin-status")).toContainText("Not opened yet");
   await expect(row(page, "QA Opened Qatest").locator(".badge")).toHaveText(/^Opened \d+ \w+$/);
   await expect(row(page, "QA Expired Qatest").locator(".admin-status")).toContainText("Link expired");
-  await expect(row(page, "QA Due Qatest").locator(".badge")).toHaveText("Deposit due");
+  await expect(row(page, "QA Due Qatest").locator(".badge")).toHaveText("Payment due");
   await expect(row(page, "QA Cancelled Qatest").locator(".badge")).toHaveText("Cancelled");
 });
 
@@ -116,6 +120,67 @@ test("regenerating a link stops the old one working", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "You've told us you can't make it" })).toBeVisible();
   await page.goto("/rsvp/qa-token-no");
   await expect(page.getByRole("heading", { name: "This link isn't valid" })).toBeVisible();
+});
+
+test("the 'nothing paid yet' filter, and the payments page's stage guide and payment-due emails", async ({ page }) => {
+  const checkErrors = watchForErrors(page);
+  // the QA guest who said yes but hasn't paid; the one who paid a deposit isn't listed
+  await page.goto("/admin?q=Qatest&kind=nothingPaid");
+  expect(await names(page)).toContain("QA Due Qatest");
+  expect(await names(page)).not.toContain("QA Yes Qatest");
+  await page.goto("/admin/payments");
+  await expect(page.getByText("What each stage looks like:")).toBeVisible();
+  // no Stripe locally, so nobody can pay anything: no button to email them
+  await expect(page.getByRole("heading", { name: "Tell guests a payment is due" })).toBeVisible();
+  await expect(page.getByText(/Nobody coming has anything to pay right now/)).toBeVisible();
+  checkErrors();
+});
+
+test("emails: edit, preview unsaved changes, save, reset, and send a test", async ({ page }) => {
+  const checkErrors = watchForErrors(page);
+  sql(CLEAR_TEST_WORDING);
+  await page.goto("/admin/emails");
+  await expect(page.getByRole("row", { name: /Your deposit is due/ })).toContainText("Default");
+  await page.getByRole("link", { name: "Edit Your deposit is due" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Email: Your deposit is due");
+
+  // the preview shows the saved (default) wording
+  const preview = page.frameLocator("iframe[name=email-preview]");
+  await expect(preview.getByText("Hi Sam Example,")).toBeVisible();
+  await expect(preview.getByText(/We're now taking deposits\. Please pay/)).toBeVisible();
+
+  // "Preview changes" shows the unsaved wording, with placeholders filled in
+  await page.fill("#field-body", "Hello {first_name}, your {amount} deposit is due. Qatest wording.");
+  await page.getByRole("button", { name: "Preview changes" }).click();
+  await expect(preview.getByText(/Hello Sam, your £\d+(\.\d\d)? deposit is due\. Qatest wording\./)).toBeVisible();
+
+  // save: the list says it's their own wording; reset puts it back
+  await Promise.all([page.waitForNavigation(), page.getByRole("button", { name: "Save", exact: true }).click()]);
+  await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
+  await expect(preview.getByText(/Qatest wording/)).toBeVisible();
+  await page.goto("/admin/emails");
+  await expect(page.getByRole("row", { name: /Your deposit is due/ })).toContainText("Your own");
+  await page.goto("/admin/emails/deposit-due");
+  page.once("dialog", (dialog) => dialog.accept());
+  await Promise.all([page.waitForNavigation(), page.getByRole("button", { name: "Reset to the default wording" }).click()]);
+  await expect(page.locator("#field-body")).toHaveValue(/We're now taking deposits/);
+
+  // a test email (Resend's test address: accepted, never delivered). Whether
+  // Resend accepts it depends on this machine's API key, so either outcome
+  // must be said clearly on the page.
+  await page.fill("#test-to", "delivered@resend.dev");
+  await Promise.all([page.waitForNavigation(), page.getByRole("button", { name: "Send test email" }).click()]);
+  await expect(
+    page.getByRole("status").filter({ hasText: "Sent a test to delivered@resend.dev" })
+      .or(page.getByRole("alert").filter({ hasText: "The test couldn't be sent" })),
+  ).toBeVisible();
+  // a mistyped address is caught before anything is sent (the browser
+  // checks it too, so post it directly)
+  const origin = new URL(page.url()).origin;
+  const response = await page.request.post("/api/admin/emails/deposit-due/test", { form: { to: "sam@" }, headers: { Origin: origin }, maxRedirects: 0 });
+  expect(response.status()).toBe(303);
+  expect(response.headers()["location"]).toContain("testerror=address");
+  checkErrors();
 });
 
 test("on a phone: the list is cards, nothing scrolls sideways, and the menu works", async ({ page }) => {

@@ -85,6 +85,12 @@ Already done for production. To set up staging (or redo it):
 2. **Staging Access app:** as in step 4 below, but with destination
    `staging.overthehill.live` and **no path**, so the whole staging site is
    hosts-only. Put its AUD tag in `env.staging.vars.CF_ACCESS_AUD`.
+   Then let emails' pictures through, so inboxes can load them (emails load
+   pictures from the site that sent them): a second Access application,
+   "staging email images", for `staging.overthehill.live/images/*`
+   (path `images/*`, no leading slash) with a **Bypass** policy (Include:
+   Everyone). It's the same public artwork the live site serves; the rest
+   of staging stays locked.
 3. **Cloudflare API token for CI** (dashboard → My Profile → API Tokens →
    Create custom token):
    - Account → Workers Scripts: Edit

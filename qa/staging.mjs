@@ -34,7 +34,7 @@ const wholeSiteLocked = home.status === 302 && (home.headers.get("location") ?? 
 console.log(`${SITE}: ${wholeSiteLocked ? "whole site behind Access" : "public site open"}\n`);
 
 // public pages answer (and send the security policy, where it can be seen)
-const PUBLIC = ["/", "/location", "/rsvp", "/rsvp/not-a-real-token"];
+const PUBLIC = ["/", "/location", "/privacy", "/rsvp", "/rsvp/not-a-real-token"];
 for (const path of PUBLIC) {
   if (!wholeSiteLocked) {
     const response = await fetch(SITE + path, { redirect: "manual" });

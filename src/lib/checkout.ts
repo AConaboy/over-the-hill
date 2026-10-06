@@ -67,7 +67,9 @@ export async function startCheckout(guest: Guest): Promise<StartCheckoutResult> 
             currency: "gbp",
             unit_amount: next.amountPence,
             product_data: {
-              name: next.kind === "deposit" ? "Over the Hill ticket: deposit" : "Over the Hill ticket: balance",
+              name: next.kind === "deposit"
+                ? "Over the Hill ticket: deposit"
+                : (guest.amount_paid_pence ?? 0) > 0 ? "Over the Hill ticket: balance" : "Over the Hill ticket",
             },
           },
         },

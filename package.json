@@ -31,6 +31,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
+    "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.63.0",
     "@types/mustache": "^4.2.6",
     "@types/qrcode": "^1.5.6",

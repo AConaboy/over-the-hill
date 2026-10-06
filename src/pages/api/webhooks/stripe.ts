@@ -32,11 +32,12 @@ export const POST: APIRoute = async ({ request }) => {
     recordPayment,
     clearCheckout,
     async onPaymentRecorded(guest, amountPence, completedRegistration) {
-      // The deposit that completes a registration gets the full "you're
+      // The payment that completes a registration (the deposit, or the
+      // whole price when there's no deposit) gets the full "you're
       // registered" confirmation (answers + ticket link) with the payment
       // included; later payments get a plain receipt.
       if (completedRegistration) {
-        await sendRsvpConfirmationEmail(guest, { depositPaidPence: amountPence });
+        await sendRsvpConfirmationEmail(guest, { payment: { amountPence, inFull: guest.payment_status === "paid_full" } });
         return;
       }
       const settings = await getPaymentSettings();

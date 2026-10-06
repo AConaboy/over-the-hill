@@ -14,8 +14,8 @@ const coming = isComing(guest);
 const payment =
   guest.payment_status === "paid_full" ? "Paid in full"
   : guest.payment_status === "deposit_paid" ? "Deposit paid (balance due)"
-  : guest.registered_at ? "Nothing paid (none due when they replied)"
-  : "Deposit not paid";
+  : guest.registered_at ? "Nothing paid"
+  : "Not paid (not on the list)";
 const time = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" });
 ---
 

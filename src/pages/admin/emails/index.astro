@@ -1,0 +1,45 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import AdminHeader from "../../../components/AdminHeader.astro";
+import { EMAIL_TEMPLATES } from "../../../lib/emailContent";
+import { getEmailTexts } from "../../../lib/emailTexts";
+
+const texts = await getEmailTexts();
+---
+
+<Layout title="Emails | Over the Hill" description="Edit, preview and test the emails the site sends.">
+  <main id="main" tabindex="-1" class="admin-main">
+    <AdminHeader title="Emails">
+      Every email the site sends guests. Change the wording, preview it, and send yourself a test.
+    </AdminHeader>
+
+    <section class="page-content admin-content">
+      <div class="admin-table-wrapper">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>When it's sent</th>
+              <th>Wording</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {EMAIL_TEMPLATES.map((template) => (
+              <tr>
+                <td><strong>{template.label}</strong></td>
+                <td>{template.when}</td>
+                <td>
+                  {texts[template.id] ? <span class="status-live">Your own</span> : <span class="status-pending">Default</span>}
+                </td>
+                <td class="admin-row-actions">
+                  <a class="text-link" href={`/admin/emails/${template.id}`}>Edit<span class="visually-hidden"> {template.label}</span> →</a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</Layout>

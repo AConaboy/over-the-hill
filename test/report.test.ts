@@ -40,6 +40,7 @@ function guest(overrides: Partial<Guest>): Guest {
     lift: null,
     lift_from: null,
     lift_seats: null,
+    glamping: null,
     invite_phase: null,
     created_at: "2027-01-01T00:00:00Z",
     updated_at: "2027-01-01T00:00:00Z",
@@ -51,7 +52,7 @@ describe("buildReport", () => {
   const report = buildReport([
     guest({ name: "Bea", arrival_day: "fri", departure_day: "sun", camping: "camping", vehicle: "car", dietary: " Vegan ", lift: "offer", lift_from: "Bristol", lift_seats: 3, phone: "07700" }),
     guest({ name: "al", arrival_day: "thu", departure_day: "mon", vehicle: "campervan", is_performer: 1, lift: "need", lift_from: "bristol " }),
-    guest({ name: "Cat", arrival_day: "sat", departure_day: "unsure", lift: "need" }),
+    guest({ name: "Cat", arrival_day: "sat", departure_day: "unsure", lift: "need", glamping: "maybe", email: "cat@example.com" }),
     guest({ name: "Declined", attendance: "no", status: "rsvp_no", arrival_day: "fri", departure_day: "sun" }),
     guest({ name: "Cancelled", status: "cancelled", arrival_day: "fri", departure_day: "sun", dietary: "Nuts" }),
     guest({ name: "Pending", attendance: "pending", status: "invited" }),
@@ -76,6 +77,10 @@ describe("buildReport", () => {
     expect(report.performers).toEqual(["al"]);
   });
 
+  it("lists glamping pod interest, maybes marked", () => {
+    expect(report.glamping).toEqual([{ name: "Cat", maybe: true, contact: "cat@example.com" }]);
+  });
+
   it("groups lifts by where from (as first typed), ignoring case and spaces, with no place last", () => {
     expect(report.lifts.map((group) => group.from)).toEqual(["bristol", "Anywhere"]);
     expect(report.lifts[0].offers).toEqual([{ name: "Bea", seats: 3, contact: "07700" }]);
@@ -84,7 +89,7 @@ describe("buildReport", () => {
 
   it("makes an alphabetical check-in sheet", () => {
     expect(report.checkIn.map((row) => row.name)).toEqual(["al", "Bea", "Cat"]);
-    expect(report.checkIn[0].payment).toBe("Deposit not paid");
+    expect(report.checkIn[0].payment).toBe("Not paid (not on the list)");
   });
 });
 

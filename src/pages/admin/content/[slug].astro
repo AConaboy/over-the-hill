@@ -9,7 +9,7 @@ const { fields, blocks } = pageDef ? await getPageContent(pageDef.slug) : { fiel
 ---
 
 <Layout title="Edit site text | Over the Hill" description="Edit the site's copy.">
-  <main class="admin-main">
+  <main id="main" tabindex="-1" class="admin-main">
     <AdminHeader title={pageDef ? `Edit: ${pageDef.label}` : "Page not found"} />
 
     <section class="page-content">

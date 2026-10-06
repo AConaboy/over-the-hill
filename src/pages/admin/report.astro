@@ -12,7 +12,7 @@ const generated = new Date().toLocaleString("en-GB", { dateStyle: "medium", time
 ---
 
 <Layout title="Planning report | Over the Hill" description="Numbers and lists for planning Over the Hill.">
-  <main class="admin-main">
+  <main id="main" tabindex="-1" class="admin-main">
     <AdminHeader title="Planning report">
       Everyone who's said yes and hasn't cancelled: {report.attending} {report.attending === 1 ? "guest" : "guests"}. As of {generated}.
       <a slot="actions" class="button button-small button-secondary no-print" href="/api/admin/checkin-sheet.pdf" download>Check-in sheet (PDF)</a>
@@ -102,6 +102,21 @@ const generated = new Date().toLocaleString("en-GB", { dateStyle: "medium", time
               </ul>
             </div>
           ))
+        )}
+      </article>
+
+      <article class="content-block">
+        <h2>Glamping pod interest ({report.glamping.length})</h2>
+        <p class="admin-note">Interest only: guests were told there are just a few pods, no price yet, and that saying yes doesn't reserve one.</p>
+        {report.glamping.length === 0 ? <p>Nobody yet.</p> : (
+          <ul>
+            {report.glamping.map((item) => (
+              <li>
+                <strong>{item.name}</strong>{item.maybe && " (maybe)"}
+                {item.contact && <span class="admin-muted"> · {item.contact}</span>}
+              </li>
+            ))}
+          </ul>
         )}
       </article>
 

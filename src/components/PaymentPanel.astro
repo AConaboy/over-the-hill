@@ -43,22 +43,22 @@ const remaining = price === null ? null : Math.max(0, price - paid);
       {!paymentPending && (next.kind === "deposit" || next.kind === "balance") && (
         <form method="POST" action={`/api/pay/${guest.token}`}>
           <button class="button" type="submit">
-            {next.kind === "deposit" ? "Pay deposit" : "Pay balance"} ({formatPence(next.amountPence)})
+            {next.kind === "deposit" ? "Pay deposit" : paid > 0 ? "Pay balance" : "Pay for your ticket"} ({formatPence(next.amountPence)})
           </button>
         </form>
       )}
 
       {!paymentPending && next.kind === "deposit" && (
         <p class="payment-note">
-          The deposit secures your place. You'll pay the rest once the final
-          price is confirmed.
+          You'll pay the rest once the final ticket price is confirmed. We'll
+          let you know.
         </p>
       )}
 
       {next.kind === "none" && next.reason === "deposits_closed" && (
         <p>
-          No payment is needed yet. When payments open, a button to pay will
-          show up here, and this page will update to show it's been paid.
+          No payment is needed yet. When payments open we'll email you, and a
+          button to pay will show up here.
         </p>
       )}
       {next.kind === "none" && next.reason === "awaiting_price" && (

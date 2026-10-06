@@ -78,7 +78,7 @@ function statusBadge(guest: GuestWithInviters): { label: string; tone: Tone } {
       return { label: opened ? `Opened ${shortDate(opened)}` : "Opened", tone: "opened" };
     }
     case "rsvp_yes":
-      return guest.registered_at ? { label: "Attending", tone: "yes" } : { label: "Deposit due", tone: "due" };
+      return guest.registered_at ? { label: "Attending", tone: "yes" } : { label: "Payment due", tone: "due" };
     case "rsvp_no":
       return { label: "Can't come", tone: "no" };
     case "cancelled":
@@ -93,7 +93,10 @@ function paymentSummary(guest: GuestWithInviters): string | null {
   if (guest.status === "cancelled" || guest.attendance !== "yes") return null;
   const paid = guest.amount_paid_pence ?? 0;
   const price = ticketPrice(guest, paymentSettings);
-  if (price === null) return paid > 0 ? `${formatPence(paid)} paid · price TBC` : null;
+  if (price === null) {
+    if (paid > 0) return `${formatPence(paid)} paid · price TBC`;
+    return paymentSettings.depositsOpen || paymentSettings.balanceOpen ? "Nothing paid yet" : null;
+  }
   if (price === 0) return null;
   return `${formatPence(paid)} of ${formatPence(price)} paid`;
 }
@@ -121,7 +124,7 @@ function performerNote(guest: GuestWithInviters): string | null {
 ---
 
 <Layout title="Guests | Over the Hill" description="Manage the Over the Hill guest list.">
-  <main class="admin-main">
+  <main id="main" tabindex="-1" class="admin-main">
     <AdminHeader title="Guests">
       <Fragment slot="actions">
         {toFix > 0 && <a class="admin-pill-link" href="/admin/import/fix">{toFix} to fix from the import</a>}

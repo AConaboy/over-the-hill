@@ -10,12 +10,14 @@ export const VEHICLE_VALUES = ["none", "car", "campervan", "undecided"] as const
 // the app only ever writes these.
 export const DAY_VALUES = ["thu", "fri", "sat", "sun", "mon", "unsure"] as const;
 export const LIFT_VALUES = ["offer", "need"] as const;
+export const GLAMPING_VALUES = ["interested", "maybe"] as const;
 
 export type Attendance = (typeof ATTENDANCE_VALUES)[number];
 export type Camping = (typeof CAMPING_VALUES)[number];
 export type Vehicle = (typeof VEHICLE_VALUES)[number];
 export type Day = (typeof DAY_VALUES)[number];
 export type Lift = (typeof LIFT_VALUES)[number];
+export type Glamping = (typeof GLAMPING_VALUES)[number];
 export const INVITE_PHASES = ["1", "2", "3", "acts"] as const;
 export type InvitePhase = (typeof INVITE_PHASES)[number];
 export const PHASE_LABELS: Record<InvitePhase, string> = { "1": "Phase 1", "2": "Phase 2", "3": "Phase 3", acts: "Acts" };
@@ -66,6 +68,8 @@ export interface Guest {
   lift: Lift | null;
   lift_from: string | null;
   lift_seats: number | null;
+  /** Interest in a glamping pod (migrations/0018); not a booking. */
+  glamping: Glamping | null;
   /** Which round of invites they're in (migrations/0016): set by the
    * spreadsheet import, null for guests added by hand. */
   invite_phase: InvitePhase | null;
@@ -198,6 +202,7 @@ export interface RsvpInput {
   lift: Lift | null;
   liftFrom: string | null;
   liftSeats: number | null;
+  glamping: Glamping | null;
 }
 
 export type SubmitRsvpResult =
@@ -273,7 +278,7 @@ async function rsvpFieldsStatement(
            when ?1 <> 'yes' and coalesce(amount_paid_pence, 0) <= 0 then null
            else registered_at
          end,
-         lift = ?14, lift_from = ?15, lift_seats = ?16,
+         lift = ?14, lift_from = ?15, lift_seats = ?16, glamping = ?17,
          updated_at = ?12
        where id = ?13`,
     )
@@ -295,6 +300,7 @@ async function rsvpFieldsStatement(
       input.lift,
       input.lift ? input.liftFrom : null,
       input.lift === "offer" ? input.liftSeats : null,
+      input.glamping,
     );
 }
 
@@ -366,12 +372,17 @@ export const GUEST_KINDS = {
   attending: { label: "Attending", where: ATTENDING },
   declined: { label: "Not attending", where: `g.attendance = 'no' and ${LIVE}` },
   onList: { label: "On the list", where: `${ATTENDING} and g.registered_at is not null` },
-  depositDue: { label: "Deposit not paid", where: `${ATTENDING} and g.registered_at is null` },
+  depositDue: { label: "Said yes, not paid (not on the list yet)", where: `${ATTENDING} and g.registered_at is null` },
+  nothingPaid: {
+    label: "Attending, nothing paid yet",
+    where: `${ATTENDING} and coalesce(g.amount_paid_pence, 0) <= 0 and not (g.is_performer = 1 and g.amount_due_pence = 0)`,
+  },
   paidFull: { label: "Paid in full", where: `g.payment_status = 'paid_full' and ${LIVE}` },
   checkedIn: { label: "Checked in", where: "g.checked_in_at is not null" },
   camping: { label: "Camping", where: `g.camping = 'camping' and ${ATTENDING}` },
   vehicles: { label: "Bringing a vehicle", where: `g.vehicle in ('car', 'campervan') and ${ATTENDING}` },
   lifts: { label: "Lift share", where: `g.lift is not null and ${ATTENDING}` },
+  glamping: { label: "Glamping interest", where: `g.glamping is not null and ${ATTENDING}` },
   cancelled: { label: "Cancelled", where: "g.status = 'cancelled'" },
   phase1: { label: "Phase 1", where: "g.invite_phase = '1'" },
   phase2: { label: "Phase 2", where: "g.invite_phase = '2'" },
@@ -558,6 +569,22 @@ export async function addInvitersToGuest(guestId: string, inviterNames: string[]
   ]);
 }
 
+/** History entries for the "payment due" emails hosts send from admin
+ * Payments, one per guest emailed. */
+export async function logPaymentDueEmails(entries: { guestId: string; detail: string }[], actor: string): Promise<void> {
+  if (entries.length === 0) return;
+  const db = getDb();
+  await db.batch(entries.map(({ guestId, detail }) => eventStatement(db, guestId, actor, "payment_email", detail)));
+}
+
+/** When hosts last sent the "payment due" emails, if ever. */
+export async function lastPaymentDueEmailAt(): Promise<string | null> {
+  const row = await getDb()
+    .prepare("select max(at) as at from guest_events where action = 'payment_email'")
+    .first<{ at: string | null }>();
+  return row?.at ?? null;
+}
+
 /** The spreadsheet import (/admin/import): adds each guest not already on
  * the list, with their phase, inviters and a history entry. Performers get
  * the standard price until a host sets theirs. */
@@ -611,6 +638,7 @@ export interface EditGuestInput extends PerformerInput {
   lift: Lift | null;
   liftFrom: string | null;
   liftSeats: number | null;
+  glamping: Glamping | null;
   invitePhase: InvitePhase | null;
   inviterNames: string[];
 }
@@ -653,6 +681,7 @@ function changedFields(existing: Guest, existingInviters: string[], input: EditG
     ["accessibility", existing.accessibility, input.accessibility],
     ["notes", existing.notes, input.notes],
     ["lift", `${existing.lift}|${existing.lift_from}|${existing.lift_seats}`, `${input.lift}|${input.lift ? input.liftFrom : null}|${input.lift === "offer" ? input.liftSeats : null}`],
+    ["glamping", existing.glamping, input.glamping],
     ["performer", existing.is_performer === 1, input.isPerformer],
     ["phase", existing.invite_phase, input.invitePhase],
     ["price", existing.is_performer === 1 ? existing.amount_due_pence : null, input.isPerformer ? input.amountDuePence : null],
@@ -829,12 +858,19 @@ export type RecordPaymentResult =
 /** Adds a ledger row and brings the guest's totals in line, all in one D1
  * batch (a single transaction). amount_paid_pence is always recomputed from
  * the ledger rather than incremented, so it can't drift. */
+function paymentEventLabel(kind: PaymentKind, paidBefore: number): string {
+  if (kind === "manual") return "Payment recorded";
+  if (kind === "deposit") return "Paid the deposit";
+  // no deposit first: the whole price in one go
+  return paidBefore > 0 ? "Paid the balance" : "Paid for their ticket";
+}
+
 export async function recordPayment(input: RecordPaymentInput): Promise<RecordPaymentResult> {
   const db = getDb();
   const before = await db
-    .prepare("select registered_at from guests where id = ?")
+    .prepare("select registered_at, amount_paid_pence from guests where id = ?")
     .bind(input.guestId)
-    .first<{ registered_at: string | null }>();
+    .first<{ registered_at: string | null; amount_paid_pence: number | null }>();
   if (!before) return { recorded: false, reason: "guest_not_found" };
 
   const id = input.id ?? newId();
@@ -858,7 +894,7 @@ export async function recordPayment(input: RecordPaymentInput): Promise<RecordPa
       )
       .bind(input.guestId, input.stripeRef ?? null, nowIso()),
     refreshPaymentStatusStatement(db, input.guestId),
-    // Money in (a deposit, usually) completes an attending guest's
+    // Money in (the deposit, or the whole price without one) completes an attending guest's
     // registration.
     db
       .prepare(
@@ -883,7 +919,7 @@ export async function recordPayment(input: RecordPaymentInput): Promise<RecordPa
       "payment",
       input.amountPence < 0
         ? `Refund recorded: ${formatPence(-input.amountPence)}`
-        : `${input.kind === "manual" ? "Payment recorded" : input.kind === "balance" ? "Paid the balance" : "Paid the deposit"}: ${formatPence(input.amountPence)}`,
+        : `${paymentEventLabel(input.kind, before.amount_paid_pence ?? 0)}: ${formatPence(input.amountPence)}`,
       `payment-${id}`,
     ),
   ]);

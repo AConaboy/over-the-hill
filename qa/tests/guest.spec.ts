@@ -22,6 +22,23 @@ test("opening the invite shows the poster and records that they opened it", asyn
   await page.goto("/rsvp/qa-token-sent");
   await expect(page.locator(".poster-illustration")).toBeVisible();
   await expect(page.getByText(/QA, you are invited to/i).first()).toBeVisible();
+  // the deadline is the day their own link expires (seeded 30 days out)
+  const expiry = sql<{ token_expires_at: string }>("select token_expires_at from guests where id = 'qa-sent'")[0].token_expires_at;
+  const deadline = new Date(expiry).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/London" });
+  await expect(page.getByRole("heading", { name: `Please RSVP by ${deadline}` })).toBeVisible();
+  // what paying involves comes before the form
+  const payingIsFirst = await page.evaluate(() => {
+    const paying = [...document.querySelectorAll(".page-content h2")].find((h) => h.textContent === "Paying");
+    const form = document.querySelector("#rsvp-form");
+    return !!paying && !!form && !!(paying.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+  expect(payingIsFirst).toBe(true);
+  // "RSVP now" goes to what to read first (the deadline), not straight to the form
+  await page.getByRole("link", { name: "RSVP now ↓" }).click();
+  await expect(page).toHaveURL(/#before-you-reply$/);
+  await expect(page.locator("#before-you-reply")).toContainText("Please RSVP by");
+  // no Stripe locally, so this is the "nothing to pay yet" stage
+  await expect(page.getByText("There's nothing to pay yet: say you're coming and you're on the list.")).toBeVisible();
   await expectNoSidewaysScroll(page);
   expect(sql<{ status: string }>("select status from guests where id = 'qa-sent'")[0].status).toBe("viewed");
   expect(sql("select 1 from guest_events where guest_id = 'qa-sent' and action = 'opened'")).toHaveLength(1);
@@ -49,11 +66,16 @@ test("the RSVP form: days with dates, lift share fields, and replying yes", asyn
   await page.fill("#liftFrom", "Bath");
   await page.fill("#liftSeats", "2");
 
+  // glamping pods: interest only, and the form says so
+  await expect(page.locator("#glamping-note")).toContainText("doesn't reserve or guarantee you a pod");
+  await page.selectOption("#glamping", "interested");
+
   await Promise.all([page.waitForNavigation(), page.locator("form.rsvp-form button[type=submit]").click()]);
   const answers = page.locator(".flower-list");
   await expect(answers).toContainText("Arrival day: Friday 13 August");
   await expect(answers).toContainText("Departure day: Sunday 15 August");
   await expect(answers).toContainText("Lift share: Can offer a lift from Bath (2 spare seats)");
+  await expect(answers).toContainText("Glamping pod: Interested in a glamping pod (interest only, not a booking)");
   await expect(page.getByRole("heading", { name: /follow us/i })).toBeVisible();
   expect(sql<{ attendance: string }>("select attendance from guests where id = 'qa-sent'")[0].attendance).toBe("yes");
   checkErrors();
@@ -73,6 +95,19 @@ test("replying no", async ({ page }) => {
   await page.selectOption("#attendance", "no");
   await Promise.all([page.waitForNavigation(), page.locator("form.rsvp-form button[type=submit]").click()]);
   await expect(page.getByRole("heading", { name: "You've told us you can't make it" })).toBeVisible();
+});
+
+test("the privacy notice has its own page, linked from the form and the footer", async ({ page }) => {
+  const checkErrors = watchForErrors(page);
+  await page.goto("/rsvp/qa-token-sent?edit=1");
+  await expect(page.getByRole("heading", { name: "Data protection notice" })).toHaveCount(0);
+  await Promise.all([page.waitForURL("**/privacy"), page.getByRole("link", { name: "How we use your information" }).click()]);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your data");
+  await expect(page.getByRole("heading", { name: "Data protection notice" })).toBeVisible();
+  await expect(page.getByText(/Payments are taken by Stripe/)).toBeVisible();
+  await page.goto("/location");
+  await Promise.all([page.waitForURL("**/privacy"), page.locator(".site-footer").getByRole("link", { name: "Your data" }).click()]);
+  checkErrors();
 });
 
 test("an expired link and a made-up link get friendly pages", async ({ page }) => {

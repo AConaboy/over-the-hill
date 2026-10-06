@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   depositFor,
-  isAwaitingDeposit,
+  isAwaitingPayment,
   isRegistered,
   nextPayment,
   overpaidBy,
@@ -50,6 +50,14 @@ describe("nextPayment", () => {
   it("offers nothing when deposits are closed or Stripe isn't configured", () => {
     expect(nextPayment(guest(), { ...open, depositsOpen: false })).toEqual({ kind: "none", reason: "deposits_closed" });
     expect(nextPayment(guest(), open, false)).toEqual({ kind: "none", reason: "deposits_closed" });
+  });
+
+  it("without a deposit, offers the whole price once it's set and balance payments open", () => {
+    const noDeposit: PaymentSettings = { depositPence: null, standardPricePence: null, depositsOpen: false, balanceOpen: true };
+    expect(nextPayment(guest(), noDeposit)).toEqual({ kind: "none", reason: "deposits_closed" });
+    expect(nextPayment(guest(), { ...noDeposit, standardPricePence: 7500 })).toEqual({ kind: "balance", amountPence: 7500 });
+    expect(nextPayment(guest(), { ...noDeposit, standardPricePence: 7500, balanceOpen: false })).toEqual({ kind: "none", reason: "deposits_closed" });
+    expect(nextPayment(guest(), { ...noDeposit, standardPricePence: 7500 }, false)).toEqual({ kind: "none", reason: "deposits_closed" });
   });
 
   it("waits for a price after the deposit", () => {
@@ -121,7 +129,7 @@ describe("registration state", () => {
   it("is registered only once registered_at is set", () => {
     expect(isRegistered({ ...base, registered_at: "2027-01-01T00:00:00Z" })).toBe(true);
     expect(isRegistered({ ...base, registered_at: null })).toBe(false);
-    expect(isAwaitingDeposit({ ...base, registered_at: null })).toBe(true);
+    expect(isAwaitingPayment({ ...base, registered_at: null })).toBe(true);
   });
 
   it("never counts cancelled or non-attending guests as either", () => {
@@ -131,7 +139,7 @@ describe("registration state", () => {
       { attendance: "no" as const, status: "rsvp_no" as const, registered_at: null },
     ]) {
       expect(isRegistered(guest)).toBe(false);
-      expect(isAwaitingDeposit(guest)).toBe(false);
+      expect(isAwaitingPayment(guest)).toBe(false);
     }
   });
 });

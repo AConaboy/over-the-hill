@@ -9,10 +9,11 @@ import {
   VEHICLE_VALUES,
   DAY_VALUES,
   LIFT_VALUES,
+  GLAMPING_VALUES,
 } from "../../lib/guests";
-import { sendDepositDueEmail, sendRsvpConfirmationEmail } from "../../lib/email";
+import { sendPaymentDueEmail, sendRsvpConfirmationEmail } from "../../lib/email";
 import { getPaymentSettings } from "../../lib/settings";
-import { nextPayment } from "../../lib/payments";
+import { nextPayment, type NextPayment } from "../../lib/payments";
 import { isStripeConfigured } from "../../lib/stripe";
 import { startCheckout } from "../../lib/checkout";
 import { choiceField, LONG_TEXT_MAX, smallNumberField, textField } from "../../lib/forms";
@@ -45,6 +46,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     lift: choiceField(form, "lift", LIFT_VALUES),
     liftFrom: textField(form, "liftFrom"),
     liftSeats: smallNumberField(form, "liftSeats", 20),
+    glamping: choiceField(form, "glamping", GLAMPING_VALUES),
   });
 
   if (!result.ok) {
@@ -53,16 +55,17 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     return redirect(rsvpUrl, 303);
   }
 
-  // Saying yes completes registration straight away only when no deposit is
-  // due (deposits closed, or a free performer). Otherwise their answers are
-  // saved (above) and they go straight on to pay the deposit, which is what
-  // completes it — see recordPayment() in src/lib/guests.ts.
+  // Saying yes completes registration straight away only when nothing is
+  // payable (payments closed, or a free performer). Otherwise their answers
+  // are saved (above) and they go straight on to pay — the deposit, or the
+  // whole price when there's no deposit — which is what completes it: see
+  // recordPayment() in src/lib/guests.ts.
   let guest = result.guest;
-  let depositDue: number | null = null;
+  let paymentDue: Exclude<NextPayment, { kind: "none" }> | null = null;
   if (guest.attendance === "yes" && !guest.registered_at) {
     const next = nextPayment(guest, await getPaymentSettings(), isStripeConfigured());
-    if (next.kind === "deposit") {
-      depositDue = next.amountPence;
+    if (next.kind !== "none") {
+      paymentDue = next;
     } else {
       await markRegistered(guest.id);
       guest = (await getGuestById(guest.id)) ?? guest;
@@ -73,8 +76,8 @@ export const POST: APIRoute = async ({ request, redirect }) => {
   let emailed = false;
   if (guest.email && canSendConfirmationEmail(guest)) {
     try {
-      if (depositDue !== null) {
-        await sendDepositDueEmail(guest, depositDue);
+      if (paymentDue !== null) {
+        await sendPaymentDueEmail(guest, paymentDue);
       } else {
         await sendRsvpConfirmationEmail(guest);
       }
@@ -86,11 +89,11 @@ export const POST: APIRoute = async ({ request, redirect }) => {
   }
 
   const submittedUrl = `${rsvpUrl}?submitted=1${result.wasReplied ? "&updated=1" : ""}${emailed ? "&emailed=1" : ""}`;
-  if (depositDue !== null) {
+  if (paymentDue !== null) {
     const checkout = await startCheckout(guest);
     if (checkout.ok) return redirect(checkout.url, 303);
     // Couldn't reach Stripe: their answers are saved, and the page offers
-    // the Pay deposit button to try again.
+    // the Pay button to try again.
     return redirect(`${submittedUrl}${checkout.reason === "error" ? "&payerror=1" : ""}#rsvp-status`, 303);
   }
   return redirect(`${submittedUrl}#rsvp-status`, 303);

@@ -5,17 +5,18 @@ import TicketQr from "../../components/TicketQr.astro";
 import Poster from "../../components/Poster.astro";
 import PaymentPanel from "../../components/PaymentPanel.astro";
 import ContentBlockView from "../../components/ContentBlockView.astro";
-import { getGuestByToken, hasNothingToPay, isLinkExpired, markViewed } from "../../lib/guests";
+import { getGuestByToken, hasNothingToPay, isLinkExpired, linkExpiresAt, markViewed } from "../../lib/guests";
 import { REMEMBER_COOKIE_NAME, REMEMBER_COOKIE_OPTIONS, RSVPED_COOKIE_NAME } from "../../lib/rememberCookie";
 import { findBlock, getPageContent } from "../../lib/content";
 import { getPaymentSettings, getTicketSettings } from "../../lib/settings";
-import { isAwaitingDeposit, isRegistered, nextPayment } from "../../lib/payments";
+import { isAwaitingPayment, isRegistered, nextPayment, type NextPayment } from "../../lib/payments";
 import { isStripeConfigured } from "../../lib/stripe";
 import { formatPence } from "../../lib/money";
-import { CAMPING_LABELS, DAY_LABELS, LIFT_LABELS, VEHICLE_LABELS, liftSummary } from "../../lib/answerLabels";
+import { CAMPING_LABELS, DAY_LABELS, GLAMPING_LABELS, LIFT_LABELS, VEHICLE_LABELS, liftSummary } from "../../lib/answerLabels";
 import { DAY_VALUES } from "../../lib/guests";
 import { INSTAGRAM_HANDLE, INSTAGRAM_URL } from "../../lib/site";
 import { isLinkPreviewFetch } from "../../lib/linkPreview";
+import { deadlineHeading } from "../../lib/content";
 
 // A guest's one page: their invitation, and once they've replied, where
 // they stand (registered, deposit to pay, declined), paying, and their
@@ -25,13 +26,15 @@ import { isLinkPreviewFetch } from "../../lib/linkPreview";
 const { token } = Astro.params;
 const guest = token ? await getGuestByToken(token) : null;
 const { fields, blocks } = await getPageContent("rsvp-form");
-const deadlineBlock = findBlock(blocks, "rsvp-form-deadline");
+const deadlineContent = findBlock(blocks, "rsvp-form-deadline");
 const changingBlock = findBlock(blocks, "rsvp-form-changing");
-const payingBlock = findBlock(blocks, "rsvp-form-paying");
 const questionsBlock = findBlock(blocks, "rsvp-form-questions");
-const privacyBlock = findBlock(blocks, "rsvp-form-privacy");
 
 const expired = guest ? isLinkExpired(guest) : false;
+// "Please RSVP by {date}": the day their own link stops working.
+const deadlineBlock = deadlineContent && guest
+  ? { ...deadlineContent, heading: deadlineHeading(deadlineContent.heading, linkExpiresAt(guest)) }
+  : deadlineContent;
 // A host cancelled their place (usually with a refund): no form to resubmit.
 const cancelled = guest?.status === "cancelled";
 // Replied (yes or no): they see what they told us, and an Edit button,
@@ -63,12 +66,22 @@ const payError = params.get("payerror") === "1";
 // The form is shown before they've replied, or when they press Edit.
 const editing = !replied || params.get("edit") === "1";
 
-// Attending but the deposit isn't paid yet: their answers are saved, but
-// registration (their place, their ticket) only completes once it's paid.
-const awaitingDeposit = guest ? isAwaitingDeposit(guest) : false;
+// Attending but not paid yet (the deposit, or the whole price without one):
+// their answers are saved, but registration (their place, their ticket)
+// only completes once it's paid.
+const awaitingPayment = guest ? isAwaitingPayment(guest) : false;
 const registered = guest ? isRegistered(guest) : false;
 const paymentSettings = await getPaymentSettings();
-const deposit = guest && (awaitingDeposit || registered) ? nextPayment(guest, paymentSettings, isStripeConfigured()) : null;
+const deposit = guest && (awaitingPayment || registered) ? nextPayment(guest, paymentSettings, isStripeConfigured()) : null;
+// What saying yes would mean right now, for the Paying text above the form
+// and the note by its button: nothing yet, the deposit, or the whole price.
+// Someone already on the list pays nothing more by resubmitting.
+const payOnYes: NextPayment = !guest || registered
+  ? { kind: "none", reason: "not_attending" }
+  : nextPayment({ ...guest, attendance: "yes", ticket_ref: guest.ticket_ref ?? "pending" }, paymentSettings, isStripeConfigured());
+const payOnYesLabel = payOnYes.kind === "deposit"
+  ? `your ${formatPence(payOnYes.amountPence)} deposit`
+  : payOnYes.kind === "balance" ? `for your ticket (${formatPence(payOnYes.amountPence)})` : "";
 // Registered before deposits opened (so on the list without paying), and
 // the deposit is now due: say so on their "on the list" card, not just in
 // the Paying card further down.
@@ -109,6 +122,7 @@ const answers: [string, string | null][] = guest
       ["Camping arrangements", guest.camping ? CAMPING_LABELS[guest.camping] ?? guest.camping : null],
       ["Bringing a vehicle", guest.vehicle ? VEHICLE_LABELS[guest.vehicle] ?? guest.vehicle : null],
       ["Lift share", liftSummary(guest)],
+      ["Glamping pod", guest.glamping ? `${GLAMPING_LABELS[guest.glamping] ?? guest.glamping} (interest only, not a booking)` : null],
       ["Dietary requirements or allergies", guest.dietary],
       ["Accessibility requirements", guest.accessibility],
       ["Anything else", guest.notes],
@@ -130,7 +144,7 @@ const BULLET_FLOWERS = ["flower-02", "flower-05", "flower-01", "flower-04", "flo
   shareTitle={guest && !expired && !cancelled ? `${firstName}, you're invited to Over the Hill` : "Over the Hill"}
   shareDescription="13–15 August 2027 at Out to Grass, Cradley. Open your invite to RSVP."
 >
-  <main class={guest && !expired && !cancelled ? "invite-main" : undefined}>
+  <main id="main" tabindex="-1" class={guest && !expired && !cancelled ? "invite-main" : undefined}>
     {!guest && <LinkProblemNotice kind="not_found" />}
     {guest && expired && <LinkProblemNotice kind="expired" />}
     {guest && !expired && cancelled && <LinkProblemNotice kind="cancelled" />}
@@ -143,12 +157,13 @@ const BULLET_FLOWERS = ["flower-02", "flower-05", "flower-01", "flower-04", "flo
           <div class="poster-hero">
             <h1 class="visually-hidden">{inviteLine} Over the Hill Festival, August 13th to 15th 2027 at Out to Grass</h1>
             <Poster inviteLine={inviteLine} />
-            {/* Down to the form (pulsing after a few seconds), or once
-                they've replied, to where they stand. */}
+            {/* Down to what to read before replying (the deadline and
+                paying, then the form; pulsing after a few seconds), or
+                once they've replied, to where they stand. */}
             {replied ? (
               <a class="button invite-jump invite-jump-quiet" href="#rsvp-status">Your RSVP ↓</a>
             ) : (
-              <a class="button invite-jump" href="#rsvp-form">RSVP now ↓</a>
+              <a class="button invite-jump" href={deadlineBlock || !hasNothingToPay(guest) ? "#before-you-reply" : "#rsvp-form"}>RSVP now ↓</a>
             )}
             <div class="invite-text">
               {fields.hero_eyebrow && <p class="eyebrow">{fields.hero_eyebrow}</p>}
@@ -179,18 +194,18 @@ const BULLET_FLOWERS = ["flower-02", "flower-05", "flower-01", "flower-04", "flo
               </article>
             )}
 
-            {awaitingDeposit && !paymentPending && (
+            {awaitingPayment && !paymentPending && (
               <article class="content-block notice">
                 <p class="eyebrow">Almost there{submitted && `, ${firstName}`}!</p>
-                <h2>Pay your deposit to complete your registration</h2>
+                <h2>{deposit?.kind === "balance" ? "Pay for your ticket" : "Pay your deposit"} to complete your registration</h2>
                 <p>
                   We've saved your answers, but your place isn't confirmed until
-                  your deposit is paid.
+                  {deposit?.kind === "balance" ? " your ticket is paid for." : " your deposit is paid."}
                   {submitted && emailed && " We've also emailed you a link so you can finish later."}
                 </p>
-                {deposit?.kind === "deposit" ? (
+                {deposit?.kind === "deposit" || deposit?.kind === "balance" ? (
                   <form method="POST" action={`/api/pay/${guest.token}`}>
-                    <button class="button" type="submit">Pay deposit ({formatPence(deposit.amountPence)})</button>
+                    <button class="button" type="submit">{deposit.kind === "deposit" ? "Pay deposit" : "Pay for your ticket"} ({formatPence(deposit.amountPence)})</button>
                   </form>
                 ) : (
                   <p>Payments aren't open right now. We'll email you when they are.</p>
@@ -283,7 +298,38 @@ const BULLET_FLOWERS = ["flower-02", "flower-05", "flower-01", "flower-04", "flo
               </article>
             )}
 
-            {!replied && deadlineBlock && <ContentBlockView block={deadlineBlock} />}
+            {/* "RSVP now" lands here: the first thing above the form. */}
+            {!replied && deadlineBlock && <ContentBlockView block={deadlineBlock} id="before-you-reply" />}
+            {/* Before they've replied: what paying involves right now, read
+                before the form. After, the Paying card above says exactly
+                what's due. Free performers have nothing to pay either way. */}
+            {!replied && !hasNothingToPay(guest) && (
+              <article class="content-block" id={deadlineBlock ? undefined : "before-you-reply"}>
+                <h2>Paying</h2>
+                {payOnYes.kind === "deposit" ? (
+                  <p>
+                    A {formatPence(payOnYes.amountPence)} deposit secures your place.
+                    If you're coming, you'll go straight on to pay it by card
+                    after sending this form (payments are handled securely by
+                    Stripe). The rest is due once the final ticket price is
+                    confirmed.
+                  </p>
+                ) : payOnYes.kind === "balance" ? (
+                  <p>
+                    Tickets are {formatPence(payOnYes.amountPence)}. If you're
+                    coming, you'll go straight on to pay by card after sending
+                    this form (payments are handled securely by Stripe), and
+                    your place is confirmed once it's paid.
+                  </p>
+                ) : (
+                  <p>
+                    There's nothing to pay yet: say you're coming and you're on
+                    the list. When payments open we'll email you, and a button
+                    to pay will appear on this page.
+                  </p>
+                )}
+              </article>
+            )}
 
             {editing && (
               <form class="rsvp-form" id="rsvp-form" method="POST" action="/api/rsvp">
@@ -296,7 +342,7 @@ const BULLET_FLOWERS = ["flower-02", "flower-05", "flower-01", "flower-04", "flo
                 </div>
 
                 <div class="form-field">
-                  <label for="email">Email address</label>
+                  <label for="email">Email address <span class="field-required">(required)</span></label>
                   <input
                     id="email"
                     name="email"
@@ -319,7 +365,7 @@ const BULLET_FLOWERS = ["flower-02", "flower-05", "flower-01", "flower-04", "flo
                 </div>
 
                 <div class="form-field">
-                  <label for="attendance">Attendance</label>
+                  <label for="attendance">Attendance <span class="field-required">(required)</span></label>
                   <select id="attendance" name="attendance" required>
                     <option value="" selected={guest.attendance === "pending"}>Please select</option>
                     <option value="yes" selected={guest.attendance === "yes"}>Attending</option>
@@ -361,6 +407,21 @@ const BULLET_FLOWERS = ["flower-02", "flower-05", "flower-01", "flower-04", "flo
                     <option value="campervan" selected={guest.vehicle === "campervan"}>Bringing a campervan</option>
                     <option value="car" selected={guest.vehicle === "car"}>Bringing a car</option>
                     <option value="undecided" selected={guest.vehicle === "undecided"}>Undecided</option>
+                  </select>
+                </div>
+
+                {/* Interest only: a few pods, no price yet, nothing reserved. */}
+                <div class="form-field">
+                  <label for="glamping">Glamping pod (optional)</label>
+                  <p class="form-field-note" id="glamping-note">
+                    We only have a few glamping pods and don't know the price
+                    yet. This is just to see who'd be interested: it doesn't
+                    reserve or guarantee you a pod. We'll be in touch.
+                  </p>
+                  <select id="glamping" name="glamping" aria-describedby="glamping-note">
+                    <option value="" selected={!guest.glamping}>No thanks</option>
+                    <option value="interested" selected={guest.glamping === "interested"}>I'd be interested</option>
+                    <option value="maybe" selected={guest.glamping === "maybe"}>Maybe</option>
                   </select>
                 </div>
 
@@ -416,10 +477,17 @@ const BULLET_FLOWERS = ["flower-02", "flower-05", "flower-01", "flower-04", "flo
                   >{guest.notes ?? ""}</textarea>
                 </div>
 
+                {/* read before pressing Send: what happens next */}
+                {payOnYesLabel && (
+                  <p class="rsvp-pay-next">If you're coming, sending this takes you straight on to pay {payOnYesLabel}, by card.</p>
+                )}
                 <div class="rsvp-form-actions">
                   <button class="button" type="submit">{replied ? "Save changes" : "Send RSVP"}</button>
                   {replied && <a class="text-link" href={`${pageUrl}#rsvp-status`}>Cancel</a>}
                 </div>
+                <p class="rsvp-privacy-link">
+                  <a class="text-link" href="/privacy">How we use your information</a>
+                </p>
               </form>
             )}
 
@@ -431,12 +499,7 @@ const BULLET_FLOWERS = ["flower-02", "flower-05", "flower-01", "flower-04", "flo
             </div>
 
             {changingBlock && <ContentBlockView block={changingBlock} />}
-            {/* Before they've replied: what paying involves. After, the
-                Paying card above says exactly what's due. Free performers
-                have nothing to pay either way. */}
-            {!replied && payingBlock && !hasNothingToPay(guest) && <ContentBlockView block={payingBlock} />}
             {questionsBlock && <ContentBlockView block={questionsBlock} />}
-            {privacyBlock && <ContentBlockView block={privacyBlock} />}
 
             <div class="page-actions">
               <a class="button" href="/">

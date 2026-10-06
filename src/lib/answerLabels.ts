@@ -31,6 +31,12 @@ export const LIFT_LABELS: Record<string, string> = {
   need: "I'd like a lift",
 };
 
+// Glamping pod interest (migrations/0018): not a booking.
+export const GLAMPING_LABELS: Record<string, string> = {
+  interested: "Interested in a glamping pod",
+  maybe: "Might be interested in a glamping pod",
+};
+
 /** "Can offer a lift from Bristol (3 spare seats)", or null for no lift. */
 export function liftSummary(guest: { lift: string | null; lift_from: string | null; lift_seats: number | null }): string | null {
   if (!guest.lift) return null;

@@ -8,6 +8,7 @@ import {
   VEHICLE_VALUES,
   DAY_VALUES, INVITE_PHASES,
   LIFT_VALUES,
+  GLAMPING_VALUES,
 } from "../../../../lib/guests";
 import { getPaymentSettings } from "../../../../lib/settings";
 import { nextPayment } from "../../../../lib/payments";
@@ -47,17 +48,18 @@ export const POST: APIRoute = async ({ params, request, redirect, locals }) => {
     lift: choiceField(form, "lift", LIFT_VALUES),
     liftFrom: textField(form, "liftFrom"),
     liftSeats: smallNumberField(form, "liftSeats", 20),
+    glamping: choiceField(form, "glamping", GLAMPING_VALUES),
     invitePhase: choiceField(form, "invitePhase", INVITE_PHASES),
     inviterNames: inviterNamesField(form, "inviterNames"),
   }, locals.hostEmail ?? "a host");
 
   // Same rule as a guest's own RSVP: marking someone attending registers
-  // them straight away only if no deposit is due. Otherwise they need to pay
-  // it (or a host records a manual payment), which completes registration.
+  // them straight away only if nothing is payable. Otherwise they need to
+  // pay (or a host records a manual payment), which completes registration.
   const updated = await getGuestById(id);
   if (updated && updated.attendance === "yes" && !updated.registered_at) {
     const next = nextPayment(updated, await getPaymentSettings(), isStripeConfigured());
-    if (next.kind !== "deposit") await markRegistered(id);
+    if (next.kind === "none") await markRegistered(id);
   }
 
   return redirect("/admin", 303);

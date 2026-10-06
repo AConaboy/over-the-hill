@@ -8,9 +8,9 @@ import { LAPTOP, PHONE } from "./helpers";
 // build's policy attached and the dev server's own tooling scripts taken
 // out, so any violation left is ours.
 const BUILD = "http://localhost:4399";
-const PUBLIC = ["/", "/location", "/rsvp", "/rsvp/qa-token-yes", "/rsvp/qa-token-yes?edit=1", "/rsvp/qa-token-not-real"];
+const PUBLIC = ["/", "/location", "/privacy", "/rsvp", "/rsvp/qa-token-yes", "/rsvp/qa-token-yes?edit=1", "/rsvp/qa-token-not-real"];
 const ADMIN = ["/admin", "/admin?q=Qatest", "/admin/guests/qa-yes/edit", "/admin/guests/new", "/admin/import", "/admin/import/fix",
-  "/admin/report", "/admin/checkin?q=Qatest", "/checkin/QATEST01", "/admin/payments", "/admin/content"];
+  "/admin/report", "/admin/checkin?q=Qatest", "/checkin/QATEST01", "/admin/payments", "/admin/content", "/admin/emails", "/admin/emails/deposit-due"];
 
 async function violations(page: Page, url: string): Promise<string[]> {
   await page.addInitScript(() => {

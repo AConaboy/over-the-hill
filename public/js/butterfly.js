@@ -43,7 +43,7 @@
   var FRAMES = ['/images/butterfly-frame-1.webp', '/images/butterfly-frame-3.webp', '/images/butterfly-frame-2.webp']; // up, middle, down
   var CYCLE = [0, 1, 2, 1];                  // up, middle, down, middle
   var STEP = 1000 / 12;                      // 12 fps
-  var motion = matchMedia('(prefers-reduced-motion: reduce)');
+  var motion = (window.othMotion || matchMedia('(prefers-reduced-motion: reduce)'));   // reduced motion, or Pause animations (motion.js)
 
   var art = document.querySelector('.poster-illustration');
   var header = document.querySelector('.site-header');

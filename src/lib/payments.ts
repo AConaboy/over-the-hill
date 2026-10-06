@@ -5,6 +5,8 @@
 // The final ticket price is often not known when deposits open, so a price
 // of null means "not decided yet": guests can pay a deposit, and the balance
 // is worked out from whatever the price is when balance payments open.
+// Without a deposit (deposits closed), the "balance" is the whole price,
+// paid in one go once balance payments open.
 
 import type { Guest, PaymentStatus } from "./guests";
 
@@ -67,10 +69,14 @@ export function nextPayment(
 
   if (paid <= 0) {
     const deposit = depositFor(guest, settings);
-    if (!paymentsAvailable || !settings.depositsOpen || deposit === null || deposit <= 0) {
-      return { kind: "none", reason: "deposits_closed" };
+    if (paymentsAvailable && settings.depositsOpen && deposit !== null && deposit > 0) {
+      return { kind: "deposit", amountPence: deposit };
     }
-    return { kind: "deposit", amountPence: deposit };
+    // No deposit: the whole price, once it's set and payments are open.
+    if (paymentsAvailable && settings.balanceOpen && price !== null) {
+      return { kind: "balance", amountPence: price };
+    }
+    return { kind: "none", reason: "deposits_closed" };
   }
 
   if (price === null) return { kind: "none", reason: "awaiting_price" };
@@ -104,8 +110,8 @@ export function isRegistered(guest: RegisteringGuest): boolean {
   return guest.attendance === "yes" && guest.status !== "cancelled" && guest.registered_at !== null;
 }
 
-/** An attending guest whose details are saved but who must still pay the
- * deposit to complete their registration. */
-export function isAwaitingDeposit(guest: RegisteringGuest): boolean {
+/** An attending guest whose details are saved but who must still pay (the
+ * deposit, or the whole price without one) to complete their registration. */
+export function isAwaitingPayment(guest: RegisteringGuest): boolean {
   return guest.attendance === "yes" && guest.status !== "cancelled" && guest.registered_at === null;
 }

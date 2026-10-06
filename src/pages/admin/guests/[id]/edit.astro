@@ -4,7 +4,7 @@ import AdminHeader from "../../../../components/AdminHeader.astro";
 import SentToggle from "../../../../components/SentToggle.astro";
 import PerformerFields from "../../../../components/PerformerFields.astro";
 import { DAY_VALUES, INVITE_PHASES, PHASE_LABELS, getGuestById, isLinkExpired, linkExpiresAt, listGuestEvents, listPaymentsForGuest } from "../../../../lib/guests";
-import { DAY_LABELS, LIFT_LABELS } from "../../../../lib/answerLabels";
+import { DAY_LABELS, GLAMPING_LABELS, LIFT_LABELS } from "../../../../lib/answerLabels";
 import { getPaymentSettings } from "../../../../lib/settings";
 import { overpaidBy, ticketPrice } from "../../../../lib/payments";
 import { formatPence } from "../../../../lib/money";
@@ -37,7 +37,7 @@ const formatDateTime = (iso: string) =>
 ---
 
 <Layout title="Edit guest | Over the Hill" description="Edit a guest's details.">
-  <main class="admin-main">
+  <main id="main" tabindex="-1" class="admin-main">
     <AdminHeader title={guest ? `Edit ${guest.name}` : "Guest not found"} />
 
     <section class="page-content">
@@ -153,6 +153,15 @@ const formatDateTime = (iso: string) =>
             <div class="form-field">
               <label for="liftSeats">Spare seats (when offering)</label>
               <input id="liftSeats" name="liftSeats" type="number" min="0" max="20" value={guest.lift_seats ?? ""} />
+            </div>
+
+            <div class="form-field">
+              <label for="glamping">Glamping pod (interest only)</label>
+              <select id="glamping" name="glamping">
+                <option value="" selected={!guest.glamping}>Not interested / not said</option>
+                <option value="interested" selected={guest.glamping === "interested"}>{GLAMPING_LABELS.interested}</option>
+                <option value="maybe" selected={guest.glamping === "maybe"}>{GLAMPING_LABELS.maybe}</option>
+              </select>
             </div>
 
             <div class="form-field">

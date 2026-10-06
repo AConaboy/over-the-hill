@@ -1,9 +1,10 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import AdminHeader from "../../components/AdminHeader.astro";
-import { listGuestsForPayments } from "../../lib/guests";
+import { lastPaymentDueEmailAt, listGuestsForPayments, listGuestsWithInviters, logPaymentDueEmails } from "../../lib/guests";
 import { getPaymentSettings, getTicketSettings, paymentSettingsProblem, savePaymentSettings, saveTicketSettings } from "../../lib/settings";
-import { overpaidBy, ticketPrice } from "../../lib/payments";
+import { nextPayment, overpaidBy, ticketPrice } from "../../lib/payments";
+import { sendPaymentDueEmails } from "../../lib/email";
 import { isStripeConfigured } from "../../lib/stripe";
 import { checkboxField, penceField } from "../../lib/forms";
 import { formatPence } from "../../lib/money";
@@ -25,7 +26,36 @@ if (form && form.get("form") === "tickets") {
 }
 const ticketSettings = await getTicketSettings();
 
-if (form) {
+// Everyone coming who can pay something right now, as their page would
+// offer it (nextPayment), for the "payment due" emails.
+async function guestsWithPaymentDue() {
+  const current = await getPaymentSettings();
+  return (await listGuestsWithInviters({ kind: "attending" }))
+    .map((guest) => ({ guest, due: nextPayment(guest, current, stripeConfigured) }))
+    .filter((row): row is { guest: typeof row.guest; due: Exclude<typeof row.due, { kind: "none" }> } => row.due.kind !== "none");
+}
+
+// "Email everyone who has something to pay", once a host has confirmed.
+let emailError: string | null = null;
+if (form && form.get("form") === "notify") {
+  const recipients = (await guestsWithPaymentDue()).filter(({ guest }) => guest.email);
+  try {
+    const sent = await sendPaymentDueEmails(recipients);
+    await logPaymentDueEmails(
+      recipients.slice(0, sent).map(({ guest, due }) => ({
+        guestId: guest.id,
+        detail: `Emailed: ${due.kind === "deposit" ? "deposit" : (guest.amount_paid_pence ?? 0) > 0 ? "balance" : "ticket"} due (${formatPence(due.amountPence)})`,
+      })),
+      Astro.locals.hostEmail ?? "a host",
+    );
+    return Astro.redirect(`/admin/payments?emailed=${sent}#notify`, 303);
+  } catch (err) {
+    console.error("Failed to send payment due emails", err);
+    emailError = err instanceof Error ? err.message : "The emails couldn't be sent.";
+  }
+}
+
+if (form && form.get("form") !== "notify") {
   const depositPence = penceField(form, "deposit");
   const standardPricePence = penceField(form, "standardPrice");
   const submitted = {
@@ -59,7 +89,14 @@ for (const g of attending) {
   if (price === null) unpriced++;
   else toCollect += Math.max(0, price - (g.amount_paid_pence ?? 0));
 }
-const awaitingDeposit = attending.filter((g) => !g.registered_at).length;
+const awaitingPayment = attending.filter((g) => !g.registered_at).length;
+const dueNow = await guestsWithPaymentDue();
+const dueWithEmail = dueNow.filter(({ guest }) => guest.email);
+const dueDeposits = dueWithEmail.filter(({ due }) => due.kind === "deposit").length;
+const lastEmailed = await lastPaymentDueEmailAt();
+const emailedCount = Astro.url.searchParams.get("emailed");
+const londonDate = (iso: string) =>
+  new Date(iso).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/London" });
 const counts = {
   unpaid: attending.filter((g) => g.payment_status === "unpaid").length,
   deposit_paid: attending.filter((g) => g.payment_status === "deposit_paid").length,
@@ -76,7 +113,7 @@ const owed = guests
 ---
 
 <Layout title="Payments | Over the Hill" description="Ticket price, deposit and payment settings.">
-  <main class="admin-main">
+  <main id="main" tabindex="-1" class="admin-main">
     <AdminHeader title="Payments">
       Set the deposit and ticket price, and open payments when you're ready. You can set or change the price after deposits have been taken: balances are always worked out from the current price.
     </AdminHeader>
@@ -127,8 +164,19 @@ const owed = guests
         <p class="form-field-help">
           Guests who haven't paid anything see a "Pay deposit" button while
           deposits are open. Guests who've paid a deposit see "Pay balance"
-          once balance payments are open and a price is set.
+          once balance payments are open and a price is set. With deposits
+          closed and balance payments open, anyone who's paid nothing pays the
+          whole price in one go ("Pay for your ticket").
         </p>
+        <div class="payment-stages">
+          <p><strong>What each stage looks like:</strong></p>
+          <ul>
+            <li><strong>Nothing to pay yet:</strong> both boxes off. Saying yes puts guests straight on the list.</li>
+            <li><strong>Taking deposits:</strong> set the deposit, tick Deposits open. New yeses pay the deposit to get on the list; guests already on the list stay on it and see the deposit is due.</li>
+            <li><strong>Taking full payments:</strong> set the ticket price, untick Deposits open, tick Balance payments open. New yeses pay the whole price to get on the list; deposit payers pay the rest; anyone on the list who's paid nothing pays the whole price.</li>
+          </ul>
+          <p>After opening payments, email the guests already on the list (below), so they know.</p>
+        </div>
 
         <button class="button" type="submit">Save payment settings</button>
       </form>
@@ -149,13 +197,50 @@ const owed = guests
         <button class="button" type="submit">Save ticket settings</button>
       </form>
 
+      <article class="content-block" id="notify">
+        <h2>Tell guests a payment is due</h2>
+        {emailedCount !== null && <p>Sent {emailedCount} {emailedCount === "1" ? "email" : "emails"}.</p>}
+        {emailError && <p><strong>Not all sent:</strong> {emailError}</p>}
+        {dueNow.length === 0 ? (
+          <p>Nobody coming has anything to pay right now{settings.depositsOpen || settings.balanceOpen ? "" : " (payments are closed)"}.</p>
+        ) : (
+          <>
+            <p>
+              {dueNow.length} {dueNow.length === 1 ? "guest" : "guests"} coming can pay something right now
+              {dueDeposits > 0 && dueDeposits < dueWithEmail.length
+                ? ` (${dueDeposits} a deposit, ${dueWithEmail.length - dueDeposits} their ticket or balance)`
+                : dueDeposits > 0 ? " (a deposit)" : " (their ticket or balance)"}.
+              {dueWithEmail.length < dueNow.length && ` ${dueNow.length - dueWithEmail.length} of them have no email address, so you'll need to tell them yourself.`}
+            </p>
+            <p>
+              Each gets an email saying what's due and how much, with a link to
+              their page to pay. It goes to everyone who owes something now, so
+              anyone emailed before gets it again.
+              {lastEmailed && ` Last sent ${londonDate(lastEmailed)}.`}
+            </p>
+            {dueWithEmail.length > 0 && (
+              <form
+                method="POST"
+                action="/admin/payments"
+                data-confirm={`Email ${dueWithEmail.length} ${dueWithEmail.length === 1 ? "guest" : "guests"} that a payment is due?`}
+              >
+                <input type="hidden" name="form" value="notify" />
+                <button class="button" type="submit">
+                  Email {dueWithEmail.length} {dueWithEmail.length === 1 ? "guest" : "guests"}
+                </button>
+              </form>
+            )}
+          </>
+        )}
+      </article>
+
       <article class="content-block">
         <h2>Totals</h2>
         <ul class="information-list">
           <li>Received: {formatPence(received)}</li>
           <li>Still to collect: {formatPence(toCollect)}{unpriced > 0 && ` (plus ${unpriced} ${unpriced === 1 ? "guest" : "guests"} with no price set yet)`}</li>
           <li>Attending: {attending.length} ({counts.paid_full} paid in full, {counts.deposit_paid} deposit paid, {counts.unpaid} not paid)</li>
-          {awaitingDeposit > 0 && <li>Details saved but deposit not paid (not yet registered): {awaitingDeposit}</li>}
+          {awaitingPayment > 0 && <li>Said yes but haven't paid yet (not on the list until they do): {awaitingPayment}</li>}
         </ul>
       </article>
 

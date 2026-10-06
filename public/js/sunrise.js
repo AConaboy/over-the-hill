@@ -40,7 +40,7 @@
   // page. After that, this visit's later pages start it spinning straight
   // away (see the inline script in Poster.astro). Still for reduced motion.
   var still = ball.dataset.still || ball.getAttribute('src'), spin = ball.dataset.spin;
-  var motion = matchMedia('(prefers-reduced-motion: reduce)');
+  var motion = (window.othMotion || matchMedia('(prefers-reduced-motion: reduce)'));   // reduced motion, or Pause animations (motion.js)
   function setBall() {
     if (!spin) return;
     if (motion.matches) { ball.src = still; return; }

@@ -14,7 +14,7 @@ const here = Astro.url.pathname + Astro.url.search;
 ---
 
 <Layout title="Check-in | Over the Hill" description="Check guests in at the gate.">
-  <main class="admin-main">
+  <main id="main" tabindex="-1" class="admin-main">
     <AdminHeader title="Check-in">
       <span class="checkin-count"><strong>{counts.checkedIn}</strong> of {counts.attending} here</span>
       <a slot="actions" class="button button-small button-secondary" href="/api/admin/checkin-sheet.pdf" download>

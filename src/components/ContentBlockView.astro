@@ -3,14 +3,16 @@ import { parseBody, type ContentBlock } from "../lib/content";
 
 export interface Props {
   block: ContentBlock;
+  /** For linking to it (e.g. "RSVP now" on the invite). */
+  id?: string;
 }
 
-const { block } = Astro.props;
+const { block, id } = Astro.props;
 const nodes = parseBody(block.body);
 const Tag = block.variant === "notice" ? "aside" : "article";
 ---
 
-<Tag class={block.variant === "notice" ? "notice" : "content-block"}>
+<Tag id={id} class={block.variant === "notice" ? "notice" : "content-block"}>
   {block.variant === "notice" && block.eyebrow && <p class="eyebrow">{block.eyebrow}</p>}
   {block.heading && <h2>{block.heading}</h2>}
 

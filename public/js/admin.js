@@ -7,7 +7,9 @@
      invite sent (POST to its data-sent-url) and say so in the row;
    - the Sent tick box (.sent-toggle-form): saved in the background and
      shown in place, so the page doesn't reload and jump back to the top.
-     Without JavaScript it's a normal form that comes back to the row. */
+     Without JavaScript it's a normal form that comes back to the row;
+   - Emails' "Preview changes": once the preview frame has the new version,
+     bring it into view if it's off screen (on a phone it's below the form). */
 (function () {
   document.querySelectorAll('select[data-autosubmit]').forEach(function (select) {
     select.addEventListener('change', function () { if (select.form) select.form.submit(); });
@@ -72,10 +74,18 @@
     });
   });
 
+  // Read out "Copied" to screen readers too (the button's own text change
+  // isn't announced everywhere).
+  var live = document.createElement('p');
+  live.className = 'visually-hidden';
+  live.setAttribute('role', 'status');
+  document.body.appendChild(live);
+
   document.querySelectorAll('[data-copy-invite]').forEach(function (button) {
     var label = button.textContent.trim();
     function say(text) {
       button.textContent = text;
+      live.textContent = text === 'Copied!' ? 'Invite message copied' : text;
       setTimeout(function () { button.textContent = label; }, 2500);
     }
     button.addEventListener('click', function () {
@@ -94,4 +104,18 @@
       }).catch(function () { /* copied, but not marked sent: the tick box still works */ });
     });
   });
+
+  var preview = document.querySelector('iframe[name="email-preview"]');
+  if (preview) {
+    var waiting = false;
+    document.addEventListener('submit', function (event) {
+      if (event.submitter && event.submitter.getAttribute('formtarget') === 'email-preview') waiting = true;
+    });
+    preview.addEventListener('load', function () {
+      if (!waiting) return;
+      waiting = false;
+      var box = preview.getBoundingClientRect();
+      if (box.top > window.innerHeight || box.bottom < 0) preview.scrollIntoView({ block: 'start' });
+    });
+  }
 })();

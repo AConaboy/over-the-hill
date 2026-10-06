@@ -21,7 +21,7 @@
   var box = document.querySelector('[data-poster-pieces]');
   if (!box) return;
   var art = box.parentNode;                         // .poster-illustration
-  var motion = matchMedia('(prefers-reduced-motion: reduce)');
+  var motion = (window.othMotion || matchMedia('(prefers-reduced-motion: reduce)'));   // reduced motion, or Pause animations (motion.js)
 
   // tuning: stiffness and damping (per second)
   var K = 70, DAMP = 7;

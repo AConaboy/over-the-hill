@@ -4,11 +4,12 @@
   sends uses this, so they all match the website and each other; the
   wording lives in src/lib/emailContent.ts.
 
-  The look is the homepage's: the sunburst poster at the top (rendered
-  from the site: public/images/email-hero.jpg), a paper card with the
-  butterfly perched on it, a "ticket stub" for the details, and the
-  site's hills leading into a green footer. Images are on the production
-  site, so emails sent from anywhere show them.
+  The look is the website's, kept simple: no header (the sender name and
+  subject say who it's from), a paper card for the message, a "ticket
+  stub" for the details, and the site's hills with the butterfly perched
+  on them (public/images/email-hills-butterfly.png) into a green footer. Pictures come
+  from the site that sent the email (assetBase); staging lets /images
+  through its sign-in so inboxes can load them.
 
   All variables are HTML-escaped by Mustache (double braces).
     subject        <title>
@@ -52,7 +53,6 @@
       .oth-h1 { font-size: 36px !important; line-height: 40px !important; }
       .oth-stub { padding-left: 16px !important; padding-right: 16px !important; }
       .oth-label { width: 42% !important; }
-      .oth-perch { padding-right: 28px !important; }
     }
   </style>
 
@@ -82,26 +82,10 @@
 
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffe8cc; border-collapse: collapse;">
     <tr>
-      <td align="center" style="padding: 12px 10px 0 10px;">
+      <td align="center" style="padding: 28px 10px 0 10px;">
 
         <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 600px; border-collapse: separate;">
-
-          <!-- ========== HERO: the sunburst poster ========== -->
-          <tr>
-            <td align="center" style="padding: 0;">
-              <a href="https://overthehill.live/" target="_blank" style="text-decoration: none;">
-                <img src="https://overthehill.live/images/email-hero.jpg" width="600" alt="Over the Hill Festival: August 13th to 15th 2027 at Out to Grass" style="display: block; width: 100%; max-width: 600px; height: auto; border: 0; outline: none; text-decoration: none; background-color: #ffe8cc; font-family: 'Patrick Hand SC', 'Comic Sans MS', 'Chalkboard SE', 'Trebuchet MS', sans-serif; font-size: 26px; line-height: 32px; color: #1a1a17; text-align: center;">
-              </a>
-            </td>
-          </tr>
-
-          <!-- ========== THE BUTTERFLY, perched on the card's edge ========== -->
-          <tr>
-            <td class="oth-perch" align="right" style="padding: 14px 44px 0 0; font-size: 0; line-height: 0;">
-              <img src="https://overthehill.live/images/email-butterfly.png" width="52" height="48" alt="" style="display: inline-block; width: 52px; height: 48px; border: 0; vertical-align: bottom;">
-            </td>
-          </tr>
 
           <!-- ========== MAIN CARD ========== -->
           <tr>
@@ -203,10 +187,10 @@
             </td>
           </tr>
 
-          <!-- ========== HILLS, into the green footer ========== -->
+          <!-- ========== HILLS (the butterfly perched on them), into the green footer ========== -->
           <tr>
-            <td style="padding: 36px 0 0 0; font-size: 0; line-height: 0;">
-              <img src="https://overthehill.live/images/email-hills.png" width="600" alt="" style="display: block; width: 100%; max-width: 600px; height: auto; border: 0;">
+            <td style="padding: 10px 0 0 0; font-size: 0; line-height: 0;">
+              <img src="{{assetBase}}/images/email-hills-butterfly.png" width="600" alt="" style="display: block; width: 100%; max-width: 600px; height: auto; border: 0;">
             </td>
           </tr>
           <tr>

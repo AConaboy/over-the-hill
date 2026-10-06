@@ -19,7 +19,7 @@ const assetHashes = Object.fromEntries(
 // allowed too). Everything else comes from this site, bar the location
 // page's map, and the redirects to Stripe's checkout and to Cloudflare
 // Access's sign-in (admin) that follow a form post.
-const INLINE_SCRIPTS = ['public/js/continuity.js', 'public/js/sunrise.js'];
+const INLINE_SCRIPTS = ['public/js/motion.js', 'public/js/continuity.js', 'public/js/sunrise.js'];
 const scriptHashes = INLINE_SCRIPTS.map((file) => `'sha256-${createHash('sha256').update(readFileSync(file)).digest('base64')}'`);
 const contentSecurityPolicy = [
   "default-src 'self'",
@@ -28,7 +28,8 @@ const contentSecurityPolicy = [
   "img-src 'self' data:",
   "font-src 'self'",
   "connect-src 'self'",
-  'frame-src https://www.google.com',
+  // Google's map on Location; our own email previews in admin Emails
+  "frame-src 'self' https://www.google.com",
   "form-action 'self' https://checkout.stripe.com https://*.cloudflareaccess.com",
   "base-uri 'self'",
   "object-src 'none'",

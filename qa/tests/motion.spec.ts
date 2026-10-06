@@ -47,7 +47,7 @@ test("the payment celebration plays once, and never with reduced motion", async 
 });
 
 test("every form field has a label, and every page one main heading", async ({ page }) => {
-  for (const path of ["/", "/location", "/rsvp", "/rsvp/qa-token-yes?edit=1", "/admin", "/admin/guests/new", "/admin/import", "/admin/checkin", "/admin/report"]) {
+  for (const path of ["/", "/location", "/privacy", "/rsvp", "/rsvp/qa-token-yes?edit=1", "/admin", "/admin/guests/new", "/admin/import", "/admin/checkin", "/admin/report"]) {
     const response = await page.goto(path);
     expect(response?.status(), `${path} loads`).toBe(200);
     // the page's own headings (not the dev toolbar's, which Playwright's locators would also find)

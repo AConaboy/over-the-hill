@@ -14,7 +14,7 @@ const replied = Astro.cookies.get(RSVPED_COOKIE_NAME)?.value === "1";
   description="Information about our party, including camping, food, activities and travel."
   shareDescription={`${fields.tagline ? fields.tagline.replace(/\.?$/, ". ") : ""}13–15 August 2027 at Out to Grass, Cradley.`}
 >
-  <main class="homepage-main">
+  <main id="main" tabindex="-1" class="homepage-main">
 
     <section class="poster-hero">
       <h1 class="visually-hidden">

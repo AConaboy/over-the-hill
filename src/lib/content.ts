@@ -84,6 +84,16 @@ export const CONTENT_PAGES: ContentPageDef[] = [
     ],
   },
   {
+    slug: "privacy",
+    label: "Privacy (your data)",
+    routed: true,
+    fieldKeys: [
+      { key: "hero_eyebrow", label: "Eyebrow" },
+      { key: "hero_heading", label: "Heading" },
+      { key: "hero_introduction", label: "Introduction", multiline: true },
+    ],
+  },
+  {
     slug: "about",
     label: "About",
     routed: false,
@@ -193,6 +203,16 @@ export async function getPageContent(slug: string): Promise<PageContent> {
  * shift the others into the wrong place on a page. */
 export function findBlock(blocks: ContentBlock[], id: string): ContentBlock | undefined {
   return blocks.find((block) => block.id === id);
+}
+
+/** The RSVP deadline heading, with {date} as the day the guest's own link
+ * expires ("Please RSVP by 5 November 2026"). Without a date (a link that
+ * was never sent), "by {date}" is dropped: "Please RSVP". */
+export function deadlineHeading(heading: string | null, expiresAt: string | null): string | null {
+  if (!heading?.includes("{date}")) return heading;
+  if (!expiresAt) return heading.replace(/\s*\bby\s+\{date\}/g, "").replaceAll("{date}", "soon");
+  const date = new Date(expiresAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/London" });
+  return heading.replaceAll("{date}", date);
 }
 
 export async function setContentFields(slug: string, values: Record<string, string>): Promise<void> {

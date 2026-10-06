@@ -99,7 +99,7 @@ describe("handleStripeEvent", () => {
 
   it("records the balance kind from metadata", async () => {
     const deps = fakeDeps({ recorded: true, guest: someGuest, completedRegistration: true });
-    await handleStripeEvent(sessionEvent("checkout.session.completed", { metadata: { guest_id: "guest-1", kind: "balance" } }), deps);
+    await handleStripeEvent(sessionEvent("checkout.session.completed", { metadata: { app: "over-the-hill", guest_id: "guest-1", kind: "balance" } }), deps);
     expect(deps.recordPayment).toHaveBeenCalledWith(expect.objectContaining({ kind: "balance" }));
   });
 
