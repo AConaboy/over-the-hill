@@ -6,7 +6,7 @@ import type { PaymentSettings } from "./payments";
 // rows (migrations/0008_payments.sql). Each environment has its own
 // database, so staging and production keep separate settings.
 
-type SettingKey = "deposit_pence" | "standard_price_pence" | "deposits_open" | "balance_open" | "ticket_qr";
+type SettingKey = "deposit_pence" | "standard_price_pence" | "deposits_open" | "balance_open" | "ticket_qr" | "songs_open";
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -95,5 +95,26 @@ export async function saveTicketSettings(settings: TicketSettings): Promise<void
        on conflict (key) do update set value = excluded.value, updated_at = excluded.updated_at`,
     )
     .bind(settings.qrCodes ? "1" : "0", nowIso())
+    .run();
+}
+
+export interface SongSettings {
+  /** Guests who've paid can pick songs for the playlist (admin Playlist).
+   * Off (no row) until a host turns it on. */
+  songsOpen: boolean;
+}
+
+export async function getSongSettings(): Promise<SongSettings> {
+  const row = await getDb().prepare("select value from settings where key = 'songs_open'").first<{ value: string }>();
+  return { songsOpen: row?.value === "1" };
+}
+
+export async function saveSongSettings(settings: SongSettings): Promise<void> {
+  await getDb()
+    .prepare(
+      `insert into settings (key, value, updated_at) values ('songs_open', ?, ?)
+       on conflict (key) do update set value = excluded.value, updated_at = excluded.updated_at`,
+    )
+    .bind(settings.songsOpen ? "1" : "0", nowIso())
     .run();
 }

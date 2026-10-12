@@ -23,7 +23,8 @@ interface EmailContent {
   paragraphs: string[];
   summary?: { heading: string; lines: string[] };
   button?: { label: string; url: string };
-  link?: { label: string; url: string };
+  /** Smaller links under the button (the calendar, the playlist). */
+  links?: { label: string; url: string }[];
   footnote?: string;
   footerReason?: string;
   /** The site sending it: its pictures come from there (/images/email-*,
@@ -62,7 +63,7 @@ function render(content: EmailContent): RenderedEmail {
       ? [`${content.summary.heading}:`, ...content.summary.lines.map((line) => `- ${line}`), ""]
       : []),
     ...(content.button ? [`${content.button.label}: ${content.button.url}`, ""] : []),
-    ...(content.link ? [`${content.link.label}: ${content.link.url}`, ""] : []),
+    ...(content.links ?? []).flatMap((link) => [`${link.label}: ${link.url}`, ""]),
     ...(content.footnote ? [content.footnote, ""] : []),
     "See you there!",
     "The Over the Hill hosts",
@@ -99,6 +100,12 @@ function guestPageUrl(guest: Guest, siteUrl: string): string {
 /** The festival as a calendar file (src/pages/rsvp/[token]/calendar.ics.ts). */
 export function calendarUrl(guest: Guest, siteUrl: string): string {
   return new URL(`/rsvp/${guest.token}/calendar.ics`, siteUrl).toString();
+}
+
+/** Their songs for the playlist ("Song – Artist"), and the playlist. */
+export interface EmailSongs {
+  labels: string[];
+  playlistUrl: string | null;
 }
 
 /** The payment that completed someone's registration: a deposit, or the
@@ -367,7 +374,7 @@ function nameVars(guest: Guest): Record<string, string> {
 export function rsvpConfirmationEmail(
   guest: Guest,
   siteUrl: string,
-  options: { payment?: RegisteringPayment } = {},
+  options: { payment?: RegisteringPayment; songs?: EmailSongs } = {},
   texts: EmailTexts = {},
 ): RenderedEmail {
   const attending = guest.attendance === "yes";
@@ -375,6 +382,8 @@ export function rsvpConfirmationEmail(
   const id: EmailId = !attending ? "declined" : !payment ? "confirmation" : payment.inFull ? "confirmation-paid" : "confirmation-deposit";
   const t = emailText(id, texts, { ...nameVars(guest), amount: payment ? formatPence(payment.amountPence) : "" });
   const lines = summariseAnswers(guest);
+  const songs = attending && options.songs?.labels.length ? options.songs : null;
+  if (songs) lines.push(`Songs for the playlist: ${songs.labels.join("; ")}`);
   if (payment) {
     lines.push(payment.inFull ? `Paid: ${formatPence(payment.amountPence)} (paid in full)` : `Deposit paid: ${formatPence(payment.amountPence)}`);
   }
@@ -387,7 +396,12 @@ export function rsvpConfirmationEmail(
     paragraphs: paragraphs(t.body),
     summary: { heading: t.summaryHeading, lines },
     button: { label: t.button, url: guestPageUrl(guest, siteUrl) },
-    link: attending ? { label: t.link, url: calendarUrl(guest, siteUrl) } : undefined,
+    links: attending
+      ? [
+          { label: t.link, url: calendarUrl(guest, siteUrl) },
+          ...(songs?.playlistUrl ? [{ label: "Listen to the playlist on Spotify", url: songs.playlistUrl }] : []),
+        ]
+      : undefined,
     footnote: t.footnote || undefined,
   });
 }
@@ -503,13 +517,21 @@ const SAMPLE_GUEST = {
   registered_at: "2026-10-12T10:00:00.000Z",
 } as unknown as Guest;
 
+/** The example amounts for a sample, and the playlist (when there is one,
+ * the sample guest has picked two songs). */
+export interface SampleOptions {
+  depositPence?: number | null;
+  pricePence?: number | null;
+  playlistUrl?: string | null;
+}
+
 /** Each email as a guest would get it, filled in with a made-up guest and
  * example amounts (a £20 deposit and £75 ticket, unless given). */
 export function sampleEmail(
   id: EmailId,
   siteUrl: string,
   texts: EmailTexts,
-  amounts: { depositPence?: number | null; pricePence?: number | null } = {},
+  amounts: SampleOptions = {},
   /** Where the pictures come from: for a preview, the site it's shown on. */
   pictures: string = siteUrl,
 ): RenderedEmail {
@@ -525,18 +547,22 @@ function sampleFor(
   id: EmailId,
   siteUrl: string,
   texts: EmailTexts,
-  amounts: { depositPence?: number | null; pricePence?: number | null },
+  amounts: SampleOptions,
 ): RenderedEmail {
+  // two made-up songs, once guests can pick them (Spotify's connected)
+  const songs = amounts.playlistUrl
+    ? { labels: ["Mr. Brightside – The Killers", "Dancing Queen – ABBA"], playlistUrl: amounts.playlistUrl }
+    : undefined;
   const deposit = amounts.depositPence || 2000;
   const price = amounts.pricePence || 7500;
   const guest = (overrides: Partial<Guest>) => ({ ...SAMPLE_GUEST, ...overrides }) as Guest;
   switch (id) {
     case "confirmation":
-      return rsvpConfirmationEmail(SAMPLE_GUEST, siteUrl, {}, texts);
+      return rsvpConfirmationEmail(SAMPLE_GUEST, siteUrl, { songs }, texts);
     case "confirmation-deposit":
-      return rsvpConfirmationEmail(guest({ amount_paid_pence: deposit }), siteUrl, { payment: { amountPence: deposit, inFull: false } }, texts);
+      return rsvpConfirmationEmail(guest({ amount_paid_pence: deposit }), siteUrl, { payment: { amountPence: deposit, inFull: false }, songs }, texts);
     case "confirmation-paid":
-      return rsvpConfirmationEmail(guest({ amount_paid_pence: price }), siteUrl, { payment: { amountPence: price, inFull: true } }, texts);
+      return rsvpConfirmationEmail(guest({ amount_paid_pence: price }), siteUrl, { payment: { amountPence: price, inFull: true }, songs }, texts);
     case "declined":
       return rsvpConfirmationEmail(guest({ attendance: "no" }), siteUrl, {}, texts);
     case "complete-deposit":

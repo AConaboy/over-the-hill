@@ -1,0 +1,222 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import AdminHeader from "../../components/AdminHeader.astro";
+import {
+  addMissingSongs,
+  countMissingSongs,
+  createPlaylist,
+  disconnectSpotify,
+  getSpotifyStatus,
+  listAllSongs,
+  spotifyReady,
+  useExistingPlaylist,
+} from "../../lib/spotify";
+import { parsePlaylistRef } from "../../lib/songs";
+import { getSongSettings, saveSongSettings } from "../../lib/settings";
+import { checkboxField } from "../../lib/forms";
+
+// The communal playlist: connecting the hosts' Spotify account, the
+// playlist guests' songs go into, and every song picked so far. Its forms
+// post here and redirect back (so a refresh doesn't resubmit).
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const action = form.get("action");
+  try {
+    if (action === "settings") {
+      const songsOpen = checkboxField(form, "songsOpen");
+      await saveSongSettings({ songsOpen });
+      return Astro.redirect(`/admin/playlist?done=${songsOpen ? "opened" : "closed"}#settings`, 303);
+    }
+    if (action === "create") {
+      await createPlaylist();
+      return Astro.redirect("/admin/playlist?done=created", 303);
+    }
+    if (action === "use") {
+      const id = parsePlaylistRef(String(form.get("playlist") ?? ""));
+      if (!id) return Astro.redirect("/admin/playlist?problem=link#playlist", 303);
+      await useExistingPlaylist(id);
+      const added = await addMissingSongs();
+      return Astro.redirect(`/admin/playlist?done=using&added=${added}`, 303);
+    }
+    if (action === "retry") {
+      const added = await addMissingSongs();
+      return Astro.redirect(`/admin/playlist?done=retried&added=${added}`, 303);
+    }
+    if (action === "disconnect") {
+      await disconnectSpotify();
+      return Astro.redirect("/admin/playlist?done=disconnected", 303);
+    }
+  } catch (err) {
+    console.error(`Playlist: "${action}" failed`, err);
+    return Astro.redirect(`/admin/playlist?problem=${action === "create" ? "playlist" : "spotify"}`, 303);
+  }
+  return Astro.redirect("/admin/playlist", 303);
+}
+
+const status = await getSpotifyStatus();
+const ready = spotifyReady(status);
+const { songsOpen } = await getSongSettings();
+const open = ready && songsOpen;
+const songs = status.configured ? await listAllSongs() : [];
+const missing = status.configured ? await countMissingSongs() : 0;
+const tracks = new Set(songs.map((s) => s.track_id)).size;
+const guests = new Set(songs.map((s) => s.guest_id)).size;
+
+const params = Astro.url.searchParams;
+const problem = params.get("problem");
+const done = params.get("done");
+const added = Number(params.get("added") ?? 0);
+const PROBLEMS: Record<string, string> = {
+  state: "That sign-in didn't come from this page (or took over 10 minutes). Try Connect Spotify again.",
+  declined: "Spotify didn't connect: the sign-in was cancelled.",
+  connect:
+    "Spotify didn't connect. Check the account is the Spotify app's owner (with Premium) or on its list of users, and that this site's address is one of its redirect URIs.",
+  playlist:
+    "Spotify's connected, but the playlist couldn't be made. Try again, or make one in Spotify yourself and paste its link below.",
+  link: "That doesn't look like a Spotify playlist link (open.spotify.com/playlist/…).",
+  spotify: "Spotify didn't respond as expected. Try again in a minute; if it keeps happening, disconnect and connect again.",
+};
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+---
+
+<Layout title="Playlist | Over the Hill" description="The guests' playlist on Spotify.">
+  <main id="main" tabindex="-1" class="admin-main">
+    <AdminHeader title="Playlist">
+      Once they've paid their deposit, guests can pick up to three songs on their page, and the site adds them to a Spotify playlist.
+    </AdminHeader>
+
+    <section class="page-content admin-content">
+      {problem && PROBLEMS[problem] && <p class="notice" role="alert">{PROBLEMS[problem]}</p>}
+      {done === "created" && <p class="notice" role="status">The playlist's made. Guests can pick songs now.</p>}
+      {done === "using" && <p class="notice" role="status">Now using that playlist. {plural(added, "song", "songs")} added to it.</p>}
+      {done === "retried" && <p class="notice" role="status">{added === 0 ? "Nothing was waiting to go on." : `${plural(added, "song", "songs")} added to the playlist.`}</p>}
+      {done === "opened" && <p class="notice" role="status">Songs are on: guests who've paid can pick them on their page.</p>}
+      {done === "closed" && <p class="notice" role="status">Songs are off: guests can't pick or change songs. Songs already picked stay on the playlist.</p>}
+      {done === "disconnected" && <p class="notice" role="status">Spotify's disconnected. Guests can't pick songs until it's connected again.</p>}
+      {params.get("connected") === "1" && !problem && <p class="notice" role="status">Spotify's connected.{!songsOpen && " Turn songs on below when you're ready for guests to pick them."}</p>}
+
+      <article class="content-block">
+        <h2>Spotify</h2>
+        {!status.configured ? (
+          <p>
+            Spotify isn't set up on this site yet: it needs the Spotify app's keys
+            (<code>SPOTIFY_CLIENT_ID</code> and <code>SPOTIFY_CLIENT_SECRET</code>; see docs/deployment.md).
+            Until then, the RSVP form doesn't ask for songs.
+          </p>
+        ) : status.fake ? (
+          <p>
+            This is the local dev site, so a pretend Spotify stands in (a few made-up songs, and nothing really
+            added anywhere). Set the app's keys in <code>.dev.vars</code> to use the real one.
+          </p>
+        ) : !status.connected ? (
+          <>
+            <p>
+              Connect the hosts' Spotify account: the playlist is made on it, and guests' songs are added as it.
+              The account must own the Spotify app (with Premium), or be on its list of users.
+            </p>
+            <p><a class="button" href="/api/admin/spotify/connect">Connect Spotify</a></p>
+          </>
+        ) : (
+          <>
+            <ul class="information-list">
+              <li>Connected as {status.accountName}</li>
+              <li>
+                {status.playlistUrl ? (
+                  <a href={status.playlistUrl} target="_blank" rel="noopener noreferrer">Open the playlist<span class="visually-hidden"> (opens in a new tab)</span></a>
+                ) : (
+                  "No playlist yet, so guests can't pick songs"
+                )}
+              </li>
+              <li>{open ? "Songs are on: guests who've paid can pick them" : "Guests can't pick songs right now"}</li>
+            </ul>
+            {!status.playlistId && (
+              <form method="POST" action="/admin/playlist">
+                <input type="hidden" name="action" value="create" />
+                <button class="button" type="submit">Make the playlist</button>
+              </form>
+            )}
+          </>
+        )}
+      </article>
+
+      {status.configured && (
+        <form class="rsvp-form" method="POST" action="/admin/playlist" id="settings">
+          <h2>Songs on or off</h2>
+          <input type="hidden" name="action" value="settings" />
+          <div class="form-field form-field-checkbox">
+            <input id="songs-open" name="songsOpen" type="checkbox" checked={songsOpen} />
+            <label for="songs-open">Guests can pick songs</label>
+          </div>
+          <p class="form-field-help">
+            When on, a guest who's coming and has paid their deposit (or more), or is a free performer, can pick up to three
+            songs on their page. Guests who haven't paid yet are told paying unlocks it.
+            {!ready && " Spotify needs connecting, with a playlist, before this does anything."}
+          </p>
+          <button class="button" type="submit">Save</button>
+        </form>
+      )}
+
+      {status.connected && !status.fake && (
+        <form class="rsvp-form" method="POST" action="/admin/playlist" id="playlist">
+          <h2>Use a different playlist</h2>
+          <p class="form-field-help">
+            To give it your own name, picture or description, make the playlist in Spotify on the connected
+            account and paste its link here. Every song picked so far is added to it.
+          </p>
+          <input type="hidden" name="action" value="use" />
+          <div class="form-field">
+            <label for="playlist-link">Playlist link</label>
+            <input id="playlist-link" name="playlist" type="url" placeholder="https://open.spotify.com/playlist/…" required />
+          </div>
+          <button class="button" type="submit">Use this playlist</button>
+        </form>
+      )}
+
+      {status.configured && (
+        <article class="content-block">
+          <h2>Songs picked</h2>
+          <p>
+            {songs.length === 0
+              ? "No songs yet."
+              : `${plural(tracks, "song", "songs")} from ${plural(guests, "guest", "guests")}.`}
+            {missing > 0 && ` ${plural(missing, "song isn't", "songs aren't")} on the playlist yet (Spotify didn't answer when ${missing === 1 ? "it was" : "they were"} picked).`}
+          </p>
+          {missing > 0 && ready && (
+            <form method="POST" action="/admin/playlist">
+              <input type="hidden" name="action" value="retry" />
+              <button class="button" type="submit">Add {plural(missing, "song", "songs")} to the playlist</button>
+            </form>
+          )}
+          {songs.length > 0 && (
+            <div class="admin-table-wrapper">
+              <table class="admin-table">
+                <thead><tr><th>Song</th><th>Artist</th><th>Picked by</th><th>On the playlist</th></tr></thead>
+                <tbody>
+                  {songs.map((song) => (
+                    <tr>
+                      <td>{song.title}</td>
+                      <td>{song.artist}</td>
+                      <td><a href={`/admin/guests/${song.guest_id}/edit`}>{song.guest_name}</a></td>
+                      <td>{song.added_at ? "Yes" : "Not yet"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </article>
+      )}
+
+      {status.connected && !status.fake && (
+        <form
+          method="POST"
+          action="/admin/playlist"
+          data-confirm="Disconnect Spotify? Guests won't be able to pick songs until it's connected again. The playlist itself stays on Spotify."
+        >
+          <input type="hidden" name="action" value="disconnect" />
+          <button class="link-button" type="submit">Disconnect Spotify</button>
+        </form>
+      )}
+    </section>
+  </main>
+</Layout>

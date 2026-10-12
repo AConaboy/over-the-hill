@@ -9,7 +9,7 @@ const PAGES = [
   "/", "/location", "/privacy", "/rsvp", "/rsvp/qa-token-opened", "/rsvp/qa-token-yes", "/rsvp/qa-token-yes?edit=1",
   "/rsvp/qa-token-due", "/rsvp/qa-token-expired", "/rsvp/qa-token-not-real", "/not-a-page",
   "/admin", "/admin/guests/new", "/admin/guests/qa-yes/edit", "/admin/import", "/admin/report", "/admin/checkin",
-  "/admin/payments", "/admin/content", "/admin/content/rsvp-form", "/admin/emails", "/admin/emails/deposit-due", "/checkin/QATEST01",
+  "/admin/payments", "/admin/content", "/admin/content/rsvp-form", "/admin/emails", "/admin/emails/deposit-due", "/admin/playlist", "/checkin/QATEST01",
 ];
 
 for (const [label, size] of [["phone", PHONE], ["laptop", LAPTOP]] as const) {

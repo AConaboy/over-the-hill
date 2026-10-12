@@ -10,10 +10,13 @@ import { overpaidBy, ticketPrice } from "../../../../lib/payments";
 import { formatPence } from "../../../../lib/money";
 import { inviteMessage } from "../../../../lib/site";
 import { SITE_URL } from "astro:env/server";
+import { listGuestSongs } from "../../../../lib/spotify";
 
 const { id } = Astro.params;
 const guest = id ? await getGuestById(id) : null;
-const [payments, events] = guest ? await Promise.all([listPaymentsForGuest(guest.id), listGuestEvents(guest.id)]) : [[], []];
+const [payments, events, songs] = guest
+  ? await Promise.all([listPaymentsForGuest(guest.id), listGuestEvents(guest.id), listGuestSongs(guest.id)])
+  : [[], [], []];
 const link = guest ? new URL(`/rsvp/${guest.token}`, SITE_URL).toString() : "";
 // when they first opened their link (history is newest first)
 const firstOpened = [...events].reverse().find((event) => event.action === "opened");
@@ -181,6 +184,18 @@ const formatDateTime = (iso: string) =>
 
             <button class="button" type="submit">Save changes</button>
           </form>
+
+          {songs.length > 0 && (
+            <section id="songs" class="content-block admin-payments">
+              <h2>Songs for the playlist</h2>
+              <ol>
+                {songs.map((song) => (
+                  <li>{song.title} – {song.artist}{!song.added_at && <span class="admin-muted"> (not on the playlist yet)</span>}</li>
+                ))}
+              </ol>
+              <p class="admin-muted">They choose these on their RSVP. <a href="/admin/playlist">All songs</a></p>
+            </section>
+          )}
 
           <section id="invite" class="content-block admin-payments" data-invite-cell>
             <h2>Invite</h2>

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { LAPTOP, PHONE } from "./helpers";
+import { sql } from "../db";
 
 // A4: the strict Content Security Policy (astro.config.mjs) blocks nothing
 // of ours. Public pages are checked on the production build (port 4399),
@@ -10,7 +11,11 @@ import { LAPTOP, PHONE } from "./helpers";
 const BUILD = "http://localhost:4399";
 const PUBLIC = ["/", "/location", "/privacy", "/rsvp", "/rsvp/qa-token-yes", "/rsvp/qa-token-yes?edit=1", "/rsvp/qa-token-not-real"];
 const ADMIN = ["/admin", "/admin?q=Qatest", "/admin/guests/qa-yes/edit", "/admin/guests/new", "/admin/import", "/admin/import/fix",
-  "/admin/report", "/admin/checkin?q=Qatest", "/checkin/QATEST01", "/admin/payments", "/admin/content", "/admin/emails", "/admin/emails/deposit-due"];
+  "/admin/report", "/admin/checkin?q=Qatest", "/checkin/QATEST01", "/admin/payments", "/admin/content", "/admin/emails", "/admin/emails/deposit-due",
+  "/admin/playlist",
+  // a paid guest's songs card and its search: only the dev server has a
+  // Spotify (a pretend one), so it's checked here rather than on the build
+  "/rsvp/qa-token-yes"];
 
 async function violations(page: Page, url: string): Promise<string[]> {
   await page.addInitScript(() => {
@@ -37,6 +42,9 @@ for (const viewport of [LAPTOP, PHONE]) {
 }
 
 test("admin pages", async ({ page, request }) => {
+  // songs on, so a paid guest's page shows its songs card
+  const songsSetting = sql<{ value: string }>("select value from settings where key = 'songs_open'")[0]?.value;
+  sql("insert into settings (key, value, updated_at) values ('songs_open', '1', 'qa') on conflict (key) do update set value = '1'");
   const policy = (await request.get(`${BUILD}/`)).headers()["content-security-policy"];
   expect(policy).toBeTruthy();
   await page.route("**/*", async (route) => {
@@ -47,7 +55,12 @@ test("admin pages", async ({ page, request }) => {
       .replace(/<script>window\.__astro_dev_toolbar__[\s\S]*?<\/script>/g, "");
     await route.fulfill({ response, body: html, headers: { ...response.headers(), "content-security-policy": policy } });
   });
-  for (const path of ADMIN) {
-    expect(await violations(page, path), path).toEqual([]);
+  try {
+    for (const path of ADMIN) {
+      expect(await violations(page, path), path).toEqual([]);
+    }
+  } finally {
+    if (songsSetting === undefined) sql("delete from settings where key = 'songs_open'");
+    else sql(`update settings set value = '${songsSetting}' where key = 'songs_open'`);
   }
 });

@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 // Short content hashes for the hand-written CSS and JS in public/, added to
 // their URLs (see src/lib/assets.ts) so browsers can cache them for a year
 // and still pick up every change.
-const VERSIONED_ASSETS = ['/css/style.css', '/js/butterfly.js', '/js/flowers.js', '/js/nav.js', '/js/admin.js', '/favicon-animate.js'];
+const VERSIONED_ASSETS = ['/css/style.css', '/js/butterfly.js', '/js/flowers.js', '/js/nav.js', '/js/admin.js', '/js/songs.js', '/favicon-animate.js'];
 const assetHashes = Object.fromEntries(
   VERSIONED_ASSETS.map((path) => [path, createHash('sha256').update(readFileSync(`public${path}`)).digest('hex').slice(0, 10)]),
 );
@@ -17,15 +17,17 @@ const assetHashes = Object.fromEntries(
 // verbatim from their files, so their hashes are worked out from the files
 // here (never from the page being served, or an injected script would be
 // allowed too). Everything else comes from this site, bar the location
-// page's map, and the redirects to Stripe's checkout and to Cloudflare
-// Access's sign-in (admin) that follow a form post.
+// page's map, Spotify's album art (guests' songs), and the redirects to
+// Stripe's checkout and to Cloudflare Access's sign-in (admin) that follow
+// a form post.
 const INLINE_SCRIPTS = ['public/js/motion.js', 'public/js/continuity.js', 'public/js/sunrise.js'];
 const scriptHashes = INLINE_SCRIPTS.map((file) => `'sha256-${createHash('sha256').update(readFileSync(file)).digest('base64')}'`);
 const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src 'self' ${scriptHashes.join(' ')}`,
   "style-src 'self'",
-  "img-src 'self' data:",
+  // album art in guests' song picks (the playlist, on the RSVP page)
+  "img-src 'self' data: https://i.scdn.co",
   "font-src 'self'",
   "connect-src 'self'",
   // Google's map on Location; our own email previews in admin Emails
@@ -73,6 +75,11 @@ export default defineConfig({
       // docs/deployment.md. Optional: without them payments stay closed.
       STRIPE_SECRET_KEY: envField.string({ context: 'server', access: 'secret', optional: true }),
       STRIPE_WEBHOOK_SECRET: envField.string({ context: 'server', access: 'secret', optional: true }),
+      // Spotify (guests' songs for the playlist) — the app's keys, per
+      // environment, see docs/deployment.md. Optional: without them songs
+      // stay switched off (bar a pretend Spotify in astro dev).
+      SPOTIFY_CLIENT_ID: envField.string({ context: 'server', access: 'secret', optional: true }),
+      SPOTIFY_CLIENT_SECRET: envField.string({ context: 'server', access: 'secret', optional: true }),
     },
   },
 });

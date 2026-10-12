@@ -17,6 +17,7 @@ import { nextPayment, type NextPayment } from "../../lib/payments";
 import { isStripeConfigured } from "../../lib/stripe";
 import { startCheckout } from "../../lib/checkout";
 import { choiceField, LONG_TEXT_MAX, smallNumberField, textField } from "../../lib/forms";
+import { listGuestSongs, saveGuestSongs } from "../../lib/spotify";
 
 export const prerender = false;
 
@@ -53,6 +54,17 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     // Invalid or expired token: send them back to the same URL, which will
     // render the appropriate "not found"/"expired" state on reload.
     return redirect(rsvpUrl, 303);
+  }
+
+  // Saying no takes their songs off the playlist (songs are picked on
+  // their page once they've paid: /api/rsvp/songs/save). Non-blocking:
+  // Spotify failing never stops the RSVP.
+  if (result.guest.attendance !== "yes") {
+    try {
+      if ((await listGuestSongs(result.guest.id)).length > 0) await saveGuestSongs(result.guest.id, []);
+    } catch (err) {
+      console.error("Removing songs failed", err);
+    }
   }
 
   // Saying yes completes registration straight away only when nothing is

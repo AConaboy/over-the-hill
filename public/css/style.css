@@ -2652,3 +2652,125 @@ html:has(.sunrise-rays) {
   align-items: center;
   gap: 0.75rem 1.25rem;
 }
+
+/* A guest's songs for the playlist, on their own card once they've paid
+   (public/js/songs.js builds the search; without it, the boxes for
+   Spotify links show instead). */
+.notice-inline {
+  margin: 0 0 1.25rem;
+  padding: 0.8rem 1.1rem;
+  border: 2px solid var(--ink);
+  border-radius: 0.9rem;
+  background: var(--tan);
+  font-weight: 600;
+}
+
+.song-picks {
+  margin: 0 0 1.5rem;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.song-picks legend {
+  margin-bottom: 0.5rem;
+  padding: 0;
+  font-weight: 700;
+}
+
+.song-current {
+  font-weight: 500;
+}
+
+.song-chosen,
+.song-results {
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.song-item,
+.song-result {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid var(--ink);
+  border-radius: 0.8rem;
+  background: white;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+}
+
+.song-item {
+  background: var(--tan);
+}
+
+.song-result {
+  cursor: pointer;
+}
+
+.song-result:hover:not(:disabled),
+.song-result:focus-visible {
+  background: var(--tan);
+}
+
+.song-result:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.song-art {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 0.4rem;
+  object-fit: cover;
+}
+
+.song-art-blank {
+  display: grid;
+  place-items: center;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  font-size: 1.4rem;
+}
+
+.song-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  overflow-wrap: anywhere;
+}
+
+.song-text span {
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.song-add {
+  flex: none;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+/* a comfortable tap target (WCAG 2.2: at least 24px) */
+.song-remove {
+  flex: none;
+  min-height: 24px;
+  padding: 0.3rem 0;
+}
+
+.song-status:empty {
+  display: none;
+}
+
+.song-status {
+  margin: -0.75rem 0 1rem;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}

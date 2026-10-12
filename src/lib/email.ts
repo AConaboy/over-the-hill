@@ -8,11 +8,14 @@ import {
   rsvpConfirmationEmail,
   sampleEmail,
   type EmailId,
+  type EmailSongs,
   type RegisteringPayment,
   type RenderedEmail,
 } from "./emailContent";
 import { getEmailTexts } from "./emailTexts";
 import { getPaymentSettings } from "./settings";
+import { getSpotifyStatus, listGuestSongs, spotifyReady } from "./spotify";
+import { songLabel } from "./songs";
 
 // Sending only. What each email says (and the shared, site-styled layout)
 // is in src/lib/emailContent.ts.
@@ -56,7 +59,16 @@ export async function sendRsvpConfirmationEmail(
   options: { payment?: RegisteringPayment } = {},
 ): Promise<void> {
   if (!guest.email) return;
-  await send(guest.email, rsvpConfirmationEmail(guest, SITE_URL, options, await getEmailTexts()));
+  const songs = await emailSongs(guest.id);
+  await send(guest.email, rsvpConfirmationEmail(guest, SITE_URL, { ...options, songs }, await getEmailTexts()));
+}
+
+/** Their songs and the playlist, for "You're registered". */
+async function emailSongs(guestId: string): Promise<EmailSongs | undefined> {
+  const picks = await listGuestSongs(guestId);
+  if (picks.length === 0) return undefined;
+  const status = await getSpotifyStatus();
+  return { labels: picks.map(songLabel), playlistUrl: status.playlistUrl };
 }
 
 /** Something to pay now: see paymentDueEmail. */
@@ -114,9 +126,11 @@ export async function sendMagicLinkEmail(guest: Guest): Promise<void> {
  * made-up guest and this site's amounts, marked as a test in the subject. */
 export async function sendTestEmail(to: string, id: EmailId): Promise<void> {
   const settings = await getPaymentSettings();
+  const spotify = await getSpotifyStatus();
   const email = sampleEmail(id, SITE_URL, await getEmailTexts(), {
     depositPence: settings.depositPence,
     pricePence: settings.standardPricePence,
+    playlistUrl: spotifyReady(spotify) ? spotify.playlistUrl : null,
   });
   await send(to, { ...email, subject: `[Test] ${email.subject}` });
 }

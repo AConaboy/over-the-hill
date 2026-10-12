@@ -149,9 +149,9 @@
     return { left: p.x + (9 / BOX_W - AX) * w, right: p.x + (211 / BOX_W - AX) * w, top: p.y + (3 / BOX_H - AY) * h, bottom: p.y + (FEET - AY) * h - 1 };
   }
   var TEXT = '.site-name, .main-navigation a, .hero-description, .event-details, .home-text .button, .home-text .text-link, .credit-line, .site-footer p, .invite-text > *, ' +
-    '.page-content h2, .page-content h3, .page-content p, .page-content li, .page-content label, .page-content .button, .page-hero-content > *';
-  // form fields, the location photo and map: never sat on or over
-  var FIELDS = '.page-content input, .page-content select, .page-content textarea, .location-photo img, .location-map iframe';
+    '.page-content h2, .page-content h3, .page-content p, .page-content li, .page-content label, .page-content legend, .page-content .button, .page-hero-content > *';
+  // form fields (and the song picks' art and buttons), the location photo and map: never sat on or over
+  var FIELDS = '.page-content input, .page-content select, .page-content textarea, .song-picks button, .song-art, .location-photo img, .location-map iframe';
   function textLines() {                                       // every line of the page's text (and every form field), in page coordinates
     var rects = [];
     function push(e, r) { if (r.width > 0) rects.push({ el: e, left: r.left + scrollX, right: r.right + scrollX, top: r.top + scrollY, bottom: r.bottom + scrollY }); }
@@ -275,7 +275,7 @@
     // cards, their headings, the field labels and the buttons
     onTop('.invite-text .page-introduction', 0.1, 0.9, 'text');
     onTop('.page-content .content-block', 0.15, 0.85, 'box', true); onTop('.page-content .rsvp-form', 0.15, 0.85, 'box', true);
-    onTop('.page-content .content-block h2', 0.1, 0.9, 'text', true); onTop('.rsvp-form label', 0.2, 0.9, 'text', true);
+    onTop('.page-content .content-block h2', 0.1, 0.9, 'text', true); onTop('.rsvp-form label, .rsvp-form legend', 0.2, 0.9, 'text', true);
     // all the way down the form: anywhere along each field's top edge that
     // isn't under its label (the label's on the left; coversText rules
     // out spots over it, so on the left it lands just past the words)
