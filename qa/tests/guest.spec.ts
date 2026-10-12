@@ -49,7 +49,7 @@ test("the RSVP form: days with dates, lift share fields, and replying yes", asyn
   const checkErrors = watchForErrors(page);
   await page.goto("/rsvp/qa-token-sent?edit=1");
   await expect(page.locator("#arrivalDay option")).toHaveText([
-    "Please select", "Thursday 12 August", "Friday 13 August", "Saturday 14 August", "Sunday 15 August", "Monday 16 August", "Not sure yet",
+    "Please select", "Friday 13 August", "Saturday 14 August", "Sunday 15 August", "Not sure yet",
   ]);
 
   await page.selectOption("#attendance", "yes");
@@ -84,9 +84,9 @@ test("the RSVP form: days with dates, lift share fields, and replying yes", asyn
 test("editing answers changes only what was changed", async ({ page }) => {
   await page.goto("/rsvp/qa-token-sent");
   await Promise.all([page.waitForNavigation(), page.getByRole("link", { name: "Edit your response" }).click()]);
-  await page.selectOption("#departureDay", "mon");
+  await page.selectOption("#departureDay", "sat");
   await Promise.all([page.waitForNavigation(), page.locator("form.rsvp-form button[type=submit]").click()]);
-  await expect(page.locator(".flower-list")).toContainText("Departure day: Monday 16 August");
+  await expect(page.locator(".flower-list")).toContainText("Departure day: Saturday 14 August");
   await expect(page.locator(".flower-list")).toContainText("Arrival day: Friday 13 August");
 });
 

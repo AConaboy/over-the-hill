@@ -17,7 +17,7 @@ values
   ('qa-yes', 'qa-token-yes', strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '+30 days'), 'QATEST01', 'QA Yes Qatest', 'delivered@resend.dev', 'yes', 'rsvp_yes', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 'deposit_paid', 2000,
    'fri', 'sun', 'camping', 'car', 'Vegan', 'Step-free access', 'offer', 'Bristol', 3, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), '1', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
   ('qa-due', 'qa-token-due', strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '+30 days'), 'QATEST02', 'QA Due Qatest', null, 'yes', 'rsvp_yes', null, 'unpaid', 0,
-   'thu', 'mon', 'not_camping', 'campervan', null, null, 'need', 'bristol', null, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), '2', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+   'sat', 'sun', 'not_camping', 'campervan', null, null, 'need', 'bristol', null, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), '2', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
 
 insert into guests (id, token, token_expires_at, ticket_ref, name, attendance, status, registered_at, is_performer, amount_due_pence, notes, invite_sent_at, invite_phase, created_at, updated_at)
 values ('qa-performer', 'qa-token-performer', strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '+30 days'), 'QATEST03', 'QA Performer Qatest', 'yes', 'rsvp_yes', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 1, 0,

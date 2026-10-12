@@ -8,7 +8,9 @@ export const CAMPING_VALUES = ["camping", "not_camping", "undecided"] as const;
 export const VEHICLE_VALUES = ["none", "car", "campervan", "undecided"] as const;
 // Not CHECK constraints in the database (see migrations/0013 and 0014):
 // the app only ever writes these.
-export const DAY_VALUES = ["thu", "fri", "sat", "sun", "mon", "unsure"] as const;
+// The festival runs Friday 13 to Sunday 15 August 2027: guests arrive and
+// leave on one of those days (no Thursday or Monday).
+export const DAY_VALUES = ["fri", "sat", "sun", "unsure"] as const;
 export const LIFT_VALUES = ["offer", "need"] as const;
 export const GLAMPING_VALUES = ["interested", "maybe"] as const;
 

@@ -7,7 +7,7 @@ import { DAY_VALUES, type Day, type Guest, type GuestWithInviters } from "./gues
 export const FESTIVAL_DAYS = DAY_VALUES.filter((day): day is Exclude<Day, "unsure"> => day !== "unsure");
 type FestivalDay = (typeof FESTIVAL_DAYS)[number];
 
-/** Nights on site, named by the evening they start (Thursday night, …). */
+/** Nights on site, named by the evening they start (Friday night, …). */
 export const NIGHTS = FESTIVAL_DAYS.slice(0, -1);
 
 export interface NamedNote {

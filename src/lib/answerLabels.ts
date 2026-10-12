@@ -17,11 +17,9 @@ export const VEHICLE_LABELS: Record<string, string> = {
 // Arrival and departure are one of these (migrations/0013), shown with
 // their date: the festival is Friday 13 to Sunday 15 August 2027.
 export const DAY_LABELS: Record<string, string> = {
-  thu: "Thursday 12 August",
   fri: "Friday 13 August",
   sat: "Saturday 14 August",
   sun: "Sunday 15 August",
-  mon: "Monday 16 August",
   unsure: "Not sure yet",
 };
 
