@@ -235,3 +235,39 @@ not coming). The site never refunds on its own.
 `stripe listen --forward-to localhost:4321/api/webhooks/stripe` and use the
 `whsec_` it prints as `STRIPE_WEBHOOK_SECRET`. Pay with test card
 `4242 4242 4242 4242`.
+
+## 7. Spotify (guests' songs for the playlist)
+
+Guests can pick up to three songs on their RSVP once Spotify is set up **and**
+a host has connected an account on `/admin/playlist`. Until then the RSVP form
+doesn't ask. Guests never sign in to Spotify: the site searches and adds
+songs as the hosts' account.
+
+1. **The app:** a host signs in at developer.spotify.com → Dashboard →
+   Create app, ticking **Web API**. Spotify's Development Mode (fine here:
+   only that one account ever signs in) needs the app's owner to have
+   **Premium**, and only the owner and up to five allowlisted accounts can
+   connect (User Management).
+2. **Redirect URIs** (the app's settings), one per place you'll connect from:
+   - `https://overthehill.live/api/admin/spotify/callback`
+   - `https://staging.overthehill.live/api/admin/spotify/callback`
+   - `http://127.0.0.1:4321/api/admin/spotify/callback` (local; Spotify
+     doesn't accept `localhost`, so open the dev site at 127.0.0.1 to connect)
+3. **Worker secrets**, from the app's settings:
+   `npx wrangler secret put SPOTIFY_CLIENT_ID` and
+   `npx wrangler secret put SPOTIFY_CLIENT_SECRET` (add `--env staging` for
+   staging). Locally they go in `.dev.vars`.
+4. **Connect** on `/admin/playlist`, signed in to Spotify as the app's owner
+   (or an allowlisted account). That makes a public "Over the Hill" playlist
+   on the account. To use your own playlist (your name, picture, description),
+   make it on that account and paste its link there instead. Each environment
+   has its own playlist, so staging's test songs never reach the real one.
+
+If Spotify doesn't answer when a guest saves, their songs are still saved, and
+`/admin/playlist` offers to add them once it's back. A guest who changes their
+mind, says no, or is deleted has their songs taken off (unless someone else
+picked the same one).
+
+**Local dev without keys:** `astro dev` uses a pretend Spotify (a handful of
+made-up songs; nothing leaves your machine), which the QA suite relies on.
+Setting the keys in `.dev.vars` switches to the real one.

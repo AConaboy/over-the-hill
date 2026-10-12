@@ -3,6 +3,7 @@ import { SITE_URL } from "astro:env/server";
 import { sampleEmail, type EmailTexts } from "../../../../../lib/emailContent";
 import { emailFieldsFromForm, getEmailTexts, isEmailId } from "../../../../../lib/emailTexts";
 import { getPaymentSettings } from "../../../../../lib/settings";
+import { getSpotifyStatus, songsOpen } from "../../../../../lib/spotify";
 
 export const prerender = false;
 
@@ -15,9 +16,14 @@ async function preview(id: string | undefined, form: FormData | null, origin: st
   const texts: EmailTexts = await getEmailTexts();
   if (form) texts[id] = { ...texts[id], ...emailFieldsFromForm(id, form) };
   const settings = await getPaymentSettings();
+  const spotify = await getSpotifyStatus();
   // pictures from the site the preview's shown on, so they load before the
   // live site has them (and on staging, behind its sign-in)
-  const email = sampleEmail(id, SITE_URL, texts, { depositPence: settings.depositPence, pricePence: settings.standardPricePence }, origin);
+  const email = sampleEmail(id, SITE_URL, texts, {
+    depositPence: settings.depositPence,
+    pricePence: settings.standardPricePence,
+    playlistUrl: songsOpen(spotify) ? spotify.playlistUrl : null,
+  }, origin);
   return new Response(email.html, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
 }
 

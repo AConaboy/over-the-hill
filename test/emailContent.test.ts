@@ -105,6 +105,17 @@ describe("the answers in a confirmation", () => {
     expect(text).toContain("Arriving: Friday 13 August");
     expect(text).toContain("Departing: Sunday 15 August");
   });
+
+  it("lists their songs and links the playlist, only when they're coming", () => {
+    const songs = { labels: ["Dancing Queen – ABBA", "Mr. Brightside – The Killers"], playlistUrl: "https://open.spotify.com/playlist/x" };
+    const coming = rsvpConfirmationEmail(guest, SITE, { songs });
+    expect(coming.text).toContain("Songs for the playlist: Dancing Queen – ABBA; Mr. Brightside – The Killers");
+    expect(coming.html.replaceAll("&#x2F;", "/")).toContain('href="https://open.spotify.com/playlist/x"');
+    expect(coming.html).toContain("Add it to your calendar");
+    const declined = rsvpConfirmationEmail({ ...guest, attendance: "no" } as Guest, SITE, { songs });
+    expect(declined.text).not.toContain("Songs for the playlist");
+    expect(declined.html).not.toContain("open.spotify.com");
+  });
 });
 
 describe("hosts' own wording (admin Emails)", () => {

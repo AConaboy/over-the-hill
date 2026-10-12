@@ -17,6 +17,8 @@ import { nextPayment, type NextPayment } from "../../lib/payments";
 import { isStripeConfigured } from "../../lib/stripe";
 import { startCheckout } from "../../lib/checkout";
 import { choiceField, LONG_TEXT_MAX, smallNumberField, textField } from "../../lib/forms";
+import { getSpotifyStatus, listGuestSongs, saveGuestSongs, songsOpen } from "../../lib/spotify";
+import { songsFromForm } from "../../lib/songs";
 
 export const prerender = false;
 
@@ -55,6 +57,26 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     return redirect(rsvpUrl, 303);
   }
 
+  // Their songs for the playlist, before any email (which lists them).
+  // Only when the form had the songs section (it's hidden while Spotify
+  // isn't set up), so an empty list means they cleared them; saying no
+  // clears them too. Non-blocking: Spotify failing never stops the RSVP.
+  let songProblem = false;
+  const songsShown = form.get("songsShown") === "1";
+  if (songsShown || result.guest.attendance !== "yes") {
+    try {
+      const songs = songsFromForm(form.getAll("songs").map(String));
+      const clearing = result.guest.attendance !== "yes";
+      if (clearing ? (await listGuestSongs(result.guest.id)).length > 0 : songsOpen(await getSpotifyStatus())) {
+        const saved = await saveGuestSongs(result.guest.id, clearing ? [] : songs.ids);
+        songProblem = !clearing && (saved.dropped > 0 || songs.invalid > 0);
+      }
+    } catch (err) {
+      console.error("Saving songs failed", err);
+      songProblem = result.guest.attendance === "yes";
+    }
+  }
+
   // Saying yes completes registration straight away only when nothing is
   // payable (payments closed, or a free performer). Otherwise their answers
   // are saved (above) and they go straight on to pay — the deposit, or the
@@ -88,7 +110,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     }
   }
 
-  const submittedUrl = `${rsvpUrl}?submitted=1${result.wasReplied ? "&updated=1" : ""}${emailed ? "&emailed=1" : ""}`;
+  const submittedUrl = `${rsvpUrl}?submitted=1${result.wasReplied ? "&updated=1" : ""}${emailed ? "&emailed=1" : ""}${songProblem ? "&songs=problem" : ""}`;
   if (paymentDue !== null) {
     const checkout = await startCheckout(guest);
     if (checkout.ok) return redirect(checkout.url, 303);

@@ -71,6 +71,7 @@ export const CONTENT_PAGES: ContentPageDef[] = [
       { key: "hero_introduction", label: "Introduction, before they've replied", multiline: true },
       { key: "credits", label: "Brought to you by (one name per line; only shown to guests on their own link)", multiline: true },
       { key: "responded_introduction", label: "Introduction once they've replied (blank: \"Thanks for replying. Your answers are below, and you can change them any time.\")", multiline: true },
+      { key: "songs_help", label: "Songs for the playlist: the note under the question, only shown once Spotify's connected (blank: \"Pick up to three songs you'd love to hear and we'll add them to the Over the Hill playlist on Spotify. Everyone's picks go on it (without names).\")", multiline: true },
     ],
   },
   {

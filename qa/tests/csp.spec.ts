@@ -10,7 +10,11 @@ import { LAPTOP, PHONE } from "./helpers";
 const BUILD = "http://localhost:4399";
 const PUBLIC = ["/", "/location", "/privacy", "/rsvp", "/rsvp/qa-token-yes", "/rsvp/qa-token-yes?edit=1", "/rsvp/qa-token-not-real"];
 const ADMIN = ["/admin", "/admin?q=Qatest", "/admin/guests/qa-yes/edit", "/admin/guests/new", "/admin/import", "/admin/import/fix",
-  "/admin/report", "/admin/checkin?q=Qatest", "/checkin/QATEST01", "/admin/payments", "/admin/content", "/admin/emails", "/admin/emails/deposit-due"];
+  "/admin/report", "/admin/checkin?q=Qatest", "/checkin/QATEST01", "/admin/payments", "/admin/content", "/admin/emails", "/admin/emails/deposit-due",
+  "/admin/playlist",
+  // the songs search on the RSVP form: only the dev server has a Spotify
+  // (a pretend one), so it's checked here rather than on the build
+  "/rsvp/qa-token-yes?edit=1"];
 
 async function violations(page: Page, url: string): Promise<string[]> {
   await page.addInitScript(() => {
