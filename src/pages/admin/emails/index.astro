@@ -3,8 +3,15 @@ import Layout from "../../../layouts/Layout.astro";
 import AdminHeader from "../../../components/AdminHeader.astro";
 import { EMAIL_TEMPLATES } from "../../../lib/emailContent";
 import { getEmailTexts } from "../../../lib/emailTexts";
+import { countQueuedEmails } from "../../../lib/emailQueue";
 
 const texts = await getEmailTexts();
+// Emails waiting because Resend couldn't take them yet (src/lib/emailQueue.ts).
+const waiting = await countQueuedEmails();
+const params = Astro.url.searchParams;
+const flushed = params.get("flushed");
+const flushLeft = Number(params.get("left") ?? 0);
+const flushStopped = params.get("stopped");
 ---
 
 <Layout title="Emails | Over the Hill" description="Edit, preview and test the emails the site sends.">
@@ -14,6 +21,25 @@ const texts = await getEmailTexts();
     </AdminHeader>
 
     <section class="page-content admin-content">
+      {flushed !== null && (
+        <p class="notice" role="status">
+          Sent {flushed} waiting {flushed === "1" ? "email" : "emails"}.
+          {flushLeft > 0 && ` ${flushLeft} still waiting${flushStopped ? ` (Resend said: ${flushStopped})` : ""}.`}
+        </p>
+      )}
+      {waiting > 0 && (
+        <article class="content-block notice" id="queue">
+          <h2>{waiting} {waiting === 1 ? "email is" : "emails are"} waiting to send</h2>
+          <p>
+            Resend couldn't take {waiting === 1 ? "it" : "them"} yet: usually its daily limit (100 emails a day on the free
+            plan). {waiting === 1 ? "It goes" : "They go"} out automatically, in order, every hour once the limit resets.
+            Guests' answers are all saved meanwhile.
+          </p>
+          <form method="POST" action="/api/admin/emails/flush">
+            <button class="button" type="submit">Try sending now</button>
+          </form>
+        </article>
+      )}
       <div class="admin-table-wrapper">
         <table class="admin-table">
           <thead>

@@ -40,6 +40,14 @@ If you ever change the binding in `wrangler.jsonc`, rerun
    your verified domain (it currently defaults to a placeholder
    `rsvp@overthehill.xyz`).
 
+**Daily limit and the email queue:** Resend's free plan sends at most 100
+emails a day (3,000 a month). What it can't take yet (its limits, or an
+outage) is kept in the `email_queue` table and sent in order by an hourly
+cron trigger (`src/worker.ts`, `triggers` in `wrangler.jsonc`), or from
+admin Emails ("Try sending now"), which shows how many are waiting. Guests'
+answers always save; their email just arrives later. Staging shares the
+same Resend account, so test sends there count against the same 100.
+
 ## 3. Cloudflare (hosting) and deploying
 
 This app builds as a Cloudflare Worker with static assets (the

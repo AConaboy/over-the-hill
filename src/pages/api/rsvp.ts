@@ -73,22 +73,22 @@ export const POST: APIRoute = async ({ request, redirect }) => {
   }
 
   // Non-blocking: a failed email send must never stop the RSVP from saving.
-  let emailed = false;
+  // "queued": Resend's daily limit (or an outage) means it goes out later
+  // (src/lib/emailQueue.ts); it still counts as sent for the cooldown.
+  let emailed: "sent" | "queued" | null = null;
   if (guest.email && canSendConfirmationEmail(guest)) {
     try {
-      if (paymentDue !== null) {
-        await sendPaymentDueEmail(guest, paymentDue);
-      } else {
-        await sendRsvpConfirmationEmail(guest);
+      const result = paymentDue !== null ? await sendPaymentDueEmail(guest, paymentDue) : await sendRsvpConfirmationEmail(guest);
+      if (result !== "skipped") {
+        await markConfirmationEmailSent(guest.id);
+        emailed = result;
       }
-      await markConfirmationEmailSent(guest.id);
-      emailed = true;
     } catch (err) {
       console.error("Failed to send RSVP email", err);
     }
   }
 
-  const submittedUrl = `${rsvpUrl}?submitted=1${result.wasReplied ? "&updated=1" : ""}${emailed ? "&emailed=1" : ""}`;
+  const submittedUrl = `${rsvpUrl}?submitted=1${result.wasReplied ? "&updated=1" : ""}${emailed === "sent" ? "&emailed=1" : emailed === "queued" ? "&emailed=later" : ""}`;
   if (paymentDue !== null) {
     const checkout = await startCheckout(guest);
     if (checkout.ok) return redirect(checkout.url, 303);

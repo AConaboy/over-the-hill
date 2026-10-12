@@ -9,7 +9,12 @@
   // `wrangler deploy --env`: the Astro adapter writes an already-resolved
   // dist/server/wrangler.json, which is what gets deployed.
   "name": "over-the-hill",
+  // Astro's handler plus the hourly email-queue run (src/worker.ts)
+  "main": "./src/worker.ts",
   "compatibility_date": "2026-09-21",
+  // Sends emails waiting in the queue (Resend's daily limit), hourly at :07.
+  // Not inherited by environments: repeated under env.staging.
+  "triggers": { "crons": ["7 * * * *"] },
   "routes": [{ "pattern": "overthehill.live", "custom_domain": true }],
   // Nothing uses the *.workers.dev address, and it skips Cloudflare Access
   // (the app's own JWT check still guards /admin, but no need to expose it).
@@ -33,6 +38,7 @@
     // environment, so each is repeated here with staging's own values.
     "staging": {
       "name": "over-the-hill-staging",
+      "triggers": { "crons": ["7 * * * *"] },
       "routes": [{ "pattern": "staging.overthehill.live", "custom_domain": true }],
       "workers_dev": false,
       "preview_urls": false,
