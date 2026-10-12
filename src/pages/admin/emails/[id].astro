@@ -1,0 +1,124 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import AdminHeader from "../../../components/AdminHeader.astro";
+import { emailTemplate, emailText, type EmailField } from "../../../lib/emailContent";
+import { emailFieldsFromForm, getEmailTexts, isEmailId, resetEmailText, saveEmailText } from "../../../lib/emailTexts";
+
+// One email's wording: edit and save, preview (saved, or the form as it
+// stands, in the frame beside it), reset to the default, send a test.
+const { id } = Astro.params;
+if (!isEmailId(id)) return Astro.redirect("/admin/emails", 303);
+const template = emailTemplate(id)!;
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  if (form.get("action") === "reset") {
+    await resetEmailText(id);
+    return Astro.redirect(`/admin/emails/${id}?saved=reset`, 303);
+  }
+  await saveEmailText(id, emailFieldsFromForm(id, form));
+  return Astro.redirect(`/admin/emails/${id}?saved=1`, 303);
+}
+
+const texts = await getEmailTexts();
+const own = texts[id] ?? {};
+// The form shows the wording as it stands, placeholders and all (not filled in).
+const current = (field: EmailField) => own[field] ?? template.defaults[field] ?? "";
+const fields = Object.entries(template.fields) as [EmailField, string][];
+const params = Astro.url.searchParams;
+const saved = params.get("saved");
+const sentTo = params.get("sent");
+const testError = params.get("testerror");
+// what the subject line will say, for the frame's title
+const subject = emailText(id, texts, {}).subject;
+---
+
+<Layout title={`Email: ${template.label} | Over the Hill`} description="Edit, preview and test one email.">
+  <main id="main" tabindex="-1" class="admin-main">
+    <AdminHeader title={`Email: ${template.label}`}>
+      Sent when: {template.when}
+    </AdminHeader>
+
+    <section class="page-content admin-content admin-email-editor">
+      <div class="admin-email-columns">
+        <div class="admin-email-wording">
+          {saved === "1" && <p class="notice" role="status">Saved. Every email from now on uses this wording.</p>}
+          {saved === "reset" && <p class="notice" role="status">Back to the default wording.</p>}
+
+          <form class="rsvp-form" method="POST" action={`/admin/emails/${id}`}>
+            <h2>Wording</h2>
+            {fields.map(([field, label]) => (
+              <div class="form-field">
+                <label for={`field-${field}`}>{label}</label>
+                {field === "body" || field === "footnote" ? (
+                  <textarea id={`field-${field}`} name={`field[${field}]`} rows={field === "body" ? 7 : 3}>{current(field)}</textarea>
+                ) : (
+                  <input id={`field-${field}`} name={`field[${field}]`} type="text" value={current(field)} />
+                )}
+              </div>
+            ))}
+            <div class="form-field-help">
+              <p>
+                Leave a blank line between paragraphs. These fill themselves in for each guest:
+                {template.placeholders.map((p, i) => <>{i > 0 && ", "}<code>{p}</code></>)}.
+                {"{first_name}"} is the first word of their name; {"{amount}"} is what this email is about.
+              </p>
+              <p>
+                Always there, and not editable here: "Hi [their name]," at the top, the box with their answers or amounts,
+                the button's link, and the sign-off. A blank subject, message or button goes back to the default; blank
+                small print leaves it out.
+              </p>
+            </div>
+            <div class="admin-email-actions">
+              <button class="button button-secondary" type="submit" formaction={`/api/admin/emails/${id}/preview`} formtarget="email-preview">
+                Preview changes
+              </button>
+              <button class="button" type="submit">Save</button>
+              {texts[id] && (
+                <button class="text-link admin-inline-button" type="submit" form="reset-wording">Reset to the default wording</button>
+              )}
+            </div>
+          </form>
+
+          {/* outside the form above (forms can't nest); its button sits there */}
+          <form id="reset-wording" method="POST" action={`/admin/emails/${id}`} data-confirm="Put this email back to the default wording? Your changes will be lost.">
+            <input type="hidden" name="action" value="reset" />
+          </form>
+
+          <form class="rsvp-form admin-email-test" method="POST" action={`/api/admin/emails/${id}/test`} id="test">
+            <h2>Send a test</h2>
+            <p class="form-field-help">
+              Sends the saved wording (save first), filled in for a made-up guest, Sam Example, with "[Test]" in the subject.
+            </p>
+            {sentTo && <p class="notice" role="status">Sent a test to {sentTo}. It can take a minute to arrive; check spam too.</p>}
+            {testError && <p class="notice" role="alert">{testError === "address" ? "That doesn't look like an email address." : "The test couldn't be sent. Try again in a minute."}</p>}
+            <div class="form-field">
+              <label for="test-to">Email address</label>
+              <input id="test-to" name="to" type="email" autocomplete="email" required />
+            </div>
+            <button class="button" type="submit">Send test email</button>
+          </form>
+
+          <p><a class="text-link" href="/admin/emails">← All emails</a></p>
+        </div>
+
+        {/* allow-same-origin (no scripts are allowed) lets the pictures load
+            with the host's sign-in on staging */}
+
+        <div class="admin-email-preview">
+          <h2>Preview</h2>
+          <p>
+            As a guest sees it, filled in for a made-up guest.{" "}
+            <a class="text-link" href={`/api/admin/emails/${id}/preview`} target="_blank" rel="noopener">Open in a new tab ↗</a>
+          </p>
+          <iframe
+            name="email-preview"
+            src={`/api/admin/emails/${id}/preview`}
+            title={`Preview of the email: ${subject}`}
+            sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+          ></iframe>
+        </div>
+      </div>
+    </section>
+  </main>
+</Layout>

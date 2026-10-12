@@ -1,0 +1,25 @@
+---
+export interface Props {
+  eyebrow: string;
+  heading: string;
+  introduction: string;
+  image?: string;
+}
+
+const { eyebrow, heading, introduction, image } = Astro.props;
+---
+
+<section class="page-hero">
+  <div class="page-hero-content">
+    {image && (
+      <div class="sunburst sunburst-small" aria-hidden="true">
+        <img class="spot-art" src={image} alt="" width="360" height="360" />
+      </div>
+    )}
+
+    <p class="eyebrow">{eyebrow}</p>
+    <h1>{heading}</h1>
+
+    <p class="page-introduction">{introduction}</p>
+  </div>
+</section>

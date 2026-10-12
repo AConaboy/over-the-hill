@@ -1,0 +1,27 @@
+---
+import Layout from "../layouts/Layout.astro";
+import PageHero from "../components/PageHero.astro";
+import ContentBlockView from "../components/ContentBlockView.astro";
+import { getPageContent } from "../lib/content";
+
+// The data protection notice (editable in admin under "Privacy"), linked
+// from the RSVP form and the site footer.
+const { fields, blocks } = await getPageContent("privacy");
+---
+
+<Layout
+  title="Your data | Over the Hill"
+  description="How Over the Hill uses the information you give us when you RSVP."
+>
+  <main id="main" tabindex="-1">
+    <PageHero eyebrow={fields.hero_eyebrow} heading={fields.hero_heading} introduction={fields.hero_introduction} />
+
+    <section class="page-content">
+      {blocks.map((block) => <ContentBlockView block={block} />)}
+
+      <div class="page-actions">
+        <a class="button" href="/">Return home</a>
+      </div>
+    </section>
+  </main>
+</Layout>

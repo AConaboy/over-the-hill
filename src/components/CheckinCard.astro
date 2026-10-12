@@ -1,0 +1,40 @@
+---
+// One guest at the gate: name, whether they've paid, and Check in / Undo.
+import type { Guest } from "../lib/guests";
+import { isComing } from "../lib/report";
+
+interface Props {
+  guest: Guest;
+  /** Where to come back to after checking in. */
+  back: string;
+}
+
+const { guest, back } = Astro.props;
+const coming = isComing(guest);
+const payment =
+  guest.payment_status === "paid_full" ? "Paid in full"
+  : guest.payment_status === "deposit_paid" ? "Deposit paid (balance due)"
+  : guest.registered_at ? "Nothing paid"
+  : "Not paid (not on the list)";
+const time = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" });
+---
+
+<article class:list={["content-block", "checkin-card", { "is-in": guest.checked_in_at }]}>
+  <div>
+    <h2 class="checkin-name">{guest.name}</h2>
+    <p class="checkin-meta">
+      {guest.ticket_ref && <span>{guest.ticket_ref} · </span>}
+      {coming ? payment : guest.status === "cancelled" ? <strong class="status-expired">Place cancelled</strong> : <strong class="status-expired">Not on the list (hasn't said yes)</strong>}
+    </p>
+    {guest.checked_in_at && <p class="status-live">Checked in at {time(guest.checked_in_at)}</p>}
+  </div>
+  <form method="POST" action={`/api/admin/guests/${guest.id}/checkin`}>
+    <input type="hidden" name="checkin" value={guest.checked_in_at ? "0" : "1"} />
+    <input type="hidden" name="back" value={back} />
+    {guest.checked_in_at ? (
+      <button class="text-link admin-inline-button" type="submit">Undo</button>
+    ) : (
+      <button class="button checkin-button" type="submit" disabled={!coming}>Check in</button>
+    )}
+  </form>
+</article>

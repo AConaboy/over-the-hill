@@ -1,0 +1,16 @@
+---
+// Hidden fields for every form on the import's to-fix list, so after a
+// decision the page comes back with the same filters, at the next item
+// still to fix (the one just sorted has moved into "Sorted", at the bottom).
+interface Props {
+  /** The next open item, or "" if this was the last. */
+  next: string;
+  phase: string;
+  host: string;
+}
+const { next, phase, host } = Astro.props;
+---
+
+<input type="hidden" name="next" value={next} />
+<input type="hidden" name="filterPhase" value={phase} />
+<input type="hidden" name="filterHost" value={host} />

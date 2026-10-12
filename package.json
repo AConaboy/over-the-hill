@@ -1,0 +1,42 @@
+{
+  "name": "over-the-hill",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "astro": "astro",
+    "test": "vitest run",
+    "qa": "vitest run && astro check && playwright test -c qa/playwright.config.ts",
+    "qa:browser": "playwright test -c qa/playwright.config.ts",
+    "qa:staging": "node qa/staging.mjs"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "^14.3.3",
+    "astro": "^7.3.5",
+    "jose": "^6.2.12",
+    "mustache": "^4.2.0",
+    "pdf-lib": "^1.17.1",
+    "qrcode": "^1.5.4",
+    "resend": "^6.28.1",
+    "stripe": "^22.6.2"
+  },
+  "allowScripts": {
+    "esbuild": true
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.63.0",
+    "@types/mustache": "^4.2.6",
+    "@types/qrcode": "^1.5.6",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.2",
+    "wrangler": "^4.138.0"
+  }
+}

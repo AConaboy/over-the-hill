@@ -1,0 +1,2654 @@
+/*
+  Over the Hill – styles taken from the festival poster:
+  cream paper, thick black ink outlines, orange sun rays,
+  light green hills and dark leaf green.
+*/
+
+/* Fonts, served from this site (both SIL Open Font License, from Google
+   Fonts). One file per character set; browsers fetch only the sets a page
+   uses. Quicksand is a variable font covering all its weights in one file.
+   To update, change the version in the file names (they're cached for a
+   year). */
+@font-face {
+  font-family: 'Patrick Hand SC';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/patrick-hand-sc-v17-vietnamese.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Patrick Hand SC';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/patrick-hand-sc-v17-latin-ext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Patrick Hand SC';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/patrick-hand-sc-v17-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Quicksand';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url(/fonts/quicksand-v37-vietnamese.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Quicksand';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url(/fonts/quicksand-v37-latin-ext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Quicksand';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url(/fonts/quicksand-v37-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  --cream: #ffe8cc;
+  --paper: #fff4e6;
+  --ink: #1a1a17;
+  --ink-soft: #3b3a33;
+  --orange: #ee8a0a;
+  --orange-dark: #8a4b00;
+  --tan: #f7cf97;
+  --hill: #8bd580;
+  --leaf: #2e5529;
+
+  --display-font: "Patrick Hand SC", "Comic Sans MS", cursive;
+  --body-font: "Quicksand", "Segoe UI", sans-serif;
+
+  --outline: 3px solid var(--ink);
+  --shadow: 6px 6px 0 var(--ink);
+  --shadow-small: 3px 3px 0 var(--ink);
+  --radius: 1.75rem;
+  --maximum-width: 1200px;
+
+  /* Two outlined hills, as on the poster. Used as section dividers. */
+  --hills: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 150' preserveAspectRatio='none'%3E%3Cpath d='M0 150V70C280-10 620 0 960 150Z' fill='%238bd580'/%3E%3Cpath d='M0 70C280-10 620 0 960 150' fill='none' stroke='%231a1a17' stroke-width='4' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M380 150C760 40 1120 20 1440 60V150Z' fill='%238bd580'/%3E%3Cpath d='M380 150C760 40 1120 20 1440 60' fill='none' stroke='%231a1a17' stroke-width='4' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+
+  /* Five orange sun rays fanning out from a point near the bottom. */
+  --rays: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 460 420'%3E%3Cg fill='%23ee8a0a'%3E%3Crect x='212' y='-80' width='36' height='340' transform='rotate(-72 230 260)'/%3E%3Crect x='212' y='-80' width='36' height='340' transform='rotate(-36 230 260)'/%3E%3Crect x='212' y='-80' width='36' height='340'/%3E%3Crect x='212' y='-80' width='36' height='340' transform='rotate(36 230 260)'/%3E%3Crect x='212' y='-80' width='36' height='340' transform='rotate(72 230 260)'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--body-font);
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+body > main {
+  flex-grow: 1;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+a {
+  color: inherit;
+}
+
+a:hover {
+  color: var(--orange-dark);
+}
+
+:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+/* The first thing a keyboard user reaches: straight past the header. */
+.skip-link {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 1000;
+  padding: 0.6rem 1rem;
+  border: var(--outline);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 700;
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+/* the skip link's target: focused, but no box round the whole page */
+main:focus {
+  outline: none;
+}
+
+/* "Pause animations" (motion.js): everything CSS moves keeps still, as
+   for reduced motion. The scripts check it themselves. */
+html[data-motion="paused"] .sunrise-rays .spin,
+html[data-motion="paused"] .invite-jump {
+  animation: none;
+}
+
+html[data-motion="paused"] .invite-jump::after {
+  display: none;
+}
+
+html[data-motion="paused"]:has(.invite-main) {
+  scroll-behavior: auto;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--display-font);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+h1 {
+  margin-bottom: 1rem;
+  font-size: clamp(3.5rem, 11vw, 8rem);
+  line-height: 0.9;
+}
+
+h2 {
+  font-size: clamp(2.4rem, 6vw, 4.5rem);
+  line-height: 0.95;
+}
+
+/* Header and navigation */
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--cream);
+  border-bottom: var(--outline);
+}
+
+.nav-container {
+  width: min(100% - 2rem, var(--maximum-width));
+  min-height: 84px;
+  margin-inline: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+.brand-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.site-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.4rem;
+  height: 3.4rem;
+  flex-shrink: 0;
+  border: var(--outline);
+  border-radius: 50%;
+  background: var(--paper);
+  overflow: hidden;
+}
+
+/* The disco-ball art is square, drawn for a circle and padded, so it can
+   fill the circle: its own margin keeps it clear of the border. */
+.site-logo img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.site-name {
+  font-family: var(--display-font);
+  font-size: 1.9rem;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.main-navigation {
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+}
+
+.main-navigation a {
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.main-navigation a[aria-current="page"] {
+  text-decoration: underline;
+  text-decoration-color: var(--orange);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 0.45em;
+}
+
+.main-navigation .nav-rsvp {
+  padding: 0.55rem 1.3rem;
+  border: var(--outline);
+  border-radius: 999px;
+  background: var(--orange);
+  color: var(--ink);
+  box-shadow: var(--shadow-small);
+}
+
+.main-navigation .nav-rsvp[aria-current="page"] {
+  text-decoration: none;
+}
+
+.menu-button {
+  display: none;
+  min-height: 44px;
+  padding: 0.3rem 1.1rem;
+  border: var(--outline);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--display-font);
+  font-size: 1.3rem;
+  box-shadow: var(--shadow-small);
+  cursor: pointer;
+}
+
+/* Buttons and links */
+
+.button {
+  display: inline-block;
+  padding: 0.55rem 1.8rem;
+  border: var(--outline);
+  border-radius: 999px;
+  background: var(--orange);
+  color: var(--ink);
+  box-shadow: 5px 5px 0 var(--ink);
+  font-family: var(--display-font);
+  font-size: 1.6rem;
+  line-height: 1.3;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.button:hover {
+  color: var(--ink);
+  transform: translate(-2px, -2px);
+  box-shadow: 7px 7px 0 var(--ink);
+}
+
+.button:active {
+  transform: translate(3px, 3px);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.button-light {
+  background: var(--paper);
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+}
+
+.text-link {
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: var(--orange);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 0.3em;
+}
+
+.text-link:hover {
+  color: var(--orange-dark);
+}
+
+.eyebrow {
+  margin-bottom: 0.5rem;
+  font-family: var(--display-font);
+  font-size: 1.7rem;
+  line-height: 1.1;
+}
+
+/* Poster artwork pieces */
+
+.spot-art {
+  border: var(--outline);
+  border-radius: 50%;
+  background: var(--paper);
+}
+
+.sunburst {
+  position: relative;
+  width: min(100%, 460px);
+  aspect-ratio: 460 / 420;
+  background: var(--rays) center / contain no-repeat;
+}
+
+.sunburst .spot-art {
+  position: absolute;
+  left: 24%;
+  top: 33.5%;
+  width: 52%;
+  border-width: 4px;
+}
+
+.sunburst-small {
+  width: 220px;
+  margin: -1rem auto 1rem;
+}
+
+.sunburst-small .spot-art {
+  border-width: 3px;
+}
+
+/* Homepage */
+
+.homepage-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.poster-hero {
+  width: min(100% - 2rem, var(--maximum-width));
+  margin-inline: auto;
+  padding: 2rem 0 4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+/* The poster is sized to fit the screen, the same on the homepage and on
+   invites: the whole of it (arcing title above, dates below), with an
+   invite's line above the title and its RSVP button under the dates, is
+   visible without scrolling. Its width is the smallest of: the page width,
+   900px, and the height left under the header (~87px), the top padding,
+   the button and some breathing room (205px in all), turned into a width
+   by the 900:875 box plus the invite line's room (1.048 in all). 300px
+   is the floor for very short windows. svh ignores mobile browser
+   toolbars; the vh line is the fallback for browsers without it. */
+.poster-hero-art {
+  position: relative;
+  --poster-width: min(100%, 900px, max(300px, calc((100vh - 205px) / 1.048)));
+  width: var(--poster-width);
+  aspect-ratio: 900 / 875;
+}
+
+@supports (height: 100svh) {
+  .poster-hero-art {
+    --poster-width: min(100%, 900px, max(300px, calc((100svh - 205px) / 1.048)));
+  }
+}
+
+/* Room above for the invite line's arc, which reaches 68 units (of 900)
+   above the box. (Both percentages here are of the same width, the column
+   the poster sits in.) */
+.poster-hero-art.has-invite {
+  margin-top: calc(var(--poster-width) * 0.076);
+}
+
+.poster-hero-art img {
+  position: absolute;
+  left: 21.11%;
+  top: 12.688%;                /* 111 of the 875 units (see Poster.astro) */
+  width: 57.78%;
+}
+
+.poster-hero-art svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.poster-arc-title,
+.poster-arc-date,
+.poster-arc-invite {
+  font-family: var(--display-font);
+  fill: var(--ink);
+}
+
+.poster-arc-title {
+  font-size: 128px;
+  letter-spacing: 12px;
+}
+
+.poster-arc-date {
+  font-size: 50px;
+  letter-spacing: 4px;
+}
+
+/* "Sam, you are invited to", on an arc just outside the title (invites) */
+.poster-arc-invite {
+  font-size: 42px;
+  letter-spacing: 3px;
+}
+
+.home-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  text-align: center;
+}
+
+.hero-description {
+  max-width: 820px;
+  margin: 0;
+  font-family: var(--display-font);
+  font-size: clamp(2rem, 5vw, 2.9rem);
+  line-height: 1.1;
+}
+
+.event-details {
+  margin: 0 0 0.75rem;
+  color: var(--ink-soft);
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.credit-line {
+  max-width: 520px;
+  margin: 0.5rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.5;
+  opacity: 0.75;
+}
+
+.hill-section {
+  position: relative;
+  margin-top: clamp(40px, 10vw, 150px);
+  padding: 2rem 0 6rem;
+  background: var(--hill);
+}
+
+.hill-section::before,
+main:has(> .page-hero) > .page-hero::after,
+.invite-hero::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: clamp(40px, 10vw, 150px);
+  background: var(--hills) bottom / 100% 100% no-repeat;
+  pointer-events: none;
+}
+
+.hill-section::before {
+  bottom: calc(100% - 2px);
+}
+
+.section-inner {
+  width: min(100% - 2rem, var(--maximum-width));
+  margin-inline: auto;
+}
+
+.section-heading-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  margin-bottom: 2.5rem;
+}
+
+.section-heading-row h2 {
+  margin: 0;
+}
+
+.section-heading-row p {
+  max-width: 420px;
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.plan-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 2rem;
+}
+
+.plan-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.75rem 1.5rem;
+  border: var(--outline);
+  border-radius: var(--radius);
+  background: var(--paper);
+  box-shadow: var(--shadow);
+  text-align: center;
+  text-decoration: none;
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.plan-card:hover {
+  color: var(--ink);
+  transform: translate(-3px, -3px);
+  box-shadow: 9px 9px 0 var(--ink);
+}
+
+.plan-card .spot-art {
+  width: 170px;
+  max-width: 100%;
+}
+
+.plan-card-title {
+  font-family: var(--display-font);
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.plan-card-link {
+  margin-top: auto;
+  font-weight: 700;
+}
+
+.good-to-know {
+  width: min(100% - 2rem, var(--maximum-width));
+  margin-inline: auto;
+  padding: 6rem 0;
+  display: flex;
+  align-items: center;
+  gap: 5rem;
+}
+
+.good-to-know .sunburst {
+  flex-shrink: 0;
+}
+
+.good-to-know-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.good-to-know-text h2 {
+  margin: 0;
+}
+
+.good-to-know .button-row {
+  justify-content: flex-start;
+}
+
+.dot-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 2.5rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.dot-list li,
+.information-list li {
+  position: relative;
+  padding-left: 2rem;
+}
+
+.dot-list li::before,
+.information-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.2em;
+  width: 1.1rem;
+  height: 1.1rem;
+  box-sizing: border-box;
+  border: var(--outline);
+  border-radius: 50%;
+  background: var(--orange);
+}
+
+/* Content pages */
+
+main:has(> .page-hero) {
+  background: var(--hill);
+}
+
+.page-hero {
+  position: relative;
+  padding: 4rem 1rem clamp(64px, 12vw, 190px);
+  background: var(--cream);
+}
+
+.page-hero::after,
+.invite-hero::after {
+  bottom: -2px;
+}
+
+/* A guest's invite (RSVP) page: the poster, animated, with "Sam, you are
+   invited to" arcing above its title, then the form on the hill below. The
+   top is see-through (unlike .page-hero) so the rays behind the page show,
+   as on the homepage, and the poster is the same size as there. */
+.invite-hero {
+  position: relative;
+  padding-bottom: clamp(64px, 12vw, 190px);
+}
+
+.invite-hero .poster-hero {
+  padding-bottom: 0;
+  gap: 1rem;
+}
+
+.invite-text {
+  max-width: 850px;
+  text-align: center;
+}
+
+/* "Brought to you by …": centred under the invitation */
+.invite-text .credit-line {
+  margin: 0.75rem auto 0;
+}
+
+.invite-text .eyebrow {
+  margin-bottom: 1rem;
+}
+
+/* Centred under the dates; the poster's sized to leave room for it on the
+   first screen. */
+.invite-jump {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+/* After a few seconds, a gentle pulse (and a ring spreading out from it)
+   to draw the eye down to the form. Not once they've replied
+   (.invite-jump-quiet: it's just a way down to where they stand). Scale
+   and opacity only, so it's cheap to animate; none for reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .invite-jump:not(.invite-jump-quiet) {
+    animation: invite-pulse 2.4s ease-in-out 3s infinite;
+  }
+
+  .invite-jump:not(.invite-jump-quiet)::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border: 3px solid var(--orange);
+    border-radius: inherit;
+    opacity: 0;
+    pointer-events: none;
+    animation: invite-ring 2.4s ease-out 3s infinite;
+  }
+}
+
+/* "Follow us for updates" on a guest's page, once they've replied */
+.follow-us .button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.follow-us-icon {
+  flex-shrink: 0;
+}
+
+/* The form's Send / Save changes button, and Cancel beside it when editing */
+/* "Not Sam? Forget this device", small, under a guest's page */
+.forget-device {
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.85rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.rsvp-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.5rem;
+}
+
+/* Their ticket reference, where the QR code would be while those are off */
+.ticket-ref {
+  font-weight: 600;
+}
+
+@keyframes invite-pulse {
+  0%, 40%, 100% { scale: 1; }
+  20% { scale: 1.07; }
+}
+
+@keyframes invite-ring {
+  0% { opacity: 0.9; scale: 1; }
+  60%, 100% { opacity: 0; scale: 1.35; }
+}
+
+/* Smooth scroll down to the form (and the notices) on invite pages. */
+@media (prefers-reduced-motion: no-preference) {
+  html:has(.invite-main) {
+    scroll-behavior: smooth;
+  }
+}
+
+.invite-body {
+  padding-bottom: 1px;          /* keeps the last margin inside the green */
+  background: var(--hill);
+}
+
+/* Opened at #rsvp-status after sending the form, or scrolled to the form:
+   clear the sticky header. */
+#rsvp-status,
+#before-you-reply,
+#rsvp-form {
+  scroll-margin-top: 110px;
+}
+
+.page-hero-content {
+  width: min(100%, 850px);
+  margin-inline: auto;
+  text-align: center;
+}
+
+.page-hero h1 {
+  margin-bottom: 1.25rem;
+}
+
+.page-introduction {
+  max-width: 700px;
+  margin: 0 auto;
+  color: var(--ink-soft);
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.page-content {
+  width: min(100% - 2rem, 860px);
+  margin-inline: auto;
+  padding: 2rem 0 6rem;
+}
+
+.content-block,
+.rsvp-form {
+  margin: 0 0 2rem;
+  padding: 2.25rem 2.5rem;
+  border: var(--outline);
+  border-radius: var(--radius);
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+
+.content-block h2,
+.notice h2 {
+  margin-bottom: 1rem;
+  font-size: clamp(2.2rem, 5vw, 3rem);
+}
+
+.content-block > :last-child,
+.notice > :last-child {
+  margin-bottom: 0;
+}
+
+.content-block a {
+  font-weight: 700;
+  text-decoration-color: var(--orange);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 0.2em;
+}
+
+.information-list {
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+  font-weight: 600;
+}
+
+.information-list li {
+  margin-bottom: 0.75rem;
+}
+
+.information-list li::before {
+  background: var(--leaf);
+}
+
+.notice {
+  margin: 0 0 2rem;
+  padding: 2.25rem 2.5rem;
+  border: var(--outline);
+  border-radius: var(--radius);
+  background: var(--tan);
+  box-shadow: var(--shadow);
+}
+
+.page-actions {
+  margin-top: 3rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem 2rem;
+}
+
+.page-actions .text-link {
+  font-family: var(--display-font);
+  font-size: 1.7rem;
+  font-weight: 400;
+  text-decoration: none;
+}
+
+.page-actions .text-link:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--ink);
+}
+
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.photo-card {
+  margin: 0;
+  border: var(--outline);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+
+.photo-card img {
+  width: 100%;
+  height: 260px;
+  object-fit: cover;
+}
+
+/* Forms */
+
+.form-field {
+  margin-bottom: 1.5rem;
+}
+
+.form-field label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+}
+
+.form-field-note {
+  margin: -0.25rem 0 0.6rem;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.field-required {
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+/* Above the RSVP form's Send button, when saying yes means paying next. */
+.rsvp-pay-next {
+  margin: 0.5rem 0 1.25rem;
+  padding: 0.8rem 1.1rem;
+  border: 2px solid var(--ink);
+  border-radius: 0.9rem;
+  background: var(--tan);
+  font-weight: 600;
+}
+
+.rsvp-privacy-link {
+  margin: 1.5rem 0 0;
+  font-size: 0.9rem;
+}
+
+/* a comfortable tap target (WCAG 2.2: at least 24px) */
+.form-field-note a,
+.rsvp-privacy-link a {
+  display: inline-block;
+  padding-block: 0.3rem;
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+  width: 100%;
+  padding: 0.75rem 0.9rem;
+  border: 2px solid var(--ink);
+  border-radius: 0.8rem;
+  background: white;
+  color: var(--ink);
+}
+
+/* Payments */
+
+.paid-badge {
+  display: inline-block;
+  margin: 0.75rem 0 0;
+  padding: 0.3rem 0.9rem;
+  border: var(--outline);
+  border-radius: 999px;
+  background: var(--orange);
+  font-family: var(--display-font);
+  font-size: 1.3rem;
+}
+
+.admin-payments {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.admin-payment-form h3 {
+  margin: 0 0 1rem;
+}
+
+/* The button's offset shadow sits outside its box, so leave room for it
+   before the note underneath. */
+.payment-panel form {
+  margin: 1.25rem 0 1.5rem;
+}
+
+.payment-note {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+}
+
+/* Location page */
+
+.location-photo {
+  margin: 0 0 1.5rem;
+}
+
+/* The photo and map are both 4:3, so side by side they come out the same
+   height without cropping. */
+.location-photo img,
+.location-map iframe {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  border: var(--outline);
+  border-radius: var(--radius);
+}
+
+.location-map iframe {
+  background: var(--cream);
+}
+
+.location-map-link {
+  margin: 0.75rem 0 1.5rem;
+}
+
+/* Desktop: photo and map share a row that's wider than the 860px text
+   column (up to 1200px, centred on the page), with the "open in Maps" link
+   under the map and the text at normal width underneath. Below this width
+   the wrapper is a plain block, so mobile keeps source order. */
+@media (min-width: 901px) {
+  .location-layout {
+    --location-row-width: min(100vw - 3rem, 1200px);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "photo map"
+      ".     link"
+      "text  text";
+    column-gap: 1.5rem;
+    width: var(--location-row-width);
+    margin-inline: calc((100% - var(--location-row-width)) / 2);
+  }
+
+  .location-photo {
+    grid-area: photo;
+    margin: 0;
+  }
+
+  /* Let the iframe and link be placed in the grid individually. */
+  .location-map {
+    display: contents;
+  }
+
+  .location-map iframe {
+    grid-area: map;
+  }
+
+  .location-map-link {
+    grid-area: link;
+  }
+
+  .location-text {
+    grid-area: text;
+    width: 100%;
+    max-width: 860px;
+    justify-self: center;
+  }
+}
+
+.form-field-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.form-field.form-field-checkbox input {
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  accent-color: var(--orange);
+}
+
+.form-field.form-field-checkbox label {
+  margin-bottom: 0;
+}
+
+.form-field input:disabled {
+  background: var(--cream);
+  color: var(--ink-soft);
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+  outline: 3px solid var(--orange);
+  outline-offset: 1px;
+}
+
+.form-field textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+/* Footer */
+
+.site-footer {
+  padding: 3rem 1rem;
+  border-top: 4px solid var(--ink);
+  background: var(--leaf);
+  color: var(--cream);
+}
+
+.site-footer p {
+  margin: 0;
+}
+
+.footer-inner {
+  width: min(100%, var(--maximum-width));
+  margin-inline: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  font-weight: 600;
+}
+
+.footer-title {
+  font-family: var(--display-font);
+  font-size: clamp(2.2rem, 5vw, 3.2rem);
+  line-height: 1;
+}
+
+.footer-contact {
+  font-family: var(--display-font);
+  font-size: 1.7rem;
+}
+
+/* Questions and Instagram, together on the right (stacked on phones) */
+.footer-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.6rem;
+}
+
+.footer-social a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--cream);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.footer-social a:hover span {
+  text-decoration: underline;
+  text-decoration-color: var(--orange);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 0.2em;
+}
+
+.footer-social-icon {
+  flex-shrink: 0;
+}
+
+.site-footer .footer-credit {
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.footer-credit a {
+  color: inherit;
+  text-underline-offset: 0.2em;
+}
+
+/* the hosts' way in: there, but quiet */
+.site-footer .footer-hosts {
+  font-size: 0.8rem;
+  opacity: 0.78;   /* as faint as it can be and still read (WCAG AA) */
+}
+
+.footer-hosts a {
+  display: inline-block;
+  padding-block: 0.3rem;
+}
+
+.motion-toggle {
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.site-footer :focus-visible {
+  outline-color: var(--cream);
+}
+
+/* Responsive */
+
+@media (max-width: 1100px) {
+  .main-navigation {
+    gap: 1rem;
+  }
+
+  .plan-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .good-to-know {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2rem;
+  }
+
+  .good-to-know .sunburst {
+    width: min(100%, 360px);
+    align-self: center;
+  }
+}
+
+@media (max-width: 900px) {
+  .menu-button {
+    display: block;
+  }
+
+  .main-navigation {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 1rem;
+    left: 1rem;
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.25rem;
+    padding: 1rem;
+    border: var(--outline);
+    border-radius: 1.25rem;
+    background: var(--paper);
+    box-shadow: var(--shadow);
+  }
+
+  .main-navigation.is-open {
+    display: flex;
+  }
+
+  .main-navigation a {
+    padding: 0.65rem;
+  }
+
+  .main-navigation .nav-rsvp {
+    margin-top: 0.5rem;
+    text-align: center;
+  }
+}
+
+@media (max-width: 600px) {
+  .footer-side {
+    align-items: flex-start;
+  }
+
+  .site-name {
+    font-size: 1.6rem;
+  }
+
+  .poster-hero {
+    padding-top: 1.5rem;
+  }
+
+  .button-row .button {
+    width: 100%;
+    text-align: center;
+  }
+
+  .plan-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .plan-card {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 1rem;
+    text-align: left;
+    column-gap: 1rem;
+  }
+
+  .plan-card .spot-art {
+    width: 96px;
+    flex-shrink: 0;
+  }
+
+  .plan-card-title {
+    flex: 1;
+    font-size: 2.1rem;
+  }
+
+  .plan-card-text {
+    flex-basis: 100%;
+  }
+
+  .plan-card-link {
+    display: none;
+  }
+
+  .dot-list {
+    grid-template-columns: 1fr;
+  }
+
+  .good-to-know {
+    padding: 3.5rem 0 4.5rem;
+  }
+
+  .good-to-know .sunburst {
+    width: 260px;
+  }
+
+  .page-hero {
+    padding-top: 2.5rem;
+  }
+
+  .content-block,
+  .rsvp-form,
+  .notice {
+    padding: 1.5rem;
+    border-radius: 1.25rem;
+    box-shadow: 4px 4px 0 var(--ink);
+  }
+
+  .page-actions {
+    align-items: stretch;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .photo-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Birthday matching game */
+
+.birthday-game {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  max-width: 700px;
+  margin: 2rem auto;
+}
+
+.host-card,
+.birthday-card {
+  height: 100px;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  border: var(--outline);
+  border-radius: 1rem;
+  background: var(--paper);
+  box-shadow: var(--shadow-small);
+}
+
+.host-card {
+  cursor: grab;
+}
+
+.host-card:active {
+  cursor: grabbing;
+}
+
+.host-card img {
+  width: 75px;
+  height: 75px;
+  margin-right: 1rem;
+  object-fit: cover;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+}
+
+/* Ticket QR display */
+
+.ticket-qr {
+  max-width: 240px;
+  margin: 2rem auto 0;
+  padding: 1.25rem;
+  text-align: center;
+  border: var(--outline);
+  border-radius: 1.25rem;
+  background: white;
+  box-shadow: var(--shadow);
+}
+
+.ticket-qr svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.ticket-qr-ref {
+  margin: 0.75rem 0 0;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+/* Admin */
+
+.admin-content {
+  width: min(100% - 2rem, 1100px);
+  max-width: none;
+}
+
+.admin-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+
+.admin-filters,
+.admin-toolbar-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.admin-toolbar-actions {
+  align-items: center;
+}
+
+.admin-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.admin-filter label {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.admin-filter select {
+  min-width: 220px;
+  padding: 0.6rem 0.8rem;
+  border: 2px solid var(--ink);
+  border-radius: 0.7rem;
+  background: white;
+}
+
+.admin-table-wrapper {
+  overflow-x: auto;
+  border: var(--outline);
+  border-radius: 1.25rem;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 2px solid var(--tan);
+  white-space: nowrap;
+}
+
+.admin-table td {
+  white-space: normal;
+}
+
+.admin-table thead th {
+  border-bottom: 2px solid var(--ink);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.admin-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-link-input {
+  width: 220px;
+  padding: 0.4rem 0.6rem;
+  border: 2px solid var(--ink);
+  border-radius: 0.5rem;
+  background: white;
+  font-size: 0.8rem;
+}
+
+.admin-performer {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+/* dark enough to read on the green notices too (WCAG AA, 4.5:1) */
+.status-expired {
+  color: #7f1d14;
+  font-weight: 700;
+}
+
+.admin-row-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.admin-inline-button {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+}
+
+.status-live {
+  color: var(--leaf);
+  font-weight: 700;
+}
+
+.status-pending {
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+.form-field-help {
+  margin: -1rem 0 1.5rem;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.payment-stages {
+  margin: 0 0 1.5rem;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.payment-stages ul {
+  padding-left: 1.2rem;
+}
+
+.content-block-editor {
+  margin: 0 0 1.5rem;
+  padding: 1.5rem 1.75rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.25rem;
+  background: var(--cream);
+}
+
+.content-block-editor-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+/* Homepage sunrise (from the design in Claude Design) */
+
+/*
+  Sunrise: the poster's disco-ball sun, spinning, with its rays turning
+  behind the whole page. Add after style.css.
+
+  Layers, back to front:
+    1. .sunrise-rays  – fixed SVG behind everything; script keeps its centre on the ball
+    2. .poster-ball   – the spinning disco ball, where the drawn ball was
+    3. .poster-hero-art img – Jess Porter's illustration with the drawn rays,
+                        sky and ball cut out, so the hills sit in front of the ball
+    4. the arcing title and dates (SVG text, unchanged)
+*/
+
+:root {
+  --ray-speed: 36s;          /* one full turn of the rays; anticlockwise, with the ball */
+  --ray-strength-page: .35;  /* how strong the rays are once you scroll past the poster */
+}
+
+.sunrise-rays {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* No rubber-band bounce on the homepage: pulling past the top (or bottom)
+   would open a gap showing the window-fixed rays above the header. The
+   clip in /js/sunrise.js covers browsers that ignore this. */
+html:has(.sunrise-rays) {
+  overscroll-behavior-y: none;
+}
+
+.sunrise-rays .spin {
+  animation: sunrise-spin var(--ray-speed) linear infinite;
+}
+
+.sunrise-rays polygon { fill: url(#sunrise-fade); }
+.sunrise-rays stop { stop-color: var(--orange); }
+
+@keyframes sunrise-spin {
+  to { transform: rotate(-360deg); }
+}
+
+/* The illustration and the ball share one box, placed exactly where the
+   original poster-illustration image sat in .poster-hero-art. */
+.poster-hero-art .poster-illustration {
+  position: absolute;
+  left: 21.11%;
+  top: 12.688%;                /* 111 of the 875 units (see Poster.astro) */
+  width: 57.78%;
+  aspect-ratio: 1099 / 1490;
+}
+
+.poster-hero-art .poster-illustration > img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: auto;
+}
+
+/* the spinning ball sits behind the hills, where the drawn ball was */
+.poster-hero-art .poster-illustration .poster-ball {
+  left: 55.172%;
+  top: 44.490%;
+  width: 31.308%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sunrise-rays .spin { animation: none; }
+}
+
+/* Moving between pages (in browsers that support it): the header, the
+   poster and the rays carry straight on, and only the rest cross-fades,
+   rather than the whole page blinking and starting over. (The butterfly
+   fades out with the old page and flies in afresh on the new one.) */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+}
+
+.site-header { view-transition-name: site-header; }
+.sunrise-rays { view-transition-name: sunrise-rays; }
+.poster-hero-art { view-transition-name: poster; }
+
+/* These look the same on both pages, so the new one takes over straight
+   away instead of the old fading out as the new fades in (which washed
+   them out, and looked like the poster loading again). The poster slides
+   if it sits a little lower on the new page. Going to or from a page
+   without the poster, there's only one of it (:only-child), so that one
+   still fades.
+   (Not :not(:only-child): Chrome accepts it here but never matches it.) */
+::view-transition-old(site-header),
+::view-transition-old(poster),
+::view-transition-old(sunrise-rays) {
+  display: none;
+  animation: none;
+}
+
+::view-transition-new(site-header),
+::view-transition-new(poster),
+::view-transition-new(sunrise-rays) {
+  animation: none;
+}
+
+::view-transition-old(poster):only-child,
+::view-transition-old(sunrise-rays):only-child {
+  display: block;
+  animation: vt-fade-out 0.25s both;
+}
+
+::view-transition-new(poster):only-child,
+::view-transition-new(sunrise-rays):only-child {
+  animation: vt-fade-in 0.25s both;
+}
+
+@keyframes vt-fade-out { to { opacity: 0; } }
+@keyframes vt-fade-in { from { opacity: 0; } }
+
+/* The wandering butterfly (homepage). /js/butterfly.js positions it. */
+
+.butterfly-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  z-index: 9;               /* over the page, under the sticky header (z-index 10) */
+  pointer-events: none;     /* never blocks the links and buttons it lands on */
+}
+
+/* resting on the header itself, or flying to or from it */
+.butterfly-layer.on-header {
+  z-index: 11;
+}
+
+.butterfly {
+  position: absolute;
+  left: 0;
+  top: 0;
+  aspect-ratio: 221 / 304;
+  will-change: transform;
+}
+
+/* clickable only while it rests at home on the poster */
+.butterfly-layer[data-state="home"] .butterfly {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.butterfly img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: auto;
+  visibility: hidden;
+  user-select: none;
+}
+
+.butterfly[data-wing="0"] .up,
+.butterfly[data-wing="1"] .mid,
+.butterfly[data-wing="2"] .down {
+  visibility: visible;
+}
+
+/* Jess Porter's flowers (from the flower ideas made in Claude Design).
+   /js/flowers.js does the moving ones. */
+
+/* The poster's flowers and tulips, as separate pieces over the illustration
+   (which has them removed), so they can move (/js/flowers.js). Placed where
+   Jess drew them. Tulips sway from the base of their stems, which run down
+   behind her grass (the grass-front piece, in front of them). */
+.poster-pieces {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.poster-piece {
+  position: absolute;
+  height: auto;
+  pointer-events: none;
+  transform-origin: 50% 70%;       /* flower heads: about their middle */
+}
+
+.poster-piece.tulip {
+  transform-origin: 50% 100%;      /* tulips: from the foot of the stem */
+}
+
+.poster-piece.grass-front { left: 37.030%; top: 83.491%; width: 42.286%; }
+.poster-piece.flower-01 { left: 22.218%; top: 46.127%; width: 9.465%; }
+.poster-piece.flower-02 { left: 27.196%; top: 45.674%; width: 10.695%; }
+.poster-piece.flower-03 { left: 29.040%; top: 53.328%; width: 10.203%; }
+.poster-piece.flower-04 { left: 22.156%; top: 53.781%; width: 9.527%; }
+.poster-piece.flower-05 { left: 16.317%; top: 58.174%; width: 11.678%; }
+.poster-piece.flower-06 { left: 6.790%; top: 60.031%; width: 11.616%; }
+.poster-piece.flower-07 { left: 10.663%; top: 65.058%; width: 11.739%; }
+.poster-piece.flower-small-08 { left: 76.305%; top: 86.842%; width: 7.007%; }
+.poster-piece.flower-small-09 { left: 78.333%; top: 84.080%; width: 7.929%; }
+.poster-piece.flower-small-10 { left: 82.328%; top: 83.582%; width: 7.191%; }
+.poster-piece.tulip-left { left: 41.333%; top: 87.703%; width: 10.879%; }
+.poster-piece.tulip-right { left: 50.306%; top: 85.710%; width: 12.170%; }
+.poster-piece.tulip-tall { left: 42.869%; top: 81.227%; width: 12.108%; }
+
+/* Still flowers */
+
+/* Flowers as list bullets, a different one each line */
+.flower-list {
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+  font-weight: 600;
+}
+
+.flower-list li {
+  display: flex;
+  gap: 0.7rem;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.flower-list img {
+  flex-shrink: 0;
+  width: 26px;
+  height: auto;
+  margin-top: -0.1em;
+}
+
+/* Three flowers between two ink lines, to break up a long page */
+.flower-rule {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 0.5rem 0 2.5rem;
+}
+
+.flower-rule::before,
+.flower-rule::after {
+  content: "";
+  flex: 1;
+  height: 3px;
+  background: var(--ink);
+}
+
+.flower-rule img {
+  width: 44px;
+  height: auto;
+}
+
+
+.admin-filter input[type="search"] {
+  min-width: 220px;
+  padding: 0.6rem 0.8rem;
+  border: 2px solid var(--ink);
+  border-radius: 0.7rem;
+  background: white;
+  font: inherit;
+}
+
+.admin-muted {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+/* RSVP form: "From where?" once a lift is chosen, "Spare seats" when
+   offering one. */
+.lift-fields:has(#lift option[value=""]:checked) .lift-from,
+.lift-fields:not(:has(#lift option[value="offer"]:checked)) .lift-seats {
+  display: none;
+}
+
+.admin-history {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.admin-history li {
+  padding-left: 0.9rem;
+  border-left: 3px solid var(--tan);
+}
+
+.admin-report {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.admin-lift-group h3 {
+  margin: 1rem 0 0.25rem;
+}
+
+/* Printing (the planning report and its check-in sheet): just the content,
+   black on white. */
+@media print {
+  .site-header,
+  .site-footer,
+  .sunrise-rays,
+  .no-print,
+  .page-hero::after {
+    display: none !important;
+  }
+
+  body,
+  .content-block,
+  .admin-table-wrapper {
+    background: white !important;
+    box-shadow: none !important;
+  }
+
+  .content-block {
+    break-inside: avoid;
+  }
+
+  .admin-checkin-sheet {
+    break-before: page;
+    break-inside: auto;
+  }
+}
+
+/* Check-in at the gate (on a phone) */
+
+.checkin-content {
+  display: grid;
+  gap: 1rem;
+}
+
+.checkin-count strong {
+  font-size: 1.6em;
+}
+
+.checkin-search {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.checkin-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.8rem 1rem;
+  border: var(--outline);
+  border-radius: 0.9rem;
+  background: white;
+  font: inherit;
+  font-size: 1.15rem;
+}
+
+.checkin-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.checkin-card.is-in {
+  background: #e3f4df;
+}
+
+.checkin-name {
+  margin: 0;
+}
+
+.checkin-meta {
+  margin: 0.25rem 0 0;
+}
+
+.checkin-button {
+  min-width: 8rem;
+  font-size: 1.15rem;
+}
+
+.checkin-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.import-phase {
+  margin-bottom: 0.6rem;
+}
+
+.admin-report details {
+  margin: 0.5rem 0;
+}
+
+.admin-report summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+/* The import's to-fix list */
+
+.fix-item > * + * {
+  margin-top: 0.8rem;
+}
+
+.fix-candidates {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.fix-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+}
+
+.fix-actions .button,
+.fix-add .button {
+  padding: 0.45rem 1.1rem;
+  font-size: 1.05rem;
+}
+
+.fix-add {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  align-items: end;
+  gap: 0 0.8rem;
+}
+
+.fix-add .form-field {
+  margin-bottom: 0.8rem;
+}
+
+.fix-add .button {
+  margin-bottom: 0.8rem;
+  justify-self: start;
+}
+
+.fix-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.6rem;
+  font-size: 0.9rem;
+}
+
+.fix-note label {
+  font-weight: 700;
+}
+
+.fix-note input {
+  flex: 1;
+  min-width: 12rem;
+  padding: 0.45rem 0.7rem;
+  border: 2px solid var(--ink);
+  border-radius: 0.6rem;
+  background: white;
+  font: inherit;
+}
+
+.button-secondary {
+  background: var(--paper);
+}
+
+.fix-message {
+  margin: 0;
+  padding: 0.5rem 0.8rem;
+  border-radius: 0.6rem;
+  background: var(--tan);
+  font-weight: 700;
+}
+
+/* landing on an item after a decision: clear of the sticky header */
+.fix-item,
+#to-fix {
+  scroll-margin-top: 6rem;
+}
+
+/* ---- Hosts' pages ---------------------------------------------------------
+   Quieter than the guest-facing site: a compact header rather than the
+   poster-style hero and hills, plain cream behind everything, and denser
+   type, since these are for working through a list. */
+
+.site-header.is-admin .nav-container {
+  min-height: 64px;
+}
+
+.site-header.is-admin .site-logo {
+  width: 2.6rem;
+  height: 2.6rem;
+}
+
+.site-header.is-admin .site-name {
+  font-size: 1.5rem;
+}
+
+.site-header.is-admin .main-navigation {
+  gap: 1.1rem;
+  font-size: 0.95rem;
+}
+
+.admin-badge {
+  padding: 0.1rem 0.55rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--tan);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.main-navigation .nav-view-site {
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+.admin-main {
+  flex: 1;
+  background: var(--hill);
+}
+
+.admin-main h2 {
+  font-size: clamp(1.7rem, 3vw, 2.2rem);
+  line-height: 1.05;
+}
+
+.admin-main .content-block,
+.admin-main .rsvp-form {
+  padding: 1.5rem 1.75rem;
+  border-radius: 1.1rem;
+}
+
+/* cream, ending in the site's hills, like the guest pages but shallow */
+.admin-header {
+  position: relative;
+  padding-bottom: clamp(28px, 4vw, 56px);
+  background: var(--cream);
+}
+
+.admin-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: clamp(28px, 4vw, 56px);
+  background: var(--hills) bottom / 100% 100% no-repeat;
+  pointer-events: none;
+}
+
+.admin-header-inner {
+  position: relative;
+  z-index: 1;
+  width: min(100% - 2rem, var(--maximum-width));
+  margin-inline: auto;
+  padding: 1.75rem 0 0.5rem;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  flex-wrap: wrap;
+}
+
+.admin-header h1 {
+  margin: 0;
+  font-size: clamp(2.4rem, 5vw, 3.4rem);
+  line-height: 1;
+}
+
+.admin-intro {
+  max-width: 60ch;
+  margin: 0.5rem 0 0;
+  color: var(--ink-soft);
+}
+
+.admin-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.admin-body {
+  width: min(100% - 2rem, var(--maximum-width));
+  margin-inline: auto;
+  padding: 1.5rem 0 5rem;
+}
+
+/* admin pages that keep the narrower reading width (forms) */
+.admin-main .page-content {
+  padding-top: 1.5rem;
+}
+
+.button-small {
+  padding: 0.35rem 0.95rem;
+  font-size: 1.05rem;
+  box-shadow: var(--shadow-small);
+}
+
+.admin-pill-link {
+  padding: 0.35rem 0.8rem;
+  border: 2px solid #a3261b;
+  border-radius: 999px;
+  color: #a3261b;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.admin-pill-link:hover {
+  background: #fbe3df;
+}
+
+/* the headline numbers */
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  border: var(--outline);
+  border-radius: 1rem;
+  background: var(--paper);
+  box-shadow: var(--shadow-small);
+  overflow: hidden;
+}
+
+.admin-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.8rem 1rem;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.admin-stat + .admin-stat {
+  border-left: 2px solid var(--ink);
+}
+
+.admin-stat:hover {
+  background: white;
+}
+
+.admin-stat.is-current {
+  background: var(--orange);
+}
+
+.admin-stat.is-current .admin-stat-label {
+  color: var(--ink);
+}
+
+.admin-stat-count {
+  font-family: var(--display-font);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.admin-stat-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+/* one row of filters */
+.admin-filterbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin: 1.25rem 0 0.5rem;
+}
+
+.admin-filterbar .admin-filter label {
+  font-size: 0.8rem;
+  color: var(--ink);
+}
+
+.admin-filterbar select,
+.admin-filterbar input[type="search"] {
+  min-width: 0;
+  height: 2.6rem;
+  padding: 0 0.7rem;
+  border: var(--outline);
+  border-radius: 0.7rem;
+  background: white;
+  font: inherit;
+  font-size: 0.92rem;
+}
+
+.admin-filter-search {
+  flex: 1 1 240px;
+}
+
+.admin-filter-search input[type="search"] {
+  width: 100%;
+}
+
+.admin-resultline {
+  display: flex;
+  gap: 1rem;
+  margin: 0.75rem 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+/* the list */
+.admin-list {
+  border: var(--outline);
+  border-radius: 1rem;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.admin-guests {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.admin-guests th {
+  padding: 0.6rem 1rem;
+  border-bottom: var(--outline);
+  background: var(--tan);
+  font-size: 0.72rem;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+}
+
+.admin-guests td {
+  padding: 0.7rem 1rem;
+  border-bottom: 2px solid var(--tan);
+  vertical-align: top;
+}
+
+.admin-guests tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-guests tbody tr:hover {
+  background: #fffaf2;
+}
+
+.admin-guest-name {
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.admin-guest-name:hover {
+  text-decoration: underline;
+}
+
+.admin-sub {
+  margin-top: 0.2rem;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+.admin-guests .admin-status {
+  width: 26%;
+}
+
+.admin-guests .admin-invite {
+  width: 11rem;
+  white-space: nowrap;
+}
+
+.admin-guests .admin-edit {
+  width: 4rem;
+  text-align: right;
+}
+
+.admin-empty {
+  margin: 0;
+  padding: 1.5rem 1rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.12rem 0.6rem;
+  border: 1.5px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.badge-muted { color: #6b665a; background: #f1ebe0; }
+.badge-sent { color: #7a4a06; background: #fde9c8; }
+.badge-opened { color: #1f4f7a; background: #e1edf8; }
+.badge-yes { color: var(--leaf); background: #e3f4df; }
+.badge-due { color: #8a4b00; background: #ffe0b3; }
+.badge-no { color: #6b3a55; background: #f3e4ec; }
+.badge-off { color: #6b665a; background: transparent; text-decoration: line-through; }
+
+@media (max-width: 900px) {
+  .admin-stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .admin-stat:nth-child(4) {
+    border-left: none;
+  }
+
+  .admin-stat:nth-child(n + 4) {
+    border-top: 2px solid var(--ink);
+  }
+}
+
+/* phones: the list as cards */
+@media (max-width: 700px) {
+  .admin-filterbar .admin-filter:not(.admin-filter-search) {
+    flex: 1 1 45%;
+  }
+
+  .admin-filterbar select {
+    width: 100%;
+  }
+
+  .admin-guests thead {
+    display: none;
+  }
+
+  .admin-guests tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.4rem 0.75rem;
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid var(--tan);
+  }
+
+  .admin-guests tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .admin-guests td {
+    padding: 0;
+    border: none;
+  }
+
+  .admin-guests .admin-guest { grid-column: 1; grid-row: 1; }
+  .admin-guests .admin-edit { grid-column: 2; grid-row: 1; width: auto; }
+  .admin-guests .admin-status { grid-column: 1 / -1; width: auto; }
+  .admin-guests .admin-invite { grid-column: 1 / -1; width: auto; }
+}
+
+.admin-copy-button {
+  padding: 0.3rem 0.75rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: white;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-copy-button:hover,
+.admin-copy-button:focus-visible {
+  background: var(--orange);
+}
+
+/* Admin content sits in the header's column, left-aligned: wide pages
+   (lists, reports) use all of it, forms keep to a readable width. */
+.admin-main .page-content {
+  width: min(100% - 2rem, var(--maximum-width));
+}
+
+.admin-main .page-content:not(.admin-content) > * {
+  max-width: 860px;
+}
+
+.admin-main .page-content.admin-content {
+  max-width: none;
+}
+
+/* "Sent": a tick box that's clearly on or off */
+.sent-toggle-form {
+  display: inline-block;
+  margin: 0;
+}
+
+.sent-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem 0.3rem 0.45rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: white;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sent-box {
+  display: inline-grid;
+  place-items: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  border: 2px solid var(--ink);
+  border-radius: 0.3rem;
+  background: white;
+}
+
+.sent-toggle.is-on {
+  border-color: var(--leaf);
+  background: #e3f4df;
+  color: var(--leaf);
+}
+
+.sent-toggle.is-on .sent-box {
+  border-color: var(--leaf);
+  background: var(--leaf);
+}
+
+.sent-toggle.is-on .sent-box::after {
+  content: "";
+  width: 0.28rem;
+  height: 0.55rem;
+  margin-top: -0.12rem;
+  border: solid white;
+  border-width: 0 2.5px 2.5px 0;
+  transform: rotate(45deg);
+}
+
+.sent-toggle:hover .sent-box,
+.sent-toggle:focus-visible .sent-box {
+  border-color: var(--orange-dark);
+}
+
+.admin-guests td.admin-invite > * {
+  vertical-align: middle;
+}
+
+.admin-guests td.admin-invite > * + * {
+  margin-left: 0.4rem;
+}
+
+/* a short explanation that matters for reading what follows */
+.admin-note {
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.9rem;
+  border-left: 4px solid var(--orange);
+  border-radius: 0.4rem;
+  background: #fff1dc;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+/* coming back to a guest's row (after the Sent tick box, without
+   JavaScript): clear of the sticky header */
+.admin-guests tr {
+  scroll-margin-top: 90px;
+}
+
+.admin-unopened::before,
+.admin-opened::before {
+  content: "";
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-right: 0.35rem;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  vertical-align: 0.02rem;
+}
+
+.admin-opened {
+  font-weight: 700;
+}
+
+.admin-opened::before {
+  background: currentColor;
+}
+
+/* Admin Emails: the wording on the left, the preview beside it at the
+   width an inbox shows it (stacked on narrower screens). Uses the whole
+   admin width, not the 860px reading column other admin pages keep to. */
+.admin-email-editor.admin-content {
+  width: min(100% - 2rem, var(--maximum-width));
+}
+
+.admin-email-columns {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.admin-email-columns > div {
+  min-width: 0;
+}
+
+.admin-email-wording {
+  display: grid;
+  gap: 1.5rem;
+  align-content: start;
+}
+
+.admin-email-wording .rsvp-form {
+  margin: 0;
+}
+
+/* only a target for the Reset button in the form above it */
+#reset-wording {
+  display: none;
+}
+
+.admin-email-preview {
+  padding: 1.25rem;
+  border: var(--outline);
+  border-radius: 1.1rem;
+  background: var(--paper);
+}
+
+.admin-email-preview h2 {
+  margin-top: 0;
+}
+
+.admin-email-preview iframe {
+  display: block;
+  width: 100%;
+  height: 80vh;
+  min-height: 520px;
+  border: 2px solid var(--ink);
+  border-radius: 0.8rem;
+  background: white;
+}
+
+@media (min-width: 1100px) {
+  .admin-email-columns {
+    grid-template-columns: minmax(380px, 1fr) minmax(0, 680px);
+    align-items: start;
+  }
+
+  .admin-email-preview {
+    position: sticky;
+    top: 96px;
+  }
+
+  .admin-email-preview iframe {
+    height: calc(100vh - 230px);
+  }
+}
+
+.admin-email-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+}

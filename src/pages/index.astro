@@ -1,0 +1,36 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { getPageContent } from "../lib/content";
+import Poster from "../components/Poster.astro";
+import { RSVPED_COOKIE_NAME } from "../lib/rememberCookie";
+
+const { fields } = await getPageContent("index");
+// A guest who has already replied isn't asked to RSVP again.
+const replied = Astro.cookies.get(RSVPED_COOKIE_NAME)?.value === "1";
+---
+
+<Layout
+  title="Over the Hill"
+  description="Information about our party, including camping, food, activities and travel."
+  shareDescription={`${fields.tagline ? fields.tagline.replace(/\.?$/, ". ") : ""}13–15 August 2027 at Out to Grass, Cradley.`}
+>
+  <main id="main" tabindex="-1" class="homepage-main">
+
+    <section class="poster-hero">
+      <h1 class="visually-hidden">
+        Over the Hill Festival – August 13th to 15th 2027 at Out to Grass
+      </h1>
+
+      <Poster />
+
+      <div class="home-text">
+        <p class="hero-description">{fields.tagline}</p>
+        <p class="event-details">{fields.venue_line}</p>
+        <div class="button-row">
+          <a class="button" href="/rsvp">{replied ? "Your RSVP" : fields.cta_label}</a>
+          <a class="text-link" href="/location">{fields.location_cta_label || "Where is it?"}</a>
+        </div>
+      </div>
+    </section>
+  </main>
+</Layout>

@@ -1,0 +1,229 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import AdminHeader from "../../../components/AdminHeader.astro";
+import { INVITE_PHASES, PHASE_LABELS, type InvitePhase } from "../../../lib/guests";
+import { issueCandidates, listIssues, type ImportIssue } from "../../../lib/importIssues";
+import { phaseOf, suggestName } from "../../../lib/inviteImport";
+import FixReturn from "../../../components/FixReturn.astro";
+
+// The import's to-fix list: skipped rows and possible duplicates, kept until
+// someone sorts each one out. Hosts can work through it a bit at a time,
+// filter to their own, and leave notes for each other.
+
+const MESSAGES: Record<string, string> = {
+  added: "Added to the guest list. Their link's ready to send.",
+  exists: "Someone with that name is already on the guest list, so nothing was added. Check the name, or dismiss this one.",
+  incomplete: "Fill in a first name, surname and phase to add them.",
+  merged: "Sorted: one guest, with both listings' hosts.",
+  both: "Sorted: both added as separate guests.",
+  dismissed: "Dismissed: they won't be invited. You can reopen it below.",
+  reopened: "Reopened.",
+  noted: "Note saved.",
+  missing: "That one's already been sorted out (perhaps by someone else).",
+};
+const message = MESSAGES[Astro.url.searchParams.get("done") ?? ""];
+
+const phaseFilter = Astro.url.searchParams.get("phase") ?? "";
+const hostFilter = Astro.url.searchParams.get("host") ?? "";
+const all = await listIssues();
+const hostsOf = (issue: ImportIssue) =>
+  issue.kind === "duplicate" ? issueCandidates(issue).flatMap((c) => (c.inviters.length ? c.inviters : ["Communal"])) : [issue.host || "Communal"];
+const phasesOf = (issue: ImportIssue): (InvitePhase | "none")[] =>
+  issue.kind === "duplicate" ? issueCandidates(issue).map((c) => phaseOf(c.group)) : [issue.phase ?? "none"];
+const shown = all.filter(
+  (issue) =>
+    (!phaseFilter || phasesOf(issue).includes(phaseFilter as InvitePhase)) && (!hostFilter || hostsOf(issue).includes(hostFilter)),
+);
+const open = shown.filter((i) => i.status === "open");
+const duplicates = open.filter((i) => i.kind === "duplicate");
+const skipped = open.filter((i) => i.kind === "skipped");
+const done = shown.filter((i) => i.status !== "open");
+const hosts = [...new Set(all.flatMap(hostsOf))].sort();
+
+// After a decision, the page comes back at the next item still to fix (see
+// FixReturn), and the message shows in the item it lands on.
+const openOrder = [...duplicates, ...skipped].map((i) => i.id);
+const nextOf = (id: string) => {
+  const i = openOrder.indexOf(id);
+  return openOrder[i + 1] ?? openOrder[i - 1] ?? "";
+};
+const at = Astro.url.searchParams.get("at") ?? "";
+const messageAt = (id: string) => (message && at === id ? message : null);
+const topMessage = message && !shown.some((i) => i.id === at) ? message : null;
+
+const when = (iso: string) =>
+  new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" });
+const phaseName = (phase: string | null) => (phase ? PHASE_LABELS[phase as InvitePhase] : "No phase");
+---
+
+<Layout title="Import: to fix | Over the Hill" description="Invites from the spreadsheet that need sorting out.">
+  <main id="main" tabindex="-1" class="admin-main">
+    <AdminHeader title="To fix">
+      Invites from the spreadsheet that couldn't go straight in. Sort them out whenever you know: everything else is already imported.
+    </AdminHeader>
+
+    <section class="page-content admin-content admin-report" id="to-fix">
+      {topMessage && (
+        <article class="content-block notice"><p>{topMessage}</p></article>
+      )}
+
+      <form method="GET" action="/admin/import/fix" class="admin-filters">
+        <div class="admin-filter">
+          <label for="phase">Phase</label>
+          <select id="phase" name="phase" data-autosubmit>
+            <option value="" selected={!phaseFilter}>All phases</option>
+            {INVITE_PHASES.map((p) => <option value={p} selected={phaseFilter === p}>{PHASE_LABELS[p]}</option>)}
+          </select>
+        </div>
+        <div class="admin-filter">
+          <label for="host">Listed by</label>
+          <select id="host" name="host" data-autosubmit>
+            <option value="" selected={!hostFilter}>Everyone</option>
+            {hosts.map((h) => <option value={h} selected={hostFilter === h}>{h}</option>)}
+          </select>
+        </div>
+        <noscript><button class="button" type="submit">Filter</button></noscript>
+      </form>
+
+      {open.length === 0 && (
+        <article class="content-block">
+          <h2>Nothing to fix{phaseFilter || hostFilter ? " here" : ""} 🎉</h2>
+          <p><a class="text-link" href="/admin/import">Import more</a> or go back to the <a class="text-link" href="/admin">guest list</a>.</p>
+        </article>
+      )}
+
+      {duplicates.length > 0 && <h2>Possibly the same person ({duplicates.length})</h2>}
+      {duplicates.map((issue) => {
+        const candidates = issueCandidates(issue);
+        return (
+          <article class="content-block fix-item" id={`issue-${issue.id}`}>
+            {messageAt(issue.id) && <p class="fix-message" role="status">{messageAt(issue.id)}</p>}
+            <ul class="fix-candidates">
+              {candidates.map((c) => (
+                <li>
+                  <strong>{c.name}</strong>
+                  <span class="admin-muted"> · {c.inviters.join(", ") || "Communal"} · {PHASE_LABELS[phaseOf(c.group)]}</span>
+                </li>
+              ))}
+            </ul>
+            <p class="admin-muted">Neither has been added yet, so nobody gets two invites.</p>
+            <div class="fix-actions">
+              {candidates.map((c) => (
+                <form method="POST" action={`/api/admin/import-issues/${issue.id}`}>
+                  <input type="hidden" name="action" value="same" />
+                  <FixReturn next={nextOf(issue.id)} phase={phaseFilter} host={hostFilter} />
+                  <input type="hidden" name="name" value={c.name} />
+                  <button class="button" type="submit">Same person: “{c.name}”</button>
+                </form>
+              ))}
+              <form method="POST" action={`/api/admin/import-issues/${issue.id}`}>
+                <input type="hidden" name="action" value="different" />
+                <FixReturn next={nextOf(issue.id)} phase={phaseFilter} host={hostFilter} />
+                <button class="button button-secondary" type="submit">Different people: add both</button>
+              </form>
+              <form method="POST" action={`/api/admin/import-issues/${issue.id}`} data-confirm="Dismiss this? Neither of them will be invited.">
+                <input type="hidden" name="action" value="dismiss" />
+                <FixReturn next={nextOf(issue.id)} phase={phaseFilter} host={hostFilter} />
+                <button class="text-link admin-inline-button" type="submit">Not inviting either</button>
+              </form>
+            </div>
+            <form class="fix-note" method="POST" action={`/api/admin/import-issues/${issue.id}`}>
+              <input type="hidden" name="action" value="note" />
+              <FixReturn next={nextOf(issue.id)} phase={phaseFilter} host={hostFilter} />
+              <label for={`note-${issue.id}`}>Note</label>
+              <input id={`note-${issue.id}`} name="note" type="text" maxlength="500" value={issue.note ?? ""} placeholder="e.g. Asked Kirit which spelling" />
+              <button class="text-link admin-inline-button" type="submit">Save note</button>
+            </form>
+            {issue.note && <p class="admin-muted">Last updated by {issue.updated_by}, {when(issue.updated_at)}</p>}
+          </article>
+        );
+      })}
+
+      {skipped.length > 0 && <h2>Missing a surname ({skipped.length})</h2>}
+      {skipped.map((issue) => {
+        const guess = suggestName(issue.first_name ?? "", issue.surname ?? "");
+        return (
+          <article class="content-block fix-item" id={`issue-${issue.id}`}>
+            {messageAt(issue.id) && <p class="fix-message" role="status">{messageAt(issue.id)}</p>}
+            <p>
+              <strong>“{issue.first_name}” “{issue.surname || "(blank)"}”</strong>
+              <span class="admin-muted"> · listed by {issue.host || "Communal"} · {phaseName(issue.phase)} · {issue.reason}</span>
+            </p>
+            <form class="fix-add" method="POST" action={`/api/admin/import-issues/${issue.id}`}>
+              <input type="hidden" name="action" value="add" />
+              <FixReturn next={nextOf(issue.id)} phase={phaseFilter} host={hostFilter} />
+              <div class="form-field">
+                <label for={`first-${issue.id}`}>First name</label>
+                <input id={`first-${issue.id}`} name="first" type="text" required value={guess.first} />
+              </div>
+              <div class="form-field">
+                <label for={`surname-${issue.id}`}>Surname</label>
+                <input id={`surname-${issue.id}`} name="surname" type="text" required value={guess.surname} />
+              </div>
+              <div class="form-field">
+                <label for={`phase-${issue.id}`}>Phase</label>
+                <select id={`phase-${issue.id}`} name="phase" required>
+                  {INVITE_PHASES.map((p) => <option value={p} selected={issue.phase === p}>{PHASE_LABELS[p]}</option>)}
+                </select>
+              </div>
+              <div class="form-field">
+                <label for={`inviters-${issue.id}`}>Invited by</label>
+                <input id={`inviters-${issue.id}`} name="inviters" type="text" value={issue.host === "Communal" ? "" : (issue.host ?? "")} />
+              </div>
+              <button class="button" type="submit">Add guest</button>
+            </form>
+            <div class="fix-actions">
+              <form method="POST" action={`/api/admin/import-issues/${issue.id}`} data-confirm="Dismiss this? They won't be invited.">
+                <input type="hidden" name="action" value="dismiss" />
+                <FixReturn next={nextOf(issue.id)} phase={phaseFilter} host={hostFilter} />
+                <button class="text-link admin-inline-button" type="submit">Not inviting them</button>
+              </form>
+            </div>
+            <form class="fix-note" method="POST" action={`/api/admin/import-issues/${issue.id}`}>
+              <input type="hidden" name="action" value="note" />
+              <FixReturn next={nextOf(issue.id)} phase={phaseFilter} host={hostFilter} />
+              <label for={`note-${issue.id}`}>Note</label>
+              <input id={`note-${issue.id}`} name="note" type="text" maxlength="500" value={issue.note ?? ""} placeholder="e.g. Asked Lewis for their surname" />
+              <button class="text-link admin-inline-button" type="submit">Save note</button>
+            </form>
+            {issue.note && <p class="admin-muted">Last updated by {issue.updated_by}, {when(issue.updated_at)}</p>}
+          </article>
+        );
+      })}
+
+      {done.length > 0 && (
+        <article class="content-block">
+          <details>
+            <summary>Sorted ({done.length})</summary>
+            <ul class="admin-history">
+              {done.map((issue) => (
+                <li id={`issue-${issue.id}`}>
+                  <span class="admin-muted">{when(issue.updated_at)} · {issue.updated_by}</span>
+                  <div>
+                    {issue.kind === "duplicate"
+                      ? issueCandidates(issue).map((c) => c.name).join(" / ")
+                      : `${issue.first_name} ${issue.surname} (${issue.host || "Communal"})`}
+                    : {issue.resolution}
+                  </div>
+                  {issue.note && <div class="admin-muted">Note: {issue.note}</div>}
+                  {issue.status === "dismissed" && (
+                    <form method="POST" action={`/api/admin/import-issues/${issue.id}`}>
+                      <input type="hidden" name="action" value="reopen" />
+                      <FixReturn next={""} phase={phaseFilter} host={hostFilter} />
+                      <button class="text-link admin-inline-button" type="submit">Reopen</button>
+                    </form>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </details>
+        </article>
+      )}
+
+      <div class="page-actions">
+        <a class="text-link" href="/admin/import">← Import</a>
+        <a class="text-link" href="/admin">Guest list</a>
+      </div>
+    </section>
+  </main>
+</Layout>

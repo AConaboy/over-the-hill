@@ -1,0 +1,114 @@
+---
+import Nav from "../components/Nav.astro";
+import { asset } from "../lib/assets";
+import { RSVPED_COOKIE_NAME } from "../lib/rememberCookie";
+import { INSTAGRAM_HANDLE, INSTAGRAM_URL } from "../lib/site";
+import { SITE_URL } from "astro:env/server";
+import motionScript from "../../public/js/motion.js?raw";
+
+export interface Props {
+  title: string;
+  description: string;
+  /** How a link to this page previews when it's shared in a chat or post
+   * (defaults to the title and description). */
+  shareTitle?: string;
+  shareDescription?: string;
+}
+
+const { title, description, shareTitle = title, shareDescription = description } = Astro.props;
+// The share card: the disco-ball sun and the name, dates and place, big
+// enough to read as a small chat preview. Absolute URLs, as the apps need.
+const shareImage = new URL("/images/share-card.jpg", SITE_URL).toString();
+const shareUrl = new URL(Astro.url.pathname, SITE_URL).toString();
+const currentPath = Astro.url.pathname.replace(/\/$/, "") || "/";
+// A guest who has already replied gets "Your RSVP" rather than being asked
+// to RSVP again (the cookie's set on their page; see rememberCookie.ts).
+const rsvpLabel = Astro.cookies.get(RSVPED_COOKIE_NAME)?.value === "1" ? "Your RSVP" : "RSVP";
+// The butterfly wanders every page but the hosts' screens (admin, and
+// check-in at the gate).
+const isAdmin = /^\/(admin|checkin)(\/|$)/.test(currentPath);
+const showButterfly = !isAdmin;
+---
+
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8" />
+  <!-- "Pause animations" (the footer button), applied before the first
+       paint; inline, so its hash is in the CSP (astro.config.mjs). -->
+  <script is:inline set:html={motionScript}></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content={description} />
+
+  <title>{title}</title>
+
+  <!-- Link previews (WhatsApp, iMessage, Facebook, Slack, X…) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Over the Hill" />
+  <meta property="og:title" content={shareTitle} />
+  <meta property="og:description" content={shareDescription} />
+  <meta property="og:url" content={shareUrl} />
+  <meta property="og:image" content={shareImage} />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Over the Hill: 13–15 August 2027, Out to Grass, Cradley" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <meta name="theme-color" content="#ffe8cc" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <!-- Spins the disco-ball tab icon in Chrome, Edge and Firefox (others keep
+       the static icon). Self-contained, and off for reduced-motion users. -->
+  <script is:inline src={asset("/favicon-animate.js")} defer></script>
+  <!-- Our own copies of the fonts (see the top of style.css). Preloaded so
+       they download alongside the stylesheet rather than after it. -->
+  <link rel="preload" href="/fonts/quicksand-v37-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/fonts/patrick-hand-sc-v17-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href={asset("/css/style.css")} />
+</head>
+
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <Nav currentPath={currentPath} rsvpLabel={rsvpLabel} admin={isAdmin} />
+
+  <slot />
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div>
+        <p class="footer-title">Over the Hill Festival</p>
+        <p>August 13th – 15th 2027 @ Out to Grass</p>
+        <p class="footer-credit">Artwork by Jess Porter</p>
+        <p class="footer-credit"><a href="/privacy">Your data</a></p>
+        {/* WCAG 2.2.2: anything that moves can be paused (see /js/motion.js). */}
+        <p class="footer-credit"><button class="motion-toggle" type="button" data-motion-toggle>Pause animations</button></p>
+        {/* for the hosts; admin asks them to sign in (Cloudflare Access) */}
+        {!isAdmin && <p class="footer-credit footer-hosts"><a href="/admin">Hosts</a></p>}
+      </div>
+      <div class="footer-side">
+        <p class="footer-contact">Questions? Contact us.</p>
+        <p class="footer-social">
+          <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer">
+            <svg class="footer-social-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+              <rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="2" />
+              <circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="2" />
+              <circle cx="17.4" cy="6.6" r="1.3" fill="currentColor" />
+            </svg>
+            <span>@{INSTAGRAM_HANDLE}<span class="visually-hidden"> on Instagram (opens in a new tab)</span></span>
+          </a>
+        </p>
+      </div>
+    </div>
+  </footer>
+
+  {/* On every page (see the top of public/js/butterfly.js to give a new
+      page places for it to land). */}
+  {showButterfly && <script is:inline src={asset("/js/butterfly.js")} defer></script>}
+  {/* Jess's flowers: the poster's wave, and the shower after pressing RSVP. */}
+  {showButterfly && <script is:inline src={asset("/js/flowers.js")} defer></script>}
+  {/* Admin's confirm prompts and auto-submitting filters. */}
+  {isAdmin && <script is:inline src={asset("/js/admin.js")} defer></script>}
+</body>
+</html>

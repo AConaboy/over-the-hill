@@ -1,0 +1,28 @@
+---
+import Layout from "../layouts/Layout.astro";
+import PageHero from "../components/PageHero.astro";
+import ContentBlockView from "../components/ContentBlockView.astro";
+import { getPageContent } from "../lib/content";
+
+const { fields, blocks } = await getPageContent("activities");
+---
+
+<Layout title="Activities | Over the Hill" description="Activities information for Over the Hill.">
+  <main>
+    <PageHero
+      eyebrow={fields.hero_eyebrow}
+      heading={fields.hero_heading}
+      introduction={fields.hero_introduction}
+      image="/images/spot-butterfly.webp"
+    />
+
+    <section class="page-content">
+      {blocks.map((block) => <ContentBlockView block={block} />)}
+
+      <div class="page-actions">
+        <a class="button" href="/rsvp">Confirm your camping plans</a>
+        <a class="text-link" href="/food">Next: Food and drink →</a>
+      </div>
+    </section>
+  </main>
+</Layout>

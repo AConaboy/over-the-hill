@@ -1,0 +1,29 @@
+---
+// "Sent" as a tick box: ticked once a guest's invite has gone out (Copy
+// invite ticks it too, see /js/admin.js), and pressing it again unticks it.
+interface Props {
+  guestId: string;
+  sentAt: string | null;
+  /** Where to come back to afterwards (without JavaScript), and the id of
+   * the element there to land on. */
+  back: string;
+  anchor?: string;
+}
+const { guestId, sentAt, back, anchor } = Astro.props;
+const date = sentAt && new Date(sentAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+---
+
+<form class="sent-toggle-form" method="POST" action={`/api/admin/guests/${guestId}/sent`}>
+  <input type="hidden" name="sent" value={sentAt ? "0" : "1"} />
+  <input type="hidden" name="back" value={back} />
+  {anchor && <input type="hidden" name="anchor" value={anchor} />}
+  <button
+    type="submit"
+    class:list={["sent-toggle", { "is-on": sentAt }]}
+    aria-pressed={sentAt ? "true" : "false"}
+    title={sentAt ? `Invite sent ${date}. Press to mark it as not sent.` : "Press when you've sent their invite (e.g. by message)."}
+  >
+    <span class="sent-box" aria-hidden="true"></span>
+    <span>Sent</span>
+  </button>
+</form>
