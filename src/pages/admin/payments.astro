@@ -40,7 +40,7 @@ let emailError: string | null = null;
 if (form && form.get("form") === "notify") {
   const recipients = (await guestsWithPaymentDue()).filter(({ guest }) => guest.email);
   try {
-    const sent = await sendPaymentDueEmails(recipients);
+    const { sent, queued } = await sendPaymentDueEmails(recipients);
     await logPaymentDueEmails(
       recipients.slice(0, sent).map(({ guest, due }) => ({
         guestId: guest.id,
@@ -48,7 +48,7 @@ if (form && form.get("form") === "notify") {
       })),
       Astro.locals.hostEmail ?? "a host",
     );
-    return Astro.redirect(`/admin/payments?emailed=${sent}#notify`, 303);
+    return Astro.redirect(`/admin/payments?emailed=${sent}${queued ? `&queued=${queued}` : ""}#notify`, 303);
   } catch (err) {
     console.error("Failed to send payment due emails", err);
     emailError = err instanceof Error ? err.message : "The emails couldn't be sent.";
@@ -95,6 +95,7 @@ const dueWithEmail = dueNow.filter(({ guest }) => guest.email);
 const dueDeposits = dueWithEmail.filter(({ due }) => due.kind === "deposit").length;
 const lastEmailed = await lastPaymentDueEmailAt();
 const emailedCount = Astro.url.searchParams.get("emailed");
+const queuedCount = Astro.url.searchParams.get("queued");
 const londonDate = (iso: string) =>
   new Date(iso).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/London" });
 const counts = {
@@ -200,6 +201,12 @@ const owed = guests
       <article class="content-block" id="notify">
         <h2>Tell guests a payment is due</h2>
         {emailedCount !== null && <p>Sent {emailedCount} {emailedCount === "1" ? "email" : "emails"}.</p>}
+        {queuedCount && (
+          <p>
+            {queuedCount} more {queuedCount === "1" ? "is" : "are"} waiting to send (Resend's daily limit): they go out automatically
+            once it resets. See <a href="/admin/emails">Emails</a>.
+          </p>
+        )}
         {emailError && <p><strong>Not all sent:</strong> {emailError}</p>}
         {dueNow.length === 0 ? (
           <p>Nobody coming has anything to pay right now{settings.depositsOpen || settings.balanceOpen ? "" : " (payments are closed)"}.</p>

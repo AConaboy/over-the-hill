@@ -183,6 +183,25 @@ test("emails: edit, preview unsaved changes, save, reset, and send a test", asyn
   checkErrors();
 });
 
+test("emails waiting for Resend's daily limit show on Emails, and 'Try sending now' tries them", async ({ page }) => {
+  const checkErrors = watchForErrors(page);
+  sql(`insert into email_queue (id, guest_id, to_address, subject, html, text, created_at)
+       values ('qa-queued-1', 'qa-yes', 'delivered@resend.dev', 'QA queued Qatest', '<p>hi</p>', 'hi', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`);
+  try {
+    await page.goto("/admin/emails");
+    await expect(page.getByRole("heading", { name: "1 email is waiting to send" })).toBeVisible();
+    await Promise.all([page.waitForNavigation(), page.getByRole("button", { name: "Try sending now" }).click()]);
+    // the local Resend key isn't a real one: the try is recorded, the email kept
+    await expect(page.getByText(/Sent 0 waiting emails/)).toBeVisible();
+    const row = sql<{ attempts: number; last_error: string }>("select attempts, last_error from email_queue where id = 'qa-queued-1'")[0];
+    expect(row.attempts).toBe(1);
+    expect(row.last_error).toBeTruthy();
+  } finally {
+    sql("delete from email_queue where id = 'qa-queued-1'");
+  }
+  checkErrors();
+});
+
 test("on a phone: the list is cards, nothing scrolls sideways, and the menu works", async ({ page }) => {
   await page.setViewportSize(PHONE);
   await page.goto("/admin?q=Qatest");

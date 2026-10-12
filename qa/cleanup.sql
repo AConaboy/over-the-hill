@@ -7,3 +7,6 @@ delete from import_issues where source_key like '%qatest%' or source_key like '%
 -- The Emails test's wording, if a failed run left it saved.
 delete from content_fields where page_slug = 'email:deposit-due'
   and exists (select 1 from content_fields where page_slug = 'email:deposit-due' and value like '%Qatest%');
+
+-- A queued email the admin test left, if it failed.
+delete from email_queue where id like 'qa-%';

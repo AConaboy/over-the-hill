@@ -62,6 +62,9 @@ const updated = params.get("updated") === "1";
 // Only set when a confirmation email actually went out. Repeat submissions
 // inside the email cooldown still save, but don't send another email.
 const emailed = params.get("emailed") === "1";
+// Resend's daily limit was reached: their email's queued, and goes out
+// once it resets (src/lib/emailQueue.ts).
+const emailedLater = params.get("emailed") === "later";
 const payError = params.get("payerror") === "1";
 // The form is shown before they've replied, or when they press Edit.
 const editing = !replied || params.get("edit") === "1";
@@ -202,6 +205,7 @@ const BULLET_FLOWERS = ["flower-02", "flower-05", "flower-01", "flower-04", "flo
                   We've saved your answers, but your place isn't confirmed until
                   {deposit?.kind === "balance" ? " your ticket is paid for." : " your deposit is paid."}
                   {submitted && emailed && " We've also emailed you a link so you can finish later."}
+                  {submitted && emailedLater && " We'll also email you a link so you can finish later (it may take a few hours)."}
                 </p>
                 {deposit?.kind === "deposit" || deposit?.kind === "balance" ? (
                   <form method="POST" action={`/api/pay/${guest.token}`}>
@@ -221,7 +225,9 @@ const BULLET_FLOWERS = ["flower-02", "flower-05", "flower-01", "flower-04", "flo
                   {submitted
                     ? emailed
                       ? "We've got your answers. A confirmation email is on its way to you too."
-                      : "We've got your answers."
+                      : emailedLater
+                        ? "We've got your answers. We'll email you a confirmation too, though it may take a few hours to arrive."
+                        : "We've got your answers."
                     : "You're registered for Over the Hill."}
                 </p>
                 {guest.ticket_ref && (qrCodes
