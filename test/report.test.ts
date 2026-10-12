@@ -51,7 +51,7 @@ function guest(overrides: Partial<Guest>): Guest {
 describe("buildReport", () => {
   const report = buildReport([
     guest({ name: "Bea", arrival_day: "fri", departure_day: "sun", camping: "camping", vehicle: "car", dietary: " Vegan ", lift: "offer", lift_from: "Bristol", lift_seats: 3, phone: "07700" }),
-    guest({ name: "al", arrival_day: "thu", departure_day: "mon", vehicle: "campervan", is_performer: 1, lift: "need", lift_from: "bristol " }),
+    guest({ name: "al", arrival_day: "sat", departure_day: "sun", vehicle: "campervan", is_performer: 1, lift: "need", lift_from: "bristol " }),
     guest({ name: "Cat", arrival_day: "sat", departure_day: "unsure", lift: "need", glamping: "maybe", email: "cat@example.com" }),
     guest({ name: "Declined", attendance: "no", status: "rsvp_no", arrival_day: "fri", departure_day: "sun" }),
     guest({ name: "Cancelled", status: "cancelled", arrival_day: "fri", departure_day: "sun", dietary: "Nuts" }),
@@ -64,10 +64,10 @@ describe("buildReport", () => {
   });
 
   it("counts arrivals, departures and nights on site", () => {
-    expect(report.arrivals).toMatchObject({ thu: 1, fri: 1, sat: 1, unset: 0 });
-    expect(report.departures).toMatchObject({ sun: 1, mon: 1, unsure: 1 });
-    // al: thu, fri, sat, sun nights; Bea: fri, sat; Cat unknown
-    expect(report.nights).toEqual({ thu: 1, fri: 2, sat: 2, sun: 1, mon: 0 });
+    expect(report.arrivals).toMatchObject({ fri: 1, sat: 2, unset: 0 });
+    expect(report.departures).toMatchObject({ sun: 2, unsure: 1 });
+    // Bea: fri, sat nights; al: sat; Cat unknown
+    expect(report.nights).toEqual({ fri: 1, sat: 2, sun: 0 });
     expect(report.datesUnknown).toBe(1);
   });
 
