@@ -231,7 +231,9 @@ export async function searchTracks(query: string): Promise<Track[]> {
     const q = query.toLowerCase();
     return FAKE_TRACKS.filter((t) => `${t.title} ${t.artist}`.toLowerCase().includes(q));
   }
-  const params = new URLSearchParams({ q: query, type: "track", limit: "8", market: "from_token" });
+  // UK availability. (market=from_token would need the user-read-private
+  // scope, which the site doesn't ask for: Spotify answers 403.)
+  const params = new URLSearchParams({ q: query, type: "track", limit: "8", market: "GB" });
   return mapSearchResponse(await api("GET", `/search?${params}`));
 }
 
