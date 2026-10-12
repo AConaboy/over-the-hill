@@ -17,8 +17,7 @@ import { nextPayment, type NextPayment } from "../../lib/payments";
 import { isStripeConfigured } from "../../lib/stripe";
 import { startCheckout } from "../../lib/checkout";
 import { choiceField, LONG_TEXT_MAX, smallNumberField, textField } from "../../lib/forms";
-import { getSpotifyStatus, listGuestSongs, saveGuestSongs, songsOpen } from "../../lib/spotify";
-import { songsFromForm } from "../../lib/songs";
+import { listGuestSongs, saveGuestSongs } from "../../lib/spotify";
 
 export const prerender = false;
 
@@ -57,23 +56,14 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     return redirect(rsvpUrl, 303);
   }
 
-  // Their songs for the playlist, before any email (which lists them).
-  // Only when the form had the songs section (it's hidden while Spotify
-  // isn't set up), so an empty list means they cleared them; saying no
-  // clears them too. Non-blocking: Spotify failing never stops the RSVP.
-  let songProblem = false;
-  const songsShown = form.get("songsShown") === "1";
-  if (songsShown || result.guest.attendance !== "yes") {
+  // Saying no takes their songs off the playlist (songs are picked on
+  // their page once they've paid: /api/rsvp/songs/save). Non-blocking:
+  // Spotify failing never stops the RSVP.
+  if (result.guest.attendance !== "yes") {
     try {
-      const songs = songsFromForm(form.getAll("songs").map(String));
-      const clearing = result.guest.attendance !== "yes";
-      if (clearing ? (await listGuestSongs(result.guest.id)).length > 0 : songsOpen(await getSpotifyStatus())) {
-        const saved = await saveGuestSongs(result.guest.id, clearing ? [] : songs.ids);
-        songProblem = !clearing && (saved.dropped > 0 || songs.invalid > 0);
-      }
+      if ((await listGuestSongs(result.guest.id)).length > 0) await saveGuestSongs(result.guest.id, []);
     } catch (err) {
-      console.error("Saving songs failed", err);
-      songProblem = result.guest.attendance === "yes";
+      console.error("Removing songs failed", err);
     }
   }
 
@@ -110,7 +100,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     }
   }
 
-  const submittedUrl = `${rsvpUrl}?submitted=1${result.wasReplied ? "&updated=1" : ""}${emailed ? "&emailed=1" : ""}${songProblem ? "&songs=problem" : ""}`;
+  const submittedUrl = `${rsvpUrl}?submitted=1${result.wasReplied ? "&updated=1" : ""}${emailed ? "&emailed=1" : ""}`;
   if (paymentDue !== null) {
     const checkout = await startCheckout(guest);
     if (checkout.ok) return redirect(checkout.url, 303);

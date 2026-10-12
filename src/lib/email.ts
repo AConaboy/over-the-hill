@@ -14,7 +14,7 @@ import {
 } from "./emailContent";
 import { getEmailTexts } from "./emailTexts";
 import { getPaymentSettings } from "./settings";
-import { getSpotifyStatus, listGuestSongs, songsOpen } from "./spotify";
+import { getSpotifyStatus, listGuestSongs, spotifyReady } from "./spotify";
 import { songLabel } from "./songs";
 
 // Sending only. What each email says (and the shared, site-styled layout)
@@ -130,7 +130,7 @@ export async function sendTestEmail(to: string, id: EmailId): Promise<void> {
   const email = sampleEmail(id, SITE_URL, await getEmailTexts(), {
     depositPence: settings.depositPence,
     pricePence: settings.standardPricePence,
-    playlistUrl: songsOpen(spotify) ? spotify.playlistUrl : null,
+    playlistUrl: spotifyReady(spotify) ? spotify.playlistUrl : null,
   });
   await send(to, { ...email, subject: `[Test] ${email.subject}` });
 }

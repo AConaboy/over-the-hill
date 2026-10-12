@@ -1,8 +1,9 @@
-/* Songs for the playlist, on a guest's RSVP form: turns the boxes for
-   Spotify links into a search. What they pick goes back into those same
-   boxes (as the track's id), so the form sends exactly what it would
-   without this script. Searches go through our own /api/rsvp/songs, with
-   the guest's token, never straight to Spotify. */
+/* Songs for the playlist, on a guest's page (once they've paid): turns
+   the boxes for Spotify links into a search. What they pick goes back into
+   those same boxes (as the track's id), so the form sends exactly what it
+   would without this script. Searches go through our own
+   /api/rsvp/songs/search, with the guest's token, never straight to
+   Spotify. */
 (function () {
   var fieldset = document.querySelector('.song-picks');
   if (!fieldset || !window.fetch) return;
@@ -163,7 +164,7 @@
     var body = new URLSearchParams();
     body.set('token', token);
     body.set('q', query);
-    fetch('/api/rsvp/songs', { method: 'POST', body: body })
+    fetch('/api/rsvp/songs/search', { method: 'POST', body: body })
       .then(function (response) { return response.json(); })
       .then(function (data) {
         if (ask !== latest) return;

@@ -1,5 +1,6 @@
 import { SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET } from "astro:env/server";
 import { getDb } from "./db";
+import { getSongSettings } from "./settings";
 import { eventStatement } from "./guests";
 import { mapSearchResponse, mapTrack, planSongChanges, songLabel, trackUri, type SongPick, type Track } from "./songs";
 
@@ -92,9 +93,15 @@ export async function getSpotifyStatus(): Promise<SpotifyStatus> {
   };
 }
 
-/** Guests can pick songs: Spotify's connected and there's a playlist. */
-export function songsOpen(status: SpotifyStatus): boolean {
+/** Spotify's ready: an account's connected and there's a playlist. */
+export function spotifyReady(status: SpotifyStatus): boolean {
   return status.connected && !!status.playlistId;
+}
+
+/** Guests (who've paid: canPickSongs) can pick songs: Spotify's ready and
+ * a host has switched songs on (admin Playlist). */
+export async function songsOpen(status: SpotifyStatus): Promise<boolean> {
+  return spotifyReady(status) && (await getSongSettings()).songsOpen;
 }
 
 // --- Signing in (admin Spotify) ---

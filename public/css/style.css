@@ -2653,11 +2653,16 @@ html:has(.sunrise-rays) {
   gap: 0.75rem 1.25rem;
 }
 
-/* RSVP form: songs for the playlist (public/js/songs.js builds the
-   search; without it, the boxes for Spotify links show instead). Not
-   asked of someone declining. */
-.rsvp-form:has(#attendance option[value="no"]:checked) .song-picks {
-  display: none;
+/* A guest's songs for the playlist, on their own card once they've paid
+   (public/js/songs.js builds the search; without it, the boxes for
+   Spotify links show instead). */
+.notice-inline {
+  margin: 0 0 1.25rem;
+  padding: 0.8rem 1.1rem;
+  border: 2px solid var(--ink);
+  border-radius: 0.9rem;
+  background: var(--tan);
+  font-weight: 600;
 }
 
 .song-picks {

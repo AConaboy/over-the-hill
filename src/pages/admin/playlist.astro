@@ -8,10 +8,12 @@ import {
   disconnectSpotify,
   getSpotifyStatus,
   listAllSongs,
-  songsOpen,
+  spotifyReady,
   useExistingPlaylist,
 } from "../../lib/spotify";
 import { parsePlaylistRef } from "../../lib/songs";
+import { getSongSettings, saveSongSettings } from "../../lib/settings";
+import { checkboxField } from "../../lib/forms";
 
 // The communal playlist: connecting the hosts' Spotify account, the
 // playlist guests' songs go into, and every song picked so far. Its forms
@@ -20,6 +22,11 @@ if (Astro.request.method === "POST") {
   const form = await Astro.request.formData();
   const action = form.get("action");
   try {
+    if (action === "settings") {
+      const songsOpen = checkboxField(form, "songsOpen");
+      await saveSongSettings({ songsOpen });
+      return Astro.redirect(`/admin/playlist?done=${songsOpen ? "opened" : "closed"}#settings`, 303);
+    }
     if (action === "create") {
       await createPlaylist();
       return Astro.redirect("/admin/playlist?done=created", 303);
@@ -47,7 +54,9 @@ if (Astro.request.method === "POST") {
 }
 
 const status = await getSpotifyStatus();
-const open = songsOpen(status);
+const ready = spotifyReady(status);
+const { songsOpen } = await getSongSettings();
+const open = ready && songsOpen;
 const songs = status.configured ? await listAllSongs() : [];
 const missing = status.configured ? await countMissingSongs() : 0;
 const tracks = new Set(songs.map((s) => s.track_id)).size;
@@ -73,7 +82,7 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 <Layout title="Playlist | Over the Hill" description="The guests' playlist on Spotify.">
   <main id="main" tabindex="-1" class="admin-main">
     <AdminHeader title="Playlist">
-      Guests can pick up to three songs on their RSVP, and the site adds them to a Spotify playlist.
+      Once they've paid their deposit, guests can pick up to three songs on their page, and the site adds them to a Spotify playlist.
     </AdminHeader>
 
     <section class="page-content admin-content">
@@ -81,8 +90,10 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
       {done === "created" && <p class="notice" role="status">The playlist's made. Guests can pick songs now.</p>}
       {done === "using" && <p class="notice" role="status">Now using that playlist. {plural(added, "song", "songs")} added to it.</p>}
       {done === "retried" && <p class="notice" role="status">{added === 0 ? "Nothing was waiting to go on." : `${plural(added, "song", "songs")} added to the playlist.`}</p>}
+      {done === "opened" && <p class="notice" role="status">Songs are on: guests who've paid can pick them on their page.</p>}
+      {done === "closed" && <p class="notice" role="status">Songs are off: guests can't pick or change songs. Songs already picked stay on the playlist.</p>}
       {done === "disconnected" && <p class="notice" role="status">Spotify's disconnected. Guests can't pick songs until it's connected again.</p>}
-      {params.get("connected") === "1" && !problem && <p class="notice" role="status">Spotify's connected, and guests can pick songs now.</p>}
+      {params.get("connected") === "1" && !problem && <p class="notice" role="status">Spotify's connected.{!songsOpen && " Turn songs on below when you're ready for guests to pick them."}</p>}
 
       <article class="content-block">
         <h2>Spotify</h2>
@@ -116,7 +127,7 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
                   "No playlist yet, so guests can't pick songs"
                 )}
               </li>
-              <li>{open ? "Guests can pick songs on their RSVP" : "Guests can't pick songs yet"}</li>
+              <li>{open ? "Songs are on: guests who've paid can pick them" : "Guests can't pick songs right now"}</li>
             </ul>
             {!status.playlistId && (
               <form method="POST" action="/admin/playlist">
@@ -127,6 +138,23 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
           </>
         )}
       </article>
+
+      {status.configured && (
+        <form class="rsvp-form" method="POST" action="/admin/playlist" id="settings">
+          <h2>Songs on or off</h2>
+          <input type="hidden" name="action" value="settings" />
+          <div class="form-field form-field-checkbox">
+            <input id="songs-open" name="songsOpen" type="checkbox" checked={songsOpen} />
+            <label for="songs-open">Guests can pick songs</label>
+          </div>
+          <p class="form-field-help">
+            When on, a guest who's coming and has paid their deposit (or more), or is a free performer, can pick up to three
+            songs on their page. Guests who haven't paid yet are told paying unlocks it.
+            {!ready && " Spotify needs connecting, with a playlist, before this does anything."}
+          </p>
+          <button class="button" type="submit">Save</button>
+        </form>
+      )}
 
       {status.connected && !status.fake && (
         <form class="rsvp-form" method="POST" action="/admin/playlist" id="playlist">
@@ -153,7 +181,7 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
               : `${plural(tracks, "song", "songs")} from ${plural(guests, "guest", "guests")}.`}
             {missing > 0 && ` ${plural(missing, "song isn't", "songs aren't")} on the playlist yet (Spotify didn't answer when ${missing === 1 ? "it was" : "they were"} picked).`}
           </p>
-          {missing > 0 && open && (
+          {missing > 0 && ready && (
             <form method="POST" action="/admin/playlist">
               <input type="hidden" name="action" value="retry" />
               <button class="button" type="submit">Add {plural(missing, "song", "songs")} to the playlist</button>

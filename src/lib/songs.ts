@@ -6,6 +6,20 @@
 /** Up to three songs each. */
 export const MAX_SONGS = 3;
 
+/** Who can pick songs: coming, place not cancelled, and they've paid
+ * something (a deposit or more), or they're a free performer. */
+export function canPickSongs(guest: {
+  attendance: string;
+  status: string;
+  amount_paid_pence: number | null;
+  is_performer: number;
+  amount_due_pence: number | null;
+}): boolean {
+  if (guest.attendance !== "yes" || guest.status === "cancelled") return false;
+  const freePerformer = guest.is_performer === 1 && guest.amount_due_pence === 0;
+  return freePerformer || (guest.amount_paid_pence ?? 0) > 0;
+}
+
 export interface Track {
   id: string;
   title: string;

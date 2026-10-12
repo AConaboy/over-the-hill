@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { clearCheckout, getGuestById, setGuestCancelled } from "../../../../../lib/guests";
 import { choiceField } from "../../../../../lib/forms";
 import { getStripe, isStripeConfigured } from "../../../../../lib/stripe";
+import { saveGuestSongs } from "../../../../../lib/spotify";
 
 export const prerender = false;
 
@@ -28,5 +29,13 @@ export const POST: APIRoute = async ({ params, request, redirect, locals }) => {
   }
 
   await setGuestCancelled(guest.id, action === "cancel", locals.hostEmail ?? "a host");
+  // Their songs come off the playlist too (unless someone else picked them).
+  if (action === "cancel") {
+    try {
+      await saveGuestSongs(guest.id, [], locals.hostEmail ?? "a host");
+    } catch (err) {
+      console.error("Removing a cancelled guest's songs failed", err);
+    }
+  }
   return redirect(`/admin/guests/${encodeURIComponent(id)}/edit#payments`, 303);
 };

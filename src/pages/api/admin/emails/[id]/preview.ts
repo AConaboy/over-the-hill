@@ -3,7 +3,7 @@ import { SITE_URL } from "astro:env/server";
 import { sampleEmail, type EmailTexts } from "../../../../../lib/emailContent";
 import { emailFieldsFromForm, getEmailTexts, isEmailId } from "../../../../../lib/emailTexts";
 import { getPaymentSettings } from "../../../../../lib/settings";
-import { getSpotifyStatus, songsOpen } from "../../../../../lib/spotify";
+import { getSpotifyStatus, spotifyReady } from "../../../../../lib/spotify";
 
 export const prerender = false;
 
@@ -22,7 +22,7 @@ async function preview(id: string | undefined, form: FormData | null, origin: st
   const email = sampleEmail(id, SITE_URL, texts, {
     depositPence: settings.depositPence,
     pricePence: settings.standardPricePence,
-    playlistUrl: songsOpen(spotify) ? spotify.playlistUrl : null,
+    playlistUrl: spotifyReady(spotify) ? spotify.playlistUrl : null,
   }, origin);
   return new Response(email.html, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
 }

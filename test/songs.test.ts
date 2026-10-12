@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  canPickSongs,
   mapSearchResponse,
   mapTrack,
   parsePlaylistRef,
@@ -134,5 +135,25 @@ describe("parsePlaylistRef and songLabel", () => {
 
   it("labels a song", () => {
     expect(songLabel({ title: "Mr. Brightside", artist: "The Killers" })).toBe("Mr. Brightside – The Killers");
+  });
+});
+
+describe("canPickSongs", () => {
+  const paid = { attendance: "yes", status: "rsvp_yes", amount_paid_pence: 2000, is_performer: 0, amount_due_pence: null };
+
+  it("lets someone coming who's paid something pick", () => {
+    expect(canPickSongs(paid)).toBe(true);
+  });
+
+  it("not before they've paid, unless they're a free performer", () => {
+    expect(canPickSongs({ ...paid, amount_paid_pence: 0 })).toBe(false);
+    expect(canPickSongs({ ...paid, amount_paid_pence: null })).toBe(false);
+    expect(canPickSongs({ ...paid, amount_paid_pence: 0, is_performer: 1, amount_due_pence: 0 })).toBe(true);
+    expect(canPickSongs({ ...paid, amount_paid_pence: 0, is_performer: 1, amount_due_pence: 3000 })).toBe(false);
+  });
+
+  it("not if they're not coming, or their place is cancelled", () => {
+    expect(canPickSongs({ ...paid, attendance: "no" })).toBe(false);
+    expect(canPickSongs({ ...paid, status: "cancelled" })).toBe(false);
   });
 });
