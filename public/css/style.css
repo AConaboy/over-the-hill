@@ -1038,6 +1038,64 @@ main:has(> .page-hero) {
   color: var(--ink-soft);
 }
 
+/* About page: the venue photo beside the hero text, and the letter's two
+   parts side by side, on wide screens; stacked on phones. */
+.about-hero {
+  width: min(100%, 1100px);
+  margin-inline: auto;
+  display: grid;
+  gap: 2rem;
+  align-items: center;
+}
+
+.about-photo {
+  width: min(100%, 520px);
+  margin: 0 auto;
+  transform: rotate(2deg);
+}
+
+.about-photo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  border: var(--outline);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.about-content {
+  width: min(100% - 2rem, 1100px);
+}
+
+.about-letters {
+  display: grid;
+  gap: 0 2rem;
+  align-items: start;
+}
+
+#about-why > p:last-child {
+  font-family: var(--display-font);
+  font-size: 1.5rem;
+  line-height: 1.2;
+  text-align: right;
+}
+
+@media (min-width: 901px) {
+  .about-hero {
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+  }
+
+  .about-hero .page-hero-content {
+    text-align: left;
+  }
+
+  .about-letters {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 /* Location page */
 
 .location-photo {

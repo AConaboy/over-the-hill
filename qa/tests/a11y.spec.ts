@@ -6,7 +6,7 @@ import { LAPTOP, PHONE } from "./helpers";
 // every page a guest or host sees, at phone and laptop widths. Tools catch
 // about a third of problems; the rest are in the manual QA plan.
 const PAGES = [
-  "/", "/location", "/privacy", "/rsvp", "/rsvp/qa-token-opened", "/rsvp/qa-token-yes", "/rsvp/qa-token-yes?edit=1",
+  "/", "/about", "/location", "/privacy", "/rsvp", "/rsvp/qa-token-opened", "/rsvp/qa-token-yes", "/rsvp/qa-token-yes?edit=1",
   "/rsvp/qa-token-due", "/rsvp/qa-token-expired", "/rsvp/qa-token-not-real", "/not-a-page",
   "/admin", "/admin/guests/new", "/admin/guests/qa-yes/edit", "/admin/import", "/admin/report", "/admin/checkin",
   "/admin/payments", "/admin/content", "/admin/content/rsvp-form", "/admin/emails", "/admin/emails/deposit-due", "/checkin/QATEST01",
@@ -77,7 +77,7 @@ test("with the device's reduced-motion setting, the pause button isn't needed an
 
 test("pages reflow at 320px wide (400% zoom) without sideways scrolling", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 640 });
-  for (const path of ["/", "/location", "/privacy", "/rsvp", "/rsvp/qa-token-opened", "/rsvp/qa-token-yes"]) {
+  for (const path of ["/", "/about", "/location", "/privacy", "/rsvp", "/rsvp/qa-token-opened", "/rsvp/qa-token-yes"]) {
     await page.goto(path);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), path).toBeLessThanOrEqual(0);
   }

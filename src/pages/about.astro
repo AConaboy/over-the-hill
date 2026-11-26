@@ -1,0 +1,50 @@
+---
+import Layout from "../layouts/Layout.astro";
+import ContentBlockView from "../components/ContentBlockView.astro";
+import { getPageContent } from "../lib/content";
+
+// Who the hosts are and what the weekend is. All of its text is editable in
+// admin under "About" (the fallbacks below only show if a field is blank). The hero has the venue photo beside the text, and the two parts
+// of the letter sit side by side on wide screens (.about-* in style.css).
+const { fields, blocks } = await getPageContent("about");
+const letters = blocks.filter((block) => block.variant === "block");
+const notices = blocks.filter((block) => block.variant === "notice");
+---
+
+<Layout
+  title="About | Over the Hill"
+  description={fields.meta_description || "Why we're throwing our own music festival for our 30th birthdays, and what the weekend at Out to Grass will be like."}
+>
+  <main id="main" tabindex="-1">
+    <section class="page-hero">
+      <div class="about-hero">
+        <div class="page-hero-content">
+          <p class="eyebrow">{fields.hero_eyebrow}</p>
+          <h1>{fields.hero_heading}</h1>
+          <p class="page-introduction">{fields.hero_introduction}</p>
+        </div>
+        <figure class="about-photo">
+          <img
+            src="/images/outtograsssite.webp"
+            alt={fields.photo_alt || "Out to Grass at dusk: a lit-up dome, bell tents and festoon lights on a grassy hillside"}
+            width="1080"
+            height="810"
+          />
+        </figure>
+      </div>
+    </section>
+
+    <section class="page-content about-content">
+      <div class="about-letters">
+        {letters.map((block) => <ContentBlockView block={block} id={block.id} />)}
+      </div>
+
+      {notices.map((block) => <ContentBlockView block={block} />)}
+
+      <div class="page-actions">
+        <a class="button" href="/rsvp">{fields.cta_label || "Complete your RSVP"}</a>
+        <a class="text-link" href="/location">{fields.location_cta_label || "Where is it?"}</a>
+      </div>
+    </section>
+  </main>
+</Layout>

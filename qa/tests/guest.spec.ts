@@ -110,6 +110,18 @@ test("the privacy notice has its own page, linked from the form and the footer",
   checkErrors();
 });
 
+test("the About page is in the navigation, with the hosts' letter and venue photo", async ({ page }) => {
+  const checkErrors = watchForErrors(page);
+  await page.goto("/location");
+  await Promise.all([page.waitForURL("**/about"), page.locator(".main-navigation").getByRole("link", { name: "About" }).click()]);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("About");
+  await expect(page.getByRole("heading", { name: "The weekend" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Why we're doing it" })).toBeVisible();
+  await expect(page.getByAltText(/Out to Grass at dusk/)).toBeVisible();
+  await expect(page.getByRole("link", { name: "Complete your RSVP" })).toHaveAttribute("href", "/rsvp");
+  checkErrors();
+});
+
 test("an expired link and a made-up link get friendly pages", async ({ page }) => {
   await page.goto("/rsvp/qa-token-expired");
   await expect(page.getByRole("heading", { name: "This link has expired" })).toBeVisible();

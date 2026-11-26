@@ -96,11 +96,15 @@ export const CONTENT_PAGES: ContentPageDef[] = [
   {
     slug: "about",
     label: "About",
-    routed: false,
+    routed: true,
     fieldKeys: [
       { key: "hero_eyebrow", label: "Eyebrow" },
       { key: "hero_heading", label: "Heading" },
       { key: "hero_introduction", label: "Introduction", multiline: true },
+      { key: "photo_alt", label: "Venue photo description (read out by screen readers)" },
+      { key: "cta_label", label: "RSVP button label" },
+      { key: "location_cta_label", label: "Location link label" },
+      { key: "meta_description", label: "Description shown in search results and link previews", multiline: true },
     ],
   },
   {

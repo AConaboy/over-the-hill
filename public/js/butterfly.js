@@ -150,8 +150,8 @@
   }
   var TEXT = '.site-name, .main-navigation a, .hero-description, .event-details, .home-text .button, .home-text .text-link, .credit-line, .site-footer p, .invite-text > *, ' +
     '.page-content h2, .page-content h3, .page-content p, .page-content li, .page-content label, .page-content .button, .page-hero-content > *';
-  // form fields, the location photo and map: never sat on or over
-  var FIELDS = '.page-content input, .page-content select, .page-content textarea, .location-photo img, .location-map iframe';
+  // form fields, the location photo and map, the about photo: never sat on or over
+  var FIELDS = '.page-content input, .page-content select, .page-content textarea, .location-photo img, .location-map iframe, .about-photo img';
   function textLines() {                                       // every line of the page's text (and every form field), in page coordinates
     var rects = [];
     function push(e, r) { if (r.width > 0) rects.push({ el: e, left: r.left + scrollX, right: r.right + scrollX, top: r.top + scrollY, bottom: r.bottom + scrollY }); }
