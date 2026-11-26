@@ -51,7 +51,10 @@ const isCurrentItem = ({ href, also = [] }: NavItem) =>
           <img src="/images/logo-animated.webp" data-still-src="/images/logo-static.webp" alt="" width="54" height="54" />
         </picture>
       </a>
-      <a class="site-name" href={admin ? "/admin" : "/"}>Over the Hill</a>
+      <a class="site-name" href={admin ? "/admin" : "/"}>
+        Over the Hill
+        <span class="site-name-sub">Organising Committee</span>
+      </a>
       {admin && <span class="admin-badge">Hosts</span>}
     </div>
 
