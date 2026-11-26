@@ -257,10 +257,23 @@ h2 {
 }
 
 .site-name {
+  display: flex;
+  flex-direction: column;
   font-family: var(--display-font);
   font-size: 1.9rem;
   line-height: 1;
   text-decoration: none;
+}
+
+/* A small line under the name: rem, so it stays the same size wherever the
+   name itself shrinks (phones, admin). */
+.site-name-sub {
+  margin-top: 0.2rem;
+  font-family: var(--body-font);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .main-navigation {
