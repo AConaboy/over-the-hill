@@ -278,9 +278,33 @@ export async function getContentBlockPageSlug(id: string): Promise<string | null
 // --- Rendering ---
 
 export interface ParsedNode {
-  type: "p" | "ul";
+  type: "p" | "ul" | "h3";
   text?: string;
   items?: string[];
+}
+
+export interface InlinePart {
+  text: string;
+  href?: string;
+  highlight?: boolean;
+}
+
+// In a paragraph or list item: [text](link), where only links to this site
+// ("/location") or to http(s) addresses count, and **text** to highlight it
+// (bold, in colour).
+// Anything else stays as typed.
+const INLINE = /\[([^\]\n]+)\]\(((?:https?:\/\/|\/)[^\s()]*)\)|\*\*([^*\n]+)\*\*/g;
+
+export function inlineParts(text: string): InlinePart[] {
+  const parts: InlinePart[] = [];
+  let last = 0;
+  for (const match of text.matchAll(INLINE)) {
+    if (match.index > last) parts.push({ text: text.slice(last, match.index) });
+    parts.push(match[3] !== undefined ? { text: match[3], highlight: true } : { text: match[1], href: match[2] });
+    last = match.index + match[0].length;
+  }
+  if (last < text.length) parts.push({ text: text.slice(last) });
+  return parts;
 }
 
 /** Deliberately not markdown — a non-technical editor shouldn't need to
@@ -296,6 +320,9 @@ export function parseBody(raw: string): ParsedNode[] {
         .split("\n")
         .map((line) => line.trim())
         .filter(Boolean);
+      if (lines.length === 1 && lines[0].startsWith("### ")) {
+        return { type: "h3" as const, text: lines[0].slice(4).trim() };
+      }
       if (lines.length > 0 && lines.every((line) => line.startsWith("- "))) {
         return { type: "ul" as const, items: lines.map((line) => line.slice(2).trim()) };
       }

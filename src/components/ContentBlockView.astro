@@ -1,5 +1,6 @@
 ---
-import { parseBody, type ContentBlock } from "../lib/content";
+import { inlineParts, parseBody, type ContentBlock } from "../lib/content";
+import InlineText from "./InlineText.astro";
 
 export interface Props {
   block: ContentBlock;
@@ -20,11 +21,13 @@ const Tag = block.variant === "notice" ? "aside" : "article";
     node.type === "ul" ? (
       <ul class="information-list">
         {node.items!.map((item) => (
-          <li>{item}</li>
+          <li><InlineText parts={inlineParts(item)} /></li>
         ))}
       </ul>
+    ) : node.type === "h3" ? (
+      <h3>{node.text}</h3>
     ) : (
-      <p>{node.text}</p>
+      <p><InlineText parts={inlineParts(node.text!)} /></p>
     ),
   )}
 </Tag>

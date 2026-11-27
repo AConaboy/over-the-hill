@@ -1,0 +1,23 @@
+---
+import type { InlinePart } from "../lib/content";
+
+export interface Props {
+  parts: InlinePart[];
+}
+
+// Text with any [text](link) links and **highlights** from the admin-edited
+// content: links elsewhere open in a new tab.
+const { parts } = Astro.props;
+---
+
+{parts.map((part) =>
+  part.highlight ? (
+    <strong class="highlight">{part.text}</strong>
+  ) : part.href === undefined ? (
+    part.text
+  ) : part.href.startsWith("/") ? (
+    <a href={part.href}>{part.text}</a>
+  ) : (
+    <a href={part.href} target="_blank" rel="noopener noreferrer">{part.text}</a>
+  ),
+)}

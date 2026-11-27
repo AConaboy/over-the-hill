@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deadlineHeading, findBlock, parseBody, type ContentBlock } from "../src/lib/content";
+import { deadlineHeading, findBlock, inlineParts, parseBody, type ContentBlock } from "../src/lib/content";
 
 describe("parseBody", () => {
   it("splits paragraphs on blank lines and joins wrapped lines", () => {
@@ -18,6 +18,44 @@ describe("parseBody", () => {
 
   it("keeps mixed lines as a paragraph", () => {
     expect(parseBody("- one\nnot a bullet")).toEqual([{ type: "p", text: "- one not a bullet" }]);
+  });
+
+  it("makes a subheading of a paragraph that's a single \"### \" line", () => {
+    expect(parseBody("### Friday\n\nArrival day!\n\n### Two\nlines")).toEqual([
+      { type: "h3", text: "Friday" },
+      { type: "p", text: "Arrival day!" },
+      { type: "p", text: "### Two lines" },
+    ]);
+  });
+});
+
+describe("inlineParts", () => {
+  it("finds [text](link) links to this site or to http(s) addresses", () => {
+    expect(inlineParts("See for yourself [here](/location). Or [Pitchup](https://pitchup.com/x).")).toEqual([
+      { text: "See for yourself " },
+      { text: "here", href: "/location" },
+      { text: ". Or " },
+      { text: "Pitchup", href: "https://pitchup.com/x" },
+      { text: "." },
+    ]);
+  });
+
+  it("highlights **text**", () => {
+    expect(inlineParts("Join us at **Over the Hill** from **13–15 August**!")).toEqual([
+      { text: "Join us at " },
+      { text: "Over the Hill", highlight: true },
+      { text: " from " },
+      { text: "13–15 August", highlight: true },
+      { text: "!" },
+    ]);
+    expect(inlineParts("a lone ** or *one* stays")).toEqual([{ text: "a lone ** or *one* stays" }]);
+  });
+
+  it("leaves anything else as typed", () => {
+    expect(inlineParts("[bad](javascript:alert(1)) and [rel](location) and plain")).toEqual([
+      { text: "[bad](javascript:alert(1)) and [rel](location) and plain" },
+    ]);
+    expect(inlineParts("")).toEqual([]);
   });
 });
 

@@ -110,13 +110,16 @@ test("the privacy notice has its own page, linked from the form and the footer",
   checkErrors();
 });
 
-test("the About page is in the navigation, with the hosts' letter and venue photo", async ({ page }) => {
+test("the About page is in the navigation, with the invitation, the questions and the venue photo", async ({ page }) => {
   const checkErrors = watchForErrors(page);
   await page.goto("/location");
   await Promise.all([page.waitForURL("**/about"), page.locator(".main-navigation").getByRole("link", { name: "About" }).click()]);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("About");
-  await expect(page.getByRole("heading", { name: "The weekend" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Why we're doing it" })).toBeVisible();
+  await expect(page.getByText(/You are cordially invited to Over the Hill/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Schedule for the weekend?" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 3, name: "Friday" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "When can I buy a ticket?" })).toBeVisible();
+  await expect(page.locator("#about-where").getByRole("link", { name: "here" })).toHaveAttribute("href", "/location");
   await expect(page.getByAltText(/Out to Grass at dusk/)).toBeVisible();
   await expect(page.getByRole("link", { name: "Complete your RSVP" })).toHaveAttribute("href", "/rsvp");
   checkErrors();

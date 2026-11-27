@@ -75,7 +75,9 @@ const { fields, blocks } = pageDef ? await getPageContent(pageDef.slug) : { fiel
                   <textarea id={`block-${block.id}-body`} name={`block[${block.id}][body]`} rows="8">{block.body}</textarea>
                 </div>
                 <p class="form-field-help">
-                  Leave a blank line between paragraphs. Start a line with "- " (dash, space) to make a bulleted list.
+                  Leave a blank line between paragraphs. Start a line with "- " (dash, space) to make a bulleted list,
+                  or "### " for a small subheading. Write a link as [the words](/location) or [the words](https://…),
+                  and put **double asterisks** round words to make them bold and orange.
                 </p>
 
                 <div class="content-block-editor-footer">

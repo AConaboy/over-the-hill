@@ -4,10 +4,12 @@ import ContentBlockView from "../components/ContentBlockView.astro";
 import { getPageContent } from "../lib/content";
 
 // Who the hosts are and what the weekend is. All of its text is editable in
-// admin under "About" (the fallbacks below only show if a field is blank). The hero has the venue photo beside the text, and the two parts
-// of the letter sit side by side on wide screens (.about-* in style.css).
+// admin under "About" (the fallbacks below only show if a field is blank).
+// The first section is the invitation, shown as a wide card; the rest are
+// the questions, in uneven pairs on wide screens (.about-* in style.css).
+// Notices (the "Got an idea?" box) come after them.
 const { fields, blocks } = await getPageContent("about");
-const letters = blocks.filter((block) => block.variant === "block");
+const [invitation, ...questions] = blocks.filter((block) => block.variant === "block");
 const notices = blocks.filter((block) => block.variant === "notice");
 ---
 
@@ -16,9 +18,9 @@ const notices = blocks.filter((block) => block.variant === "notice");
   description={fields.meta_description || "Why we're throwing our own music festival for our 30th birthdays, and what the weekend at Out to Grass will be like."}
 >
   <main id="main" tabindex="-1">
-    <section class="page-hero">
-      <div class="about-hero">
-        <div class="page-hero-content">
+    <section class="page-hero about-hero">
+      <div class="about-hero-inner">
+        <div class="page-hero-content about-hero-text">
           <p class="eyebrow">{fields.hero_eyebrow}</p>
           <h1>{fields.hero_heading}</h1>
           <p class="page-introduction">{fields.hero_introduction}</p>
@@ -35,8 +37,10 @@ const notices = blocks.filter((block) => block.variant === "notice");
     </section>
 
     <section class="page-content about-content">
-      <div class="about-letters">
-        {letters.map((block) => <ContentBlockView block={block} id={block.id} />)}
+      {invitation && <ContentBlockView block={invitation} id={invitation.id} />}
+
+      <div class="about-questions">
+        {questions.map((block) => <ContentBlockView block={block} id={block.id} />)}
       </div>
 
       {notices.map((block) => <ContentBlockView block={block} />)}
